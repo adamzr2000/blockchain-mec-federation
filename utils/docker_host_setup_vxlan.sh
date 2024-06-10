@@ -14,8 +14,9 @@ validate_ip() {
     local ip=$1
     local valid_ip_regex="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
     if [[ $ip =~ $valid_ip_regex ]]; then
-        for i in {1..4}; do
-            if [[ ${BASH_REMATCH[i]} -gt 255 ]]; then
+        IFS='.' read -r -a octets <<< "$ip"
+        for octet in "${octets[@]}"; do
+            if (( octet < 0 || octet > 255 )); then
                 return 1
             fi
         done
