@@ -1051,7 +1051,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                     break
 
             # Wait for the service to be ready and get the external IP
-            external_ip = deploy_docker_containers(requested_service, requested_service, "bridge", requested_replicas)
+            external_ip = deploy_docker_containers(requested_service, requested_service, "bridge", int(requested_replicas))
 
             # Deployment finished
             t_deployment_finished = time.time() - process_start_time
