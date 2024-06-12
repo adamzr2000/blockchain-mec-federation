@@ -559,7 +559,7 @@ def deploy_docker_containers_endpoint(image: str, name: str, network: str, repli
 def delete_docker_containers_endpoint(name: str):
     try:
         delete_docker_containers(name)
-        return {"message": f"Deleted containers with name {request.name} successfully."}
+        return {"message": f"Deleted containers with name {name} successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 # ------------------------------------------------------------------------------------------------------------------------------#
@@ -848,239 +848,238 @@ def deploy_service_endpoint(service_id: str):
         raise HTTPException(status_code=500, detail=str(e))    
 
 
-# @app.post("/start_experiments_consumer_v1", tags=["Test 1: migration of the entire object detection K8s service"])
-# def start_experiments_consumer_entire_service(export_to_csv: bool = False):
-#     try:
-#         header = ['step', 'timestamp']
-#         data = []
+@app.post("/start_experiments_consumer_v1", tags=["Test 1"])
+def start_experiments_consumer_entire_service(export_to_csv: bool = False):
+    try:
+        header = ['step', 'timestamp']
+        data = []
         
-#         if domain == 'consumer':
+        if domain == 'consumer':
             
-#             # Start time of the process
-#             process_start_time = time.time()
+            # Start time of the process
+            process_start_time = time.time()
             
-#             global bids_event
+            global bids_event
             
-#             # Service Announcement Sent
-#             t_service_announced = time.time() - process_start_time
-#             data.append(['service_announced', t_service_announced])
-#             bids_event = AnnounceService()
-#             print("\nSERVICE_ID:", service_id) # service + timestamp
+            # Service Announcement Sent
+            t_service_announced = time.time() - process_start_time
+            data.append(['service_announced', t_service_announced])
+            bids_event = AnnounceService()
+            print("\nSERVICE_ID:", service_id) # service + timestamp
 
-#             print("\n\033[1;32m(TX-1) Service announcement sent to the SC\033[0m")
+            print("\n\033[1;32m(TX-1) Service announcement sent to the SC\033[0m")
 
-#             # Consumer AD wait for provider bids
-#             bidderArrived = False
+            # Consumer AD wait for provider bids
+            bidderArrived = False
 
-#             print("Waiting for bids...\n")
-#             while bidderArrived == False:
-#                 new_events = bids_event.get_all_entries()
-#                 for event in new_events:
+            print("Waiting for bids...\n")
+            while bidderArrived == False:
+                new_events = bids_event.get_all_entries()
+                for event in new_events:
                     
-#                     # Bid Offer Received
-#                     t_bid_offer_received = time.time() - process_start_time
-#                     data.append(['bid_offer_received', t_bid_offer_received])
+                    # Bid Offer Received
+                    t_bid_offer_received = time.time() - process_start_time
+                    data.append(['bid_offer_received', t_bid_offer_received])
 
-#                     event_id = str(web3.toText(event['args']['_id']))
+                    event_id = str(web3.toText(event['args']['_id']))
                     
-#                     # Choosing provider
+                    # Choosing provider
 
-#                     # service id, service id, index of the bid
-#                     print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
-#                     print("BIDS ENTERED")
-#                     bid_index = int(event['args']['max_bid_index'])
-#                     bidderArrived = True 
-#                     if int(bid_index) < 2:
+                    # service id, service id, index of the bid
+                    print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
+                    print("BIDS ENTERED")
+                    bid_index = int(event['args']['max_bid_index'])
+                    bidderArrived = True 
+                    if int(bid_index) < 2:
 
-#                         print("\nBids-info = [provider address , service price , bid index]\n")
-#                         bid_info = GetBidInfo(int(bid_index-1))
-#                         print(bid_info)
+                        print("\nBids-info = [provider address , service price , bid index]\n")
+                        bid_info = GetBidInfo(int(bid_index-1))
+                        print(bid_info)
                     
 
-#                         # Winner choosen 
-#                         t_winner_choosen = time.time() - process_start_time
-#                         data.append(['winner_choosen', t_winner_choosen])
+                        # Winner choosen 
+                        t_winner_choosen = time.time() - process_start_time
+                        data.append(['winner_choosen', t_winner_choosen])
                         
-#                         ChooseProvider(int(bid_index)-1)
-#                         print("\n\033[1;32m(TX-3) Provider choosen! (bid index=" + str(bid_index-1) + ")\033[0m")
+                        ChooseProvider(int(bid_index)-1)
+                        print("\n\033[1;32m(TX-3) Provider choosen! (bid index=" + str(bid_index-1) + ")\033[0m")
 
-#                         # Service closed (state 1)
-#                         #DisplayServiceState(service_id)
-#                         break
+                        # Service closed (state 1)
+                        #DisplayServiceState(service_id)
+                        break
 
-#             # Consumer AD wait for provider confirmation
-#             serviceDeployed = False 
-#             while serviceDeployed == False:
-#                 serviceDeployed = True if GetServiceState(service_id) == 2 else False
+            # Consumer AD wait for provider confirmation
+            serviceDeployed = False 
+            while serviceDeployed == False:
+                serviceDeployed = True if GetServiceState(service_id) == 2 else False
             
-#             # Confirmation received
-#             t_confirm_deployment_received = time.time() - process_start_time
-#             data.append(['confirm_deployment_received', t_confirm_deployment_received])
+            # Confirmation received
+            t_confirm_deployment_received = time.time() - process_start_time
+            data.append(['confirm_deployment_received', t_confirm_deployment_received])
             
-#             # Service deployed info
-#             external_ip, service_endpoint_provider = GetDeployedInfo(service_id)
+            # Service deployed info
+            external_ip, service_endpoint_provider = GetDeployedInfo(service_id)
             
-#             t_check_connectivity_federated_service_start = time.time() - process_start_time
-#             data.append(['check_connectivity_federated_service_start', t_check_connectivity_federated_service_start])
+            t_check_connectivity_federated_service_start = time.time() - process_start_time
+            data.append(['check_connectivity_federated_service_start', t_check_connectivity_federated_service_start])
 
-#             external_ip = external_ip.decode('utf-8')
-#             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
+            external_ip = external_ip.decode('utf-8')
+            service_endpoint_provider = service_endpoint_provider.decode('utf-8')
 
-#             print("Federated service info:")
-#             print("External IP:", external_ip)
-#             print("Service endpoint provider:", service_endpoint_provider)
+            print("Federated service info:")
+            print("External IP:", external_ip)
+            print("Service endpoint provider:", service_endpoint_provider)
 
 
-#             # Establish connectivity with the federated service
-#             retry_limit = 5  # Maximum number of connection attempts
-#             retry_count = 0
-#             connected = True
-#             # connected = False
-#             while not connected and retry_count < retry_limit:
-#                 connected, response_content = check_service_connectivity(external_ip)
-#                 if not connected:
-#                     print("Failed to establish connection with the federated service. Retrying...")
-#                     retry_count += 1
-#                     time.sleep(2)  # Wait for 2 seconds before retrying
-#             if not connected:
-#                 print(f"Unable to establish connection with the federated service after {retry_limit} attempts.")
-#                 return {"error": f"Failed to establish connection with the federated service after {retry_limit} attempts."}
+            # # Establish connectivity with the federated service
+            # retry_limit = 5  # Maximum number of connection attempts
+            # retry_count = 0
+            # connected = True
+            # # connected = False
+            # while not connected and retry_count < retry_limit:
+            #     connected, response_content = check_service_connectivity(external_ip)
+            #     if not connected:
+            #         print("Failed to establish connection with the federated service. Retrying...")
+            #         retry_count += 1
+            #         time.sleep(2)  # Wait for 2 seconds before retrying
+            # if not connected:
+            #     print(f"Unable to establish connection with the federated service after {retry_limit} attempts.")
+            #     return {"error": f"Failed to establish connection with the federated service after {retry_limit} attempts."}
 
-#             t_check_connectivity_federated_service_finished = time.time() - process_start_time
-#             data.append(['check_connectivity_federated_service_finished', t_check_connectivity_federated_service_finished])
+            t_check_connectivity_federated_service_finished = time.time() - process_start_time
+            data.append(['check_connectivity_federated_service_finished', t_check_connectivity_federated_service_finished])
 
-#             total_duration = time.time() - process_start_time
+            total_duration = time.time() - process_start_time
 
-#             print(f"Federation process completed in {total_duration:.2f} seconds")
-#             # print(response_content)
+            print(f"Federation process completed in {total_duration:.2f} seconds")
+            # print(response_content)
 
-#             if export_to_csv:
-#                 # Export the data to a csv file only if export_to_csv is True
-#                 create_csv_file(domain, header, data)
-#                 print(f"Data exported to CSV for {domain}.")
-#             else:
-#                 delete_entire_object_detection_service()
-#                 print("CSV export not requested.")
+            if export_to_csv:
+                # Export the data to a csv file only if export_to_csv is True
+                create_csv_file(domain, header, data)
+                print(f"Data exported to CSV for {domain}.")
+            else:
+                print("CSV export not requested.")
 
-#             return {"message": f"Federation process completed in {total_duration:.2f} seconds"}
-#         else:
-#             error_message = "You must be consumer to run this code"
-#             raise HTTPException(status_code=500, detail=error_message)
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))    
+            return {"message": f"Federation process completed in {total_duration:.2f} seconds"}
+        else:
+            error_message = "You must be consumer to run this code"
+            raise HTTPException(status_code=500, detail=error_message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))    
 
-# @app.post("/start_experiments_provider_v1", tags=["Test 1: migration of the entire object detection K8s service"])
-# def start_experiments_provider_entire_service(export_to_csv: bool = False):
-#     try:
-#         header = ['step', 'timestamp']
-#         data = []
+@app.post("/start_experiments_provider_v1", tags=["Test 1"])
+def start_experiments_provider_entire_service(export_to_csv: bool = False):
+    try:
+        header = ['step', 'timestamp']
+        data = []
         
-#         if domain == 'provider':
+        if domain == 'provider':
             
-#             # Start time of the process
-#             process_start_time = time.time()
+            # Start time of the process
+            process_start_time = time.time()
 
-#             global winnerChosen_event 
-#             service_id = ''
-#             print("\nSERVICE_ID:", service_id)
+            global winnerChosen_event 
+            service_id = ''
+            print("\nSERVICE_ID:", service_id)
 
-#             newService_event = ServiceAnnouncementEvent()
-#             newService = False
-#             open_services = []
+            newService_event = ServiceAnnouncementEvent()
+            newService = False
+            open_services = []
 
-#             # Provider AD wait for service announcements
-#             print("Subscribed to federation events...")
-#             while newService == False:
-#                 new_events = newService_event.get_all_entries()
-#                 for event in new_events:
-#                     service_id = web3.toText(event['args']['id'])
+            # Provider AD wait for service announcements
+            print("Subscribed to federation events...")
+            while newService == False:
+                new_events = newService_event.get_all_entries()
+                for event in new_events:
+                    service_id = web3.toText(event['args']['id'])
                     
-#                     requirements = web3.toText(event['args']['requirements'])
+                    requirements = web3.toText(event['args']['requirements'])
 
-#                     requested_service, requested_replicas = extract_service_requirements(requirements.rstrip('\x00'))
+                    requested_service, requested_replicas = extract_service_requirements(requirements.rstrip('\x00'))
                     
-#                     if GetServiceState(service_id) == 0:
-#                         open_services.append(service_id)
-#                 # print("OPEN =", len(open_services)) 
-#                 if len(open_services) > 0:
+                    if GetServiceState(service_id) == 0:
+                        open_services.append(service_id)
+                # print("OPEN =", len(open_services)) 
+                if len(open_services) > 0:
                     
-#                     # Announcement received
-#                     t_announce_received = time.time() - process_start_time
-#                     data.append(['announce_received', t_announce_received])
+                    # Announcement received
+                    t_announce_received = time.time() - process_start_time
+                    data.append(['announce_received', t_announce_received])
 
-#                     print('Announcement received:')
-#                     print(new_events)
-#                     print("\n\033[1;33mRequested service: " + repr(requested_service) + "\033[0m")
-#                     print("\033[1;33mRequested replicas: " + repr(requested_replicas) + "\033[0m")
-#                     newService = True
+                    print('Announcement received:')
+                    print(new_events)
+                    print("\n\033[1;33mRequested service: " + repr(requested_service) + "\033[0m")
+                    print("\033[1;33mRequested replicas: " + repr(requested_replicas) + "\033[0m")
+                    newService = True
                 
-#             service_id = open_services[-1]
+            service_id = open_services[-1]
 
-#             # Place a bid offer to the Federation SC
-#             t_bid_offer_sent = time.time() - process_start_time
-#             data.append(['bid_offer_sent', t_bid_offer_sent])
-#             winnerChosen_event = PlaceBid(service_id, 10)
+            # Place a bid offer to the Federation SC
+            t_bid_offer_sent = time.time() - process_start_time
+            data.append(['bid_offer_sent', t_bid_offer_sent])
+            winnerChosen_event = PlaceBid(service_id, 10)
 
-#             print("\n\033[1;32m(TX-2) Bid offer sent to the SC\033[0m")
+            print("\n\033[1;32m(TX-2) Bid offer sent to the SC\033[0m")
             
-#             # Ask to the Federation SC if there is a winner (wait...)
+            # Ask to the Federation SC if there is a winner (wait...)
         
-#             winnerChosen = False
-#             while winnerChosen == False:
-#                 new_events = winnerChosen_event.get_all_entries()
-#                 for event in new_events:
-#                     event_serviceid = web3.toText(event['args']['_id'])
-#                     if event_serviceid == service_id:
+            winnerChosen = False
+            while winnerChosen == False:
+                new_events = winnerChosen_event.get_all_entries()
+                for event in new_events:
+                    event_serviceid = web3.toText(event['args']['_id'])
+                    if event_serviceid == service_id:
                         
-#                         # Winner choosen received
-#                         t_winner_received = time.time() - process_start_time
-#                         data.append(['winner_received', t_winner_received])
-#                         print("There is a winner")
-#                         winnerChosen = True
-#                         break
+                        # Winner choosen received
+                        t_winner_received = time.time() - process_start_time
+                        data.append(['winner_received', t_winner_received])
+                        print("There is a winner")
+                        winnerChosen = True
+                        break
             
-#             am_i_winner = False
-#             while am_i_winner == False:
-#                 # Provider AD ask if he is the winner
-#                 am_i_winner = CheckWinner(service_id)
-#                 if am_i_winner == True:
-#                     # Start deployment of the requested federated service
-#                     print("Start deployment of the requested federated service...")
-#                     t_deployment_start = time.time() - process_start_time
-#                     data.append(['deployment_start', t_deployment_start])
-#                     # print("I am the winner")
-#                     break
+            am_i_winner = False
+            while am_i_winner == False:
+                # Provider AD ask if he is the winner
+                am_i_winner = CheckWinner(service_id)
+                if am_i_winner == True:
+                    # Start deployment of the requested federated service
+                    print("Start deployment of the requested federated service...")
+                    t_deployment_start = time.time() - process_start_time
+                    data.append(['deployment_start', t_deployment_start])
+                    # print("I am the winner")
+                    break
 
-#             # Wait for the service to be ready and get the external IP
-#             external_ip = deploy_entire_object_detection_service()
+            # Wait for the service to be ready and get the external IP
+            external_ip = deploy_docker_containers(requested_service, requested_service, "bridge", requested_replicas)
 
-#             # Deployment finished
-#             t_deployment_finished = time.time() - process_start_time
-#             data.append(['deployment_finished', t_deployment_finished])
+            # Deployment finished
+            t_deployment_finished = time.time() - process_start_time
+            data.append(['deployment_finished', t_deployment_finished])
                 
-#             # Deployment confirmation sent
-#             t_confirm_deployment_sent = time.time() - process_start_time
-#             data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
-#             ServiceDeployed(service_id, external_ip)
+            # Deployment confirmation sent
+            t_confirm_deployment_sent = time.time() - process_start_time
+            data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
+            ServiceDeployed(service_id, external_ip)
 
-#             total_duration = time.time() - process_start_time
+            total_duration = time.time() - process_start_time
                 
-#             print("\n\033[1;32m(TX-4) Service deployed\033[0m")
-#             print("External IP:", external_ip)
-#             DisplayServiceState(service_id)
+            print("\n\033[1;32m(TX-4) Service deployed\033[0m")
+            print("External IP:", external_ip)
+            DisplayServiceState(service_id)
                 
-#             if export_to_csv:
-#                 # Export the data to a csv file only if export_to_csv is True
-#                 create_csv_file(domain, header, data)
-#                 print(f"Data exported to CSV for {domain}.")
-#             else:
-#                 print("CSV export not requested.")
+            if export_to_csv:
+                # Export the data to a csv file only if export_to_csv is True
+                create_csv_file(domain, header, data)
+                print(f"Data exported to CSV for {domain}.")
+            else:
+                print("CSV export not requested.")
 
 
-#             return {"message": f"Federation process completed in {total_duration:.2f} seconds"}
-#         else:
-#             error_message = "You must be provider to run this code"
-#             raise HTTPException(status_code=500, detail=error_message)
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=str(e))    
+            return {"message": f"Federation process completed in {total_duration:.2f} seconds"}
+        else:
+            error_message = "You must be provider to run this code"
+            raise HTTPException(status_code=500, detail=error_message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))    
 # ------------------------------------------------------------------------------------------------------------------------------#
