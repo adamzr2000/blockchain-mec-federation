@@ -16,7 +16,7 @@ Here is a diagram that represents visually the experimental setup:
 
 ![Experimental Setup](images/experimental-setup.svg)
 
-- 2 VMs, each acting as a separate AD, containing [Docker](https://docs.docker.com/engine/install/ubuntu) and [MicroK8s](https://MicroK8s.io/#install-MicroK8s)
+- 2 VMs, each acting as a separate AD, containing [Docker](https://docs.docker.com/engine/install/ubuntu)
 - Both interconnected in bridge mode within [KVM](https://help.ubuntu.com/community/KVM/Networking)
 - Both VMs have access to a blockchain node
 
@@ -26,7 +26,7 @@ Here is a diagram that represents visually the experimental setup:
 
 1. Clone the repository:
 ```bash
-git clone git@github.com:adamzr2000/dlt-federation-kubernetes.git
+git clone git@github.com:adamzr2000/blockchain-mec-federation.git
 ```
 
 2. Build Docker Images:
@@ -42,8 +42,6 @@ cd dlt-node && ./build.sh && cd ../truffle && ./build.sh && cd ../eth-netstats &
 - `truffle`: Development framework for Ethereum-based blockchain applications. It provides a suite of tools that allows developers to write, test, and deploy smart contracts on the blockchain network
 
 - `eth-netstats`: Dashboard for monitoring Geth nodes within the blockchain network
-
-> Note: For building images corresponding to the object detection service, please consult the [README](https://gitlab.com/netmode/6g-latency-sensitive-service) file located in the `descriptors/6g-latency-sensitive-service` directory
 
 3. Install the necessary python dependencies:
 ```bash

@@ -9,19 +9,28 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install the required software-properties-common package
 RUN apt-get update && \
     apt-get install -y software-properties-common \
-    iproute2 \
+    wget \
     iputils-ping \
 && apt-get clean \
 && rm -rf /var/lib/apt/lists/*
  
+
+# Download and install specific version of Geth (1.13)
+RUN wget https://gethstore.blob.core.windows.net/builds/geth-linux-amd64-1.13.15-c5ba367e.tar.gz && \
+    tar -xvf geth-linux-amd64-1.13.15-c5ba367e.tar.gz && \
+    mv geth-linux-amd64-1.13.15-c5ba367e/geth /usr/local/bin/ && \
+    rm -rf geth-linux-amd64-1.13.15-c5ba367e geth-linux-amd64-1.13.15-c5ba367e.tar.gz
+
+
 # Add Ethereum PPA repository
 RUN add-apt-repository -y ppa:ethereum/ethereum
 
 # Update package list
 RUN apt-get update
 
-# Install Ethereum package (geth)
-RUN apt-get install -y ethereum
+# Install Ethereum package (bootnode)
+RUN apt-get install -y bootnode
+
 
 # Set the working directory inside the container
 WORKDIR /dlt-network

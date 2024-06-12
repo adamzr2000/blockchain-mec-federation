@@ -4,7 +4,8 @@ services:
     image: dlt-node
     container_name: bootnode
     hostname: bootnode
-    env_file: bootnode.env
+    volumes:
+      - ./bootnode.env:/dlt-network/bootnode.env
     command: ./bootnode_start.sh
     network_mode: "host"
 
@@ -14,7 +15,8 @@ services:
     hostname: node1
     depends_on:
       - bootnode
-    env_file: node1.env
+    volumes:
+      - ./node1.env:/dlt-network/node1.env
     command: ./node1_start.sh
     network_mode: "host"
 
