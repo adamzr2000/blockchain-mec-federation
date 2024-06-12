@@ -7,6 +7,6 @@ if [ -z "$1" ]; then
 fi
 
 # Load environment variables from the specified file
-FEDERATION_ENV_FILE=$1
+export FEDERATION_ENV_FILE=$1
 
 python3 -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 --env-file $FEDERATION_ENV_FILE

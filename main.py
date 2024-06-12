@@ -174,8 +174,6 @@ else:  # Provider
     manager_address = ''  # Placeholder for manager contract address
     winnerChosen_event = None  # Placeholder for event listener setup
 
-print(f"Configuration complete for {domain_name} with IP {ip_address}.")
-
 # Validate connectivity to Docker and get the version information
 try:
     client = docker.from_env()
@@ -183,6 +181,8 @@ try:
     print(f"Successfully connected to Docker daemon (version={version_info['Version']})")
 except Exception as e:
     print(f"Failed to connect to Docker daemon: {e}")
+
+print(f"Configuration completed for {domain_name} with IP {ip_address}")
 
 #-------------------------- Initialize TEST variables ------------------------------#
 # List to store the timestamps of each federation step
@@ -450,286 +450,286 @@ def create_csv_file(role, header, data):
 
 
 
-# # # -------------------------------------------- DLT API FUNCTIONS --------------------------------------------#
-# # @app.get("/",
-# #          summary="Get Web3 and Ethereum node info",
-# #          tags=["Default DLT Functions"],
-# #          description="Endpoint to get Web3 and Ethereum node info")
-# # async def web3_info_endpoint():
-# #     try:
-# #         print("\n\033[1m" + "IP address: " + str(ip_address) + "\033[0m")
-# #         print("\033[1m" + "Ethereum address: " + str(block_address) + "\033[0m")
-# #         print("Federation contract:\n", Federation_contract.functions)
-# #         message = {
-# #             "ip-address": ip_address,
-# #             "ethereum-address": block_address,
-# #             "contract-address": contract_address,
-# #             "domain-name": domain_name,
-# #             "service-id": service_id
-# #         }
-# #         return {"web3-info": message}
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+# -------------------------------------------- DLT API FUNCTIONS --------------------------------------------#
+@app.get("/",
+         summary="Get Web3 and Ethereum node info",
+         tags=["Default DLT Functions"],
+         description="Endpoint to get Web3 and Ethereum node info")
+async def web3_info_endpoint():
+    try:
+        print("\n\033[1m" + "IP address: " + str(ip_address) + "\033[0m")
+        print("\033[1m" + "Ethereum address: " + str(block_address) + "\033[0m")
+        print("Federation contract:\n", Federation_contract.functions)
+        message = {
+            "ip-address": ip_address,
+            "ethereum-address": block_address,
+            "contract-address": contract_address,
+            "domain-name": domain_name,
+            "service-id": service_id
+        }
+        return {"web3-info": message}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.post("/register_domain", 
-# #           summary="Register a domain",
-# #           tags=["Default DLT Functions"],
-# #           description="Endpoint to register a domain in the smart contract")  
-# # def register_domain_endpoint():
-# #     global domain_registered  
-# #     # global nonce
-# #     try:
-# #         if not domain_registered:
-# #             # Build the transaction for the addOperator function
-# #             add_operator_transaction = Federation_contract.functions.addOperator(Web3.toBytes(text=domain_name)).buildTransaction({
-# #                 'from': block_address,
-# #                 'nonce': nonce
-# #             })
+@app.post("/register_domain", 
+          summary="Register a domain",
+          tags=["Default DLT Functions"],
+          description="Endpoint to register a domain in the smart contract")  
+def register_domain_endpoint():
+    global domain_registered  
+    # global nonce
+    try:
+        if not domain_registered:
+            # Build the transaction for the addOperator function
+            add_operator_transaction = Federation_contract.functions.addOperator(Web3.toBytes(text=domain_name)).buildTransaction({
+                'from': block_address,
+                'nonce': nonce
+            })
 
-# #             # Send the signed transaction
-# #             tx_hash = send_signed_transaction(add_operator_transaction)
+            # Send the signed transaction
+            tx_hash = send_signed_transaction(add_operator_transaction)
 
-# #             domain_registered = True
-# #             print("\n\033[1;32m(TX) Domain has been registered\033[0m")
-# #             return {"message": f"Domain {domain_name} has been registered"}
-# #         else:
-# #             error_message = f"Domain {domain_name} is already registered in the SC"
-# #             raise HTTPException(status_code=500, detail=error_message)
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+            domain_registered = True
+            print("\n\033[1;32m(TX) Domain has been registered\033[0m")
+            return {"message": f"Domain {domain_name} has been registered"}
+        else:
+            error_message = f"Domain {domain_name} is already registered in the SC"
+            raise HTTPException(status_code=500, detail=error_message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.post("/create_service_announcement",
-# #           summary="Create a service announcement", 
-# #           tags=["Consumer Functions"],
-# #           description="Endpoint to create a service announcement")
-# # def create_service_announcement_endpoint():
-# #     global bids_event
-# #     try:
-# #         bids_event = AnnounceService()
-# #         print("\n\033[1;32m(TX-1) Service announcement sent to the SC\033[0m")
-# #         return {"message": "Service announcement sent to the SC"}
+@app.post("/create_service_announcement",
+          summary="Create a service announcement", 
+          tags=["Consumer Functions"],
+          description="Endpoint to create a service announcement")
+def create_service_announcement_endpoint():
+    global bids_event
+    try:
+        bids_event = AnnounceService()
+        print("\n\033[1;32m(TX-1) Service announcement sent to the SC\033[0m")
+        return {"message": "Service announcement sent to the SC"}
 
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.get("/check_service_state/{service_id}",
-# #          summary="Get service state",
-# #          tags=["Default DLT Functions"],
-# #          description="Endpoint to get the state of a service (specified by its ID)")
-# # async def check_service_state_endpoint(service_id: str):
-# #     try:
-# #         current_service_state = Federation_contract.functions.GetServiceState(_id=web3.toBytes(text=service_id)).call()
-# #         if current_service_state == 0:
-# #             return {"service-id": service_id, "state": "open"}
-# #         elif current_service_state == 1:
-# #             return {"service-id": service_id, "state": "closed"}
-# #         elif current_service_state == 2:
-# #             return {"service-id": service_id, "state": "deployed"}
-# #         else:
-# #             return { "error" : f"service-id {service_id}, state is {current_service_state}"}
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+@app.get("/check_service_state/{service_id}",
+         summary="Get service state",
+         tags=["Default DLT Functions"],
+         description="Endpoint to get the state of a service (specified by its ID)")
+async def check_service_state_endpoint(service_id: str):
+    try:
+        current_service_state = Federation_contract.functions.GetServiceState(_id=web3.toBytes(text=service_id)).call()
+        if current_service_state == 0:
+            return {"service-id": service_id, "state": "open"}
+        elif current_service_state == 1:
+            return {"service-id": service_id, "state": "closed"}
+        elif current_service_state == 2:
+            return {"service-id": service_id, "state": "deployed"}
+        else:
+            return { "error" : f"service-id {service_id}, state is {current_service_state}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.get("/check_deployed_info/{service_id}",
-# #          summary="Get deployed info",
-# #          tags=["Default DLT Functions"],
-# #          description="Endpoint to get deployed info for a service and check E2E connectivity.") 
-# # async def check_deployed_info_endpoint(service_id: str):
-# #     try:
-# #         # Service deployed info
-# #         external_ip, service_endpoint_provider = GetDeployedInfo(service_id)  # Assume this function exists
-# #         external_ip = external_ip.decode('utf-8')
-# #         service_endpoint_provider = service_endpoint_provider.decode('utf-8')
+@app.get("/check_deployed_info/{service_id}",
+         summary="Get deployed info",
+         tags=["Default DLT Functions"],
+         description="Endpoint to get deployed info for a service and check E2E connectivity.") 
+async def check_deployed_info_endpoint(service_id: str):
+    try:
+        # Service deployed info
+        external_ip, service_endpoint_provider = GetDeployedInfo(service_id)  # Assume this function exists
+        external_ip = external_ip.decode('utf-8')
+        service_endpoint_provider = service_endpoint_provider.decode('utf-8')
 
-# #         # Establish connectivity with the federated service
-# #         connected, response_content = check_service_connectivity(external_ip)
-# #         if not connected:
-# #             print("Failed to establish connection with the federated service.")
-# #             return {"error": "Failed to establish connection with the federated service."}
+        # Establish connectivity with the federated service
+        connected, response_content = check_service_connectivity(external_ip)
+        if not connected:
+            print("Failed to establish connection with the federated service.")
+            return {"error": "Failed to establish connection with the federated service."}
 
-# #         message = {
-# #             "service-endpoint-provider": service_endpoint_provider,
-# #             "external-ip": external_ip,
-# #             "connectivity-status": "Successfully established E2E connectivity",
-# #             "service-response": response_content
-# #         }
-# #         return {"message": message}
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+        message = {
+            "service-endpoint-provider": service_endpoint_provider,
+            "external-ip": external_ip,
+            "connectivity-status": "Successfully established E2E connectivity",
+            "service-response": response_content
+        }
+        return {"message": message}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-# # @app.get("/check_service_announcements",
-# #          summary="Check announcements",
-# #          tags=["Provider Functions"], 
-# #          description="Endpoint to check for new announcements")
-# # async def check_service_announcements_endpoint():
-# #     try:
-# #         new_service_event = Federation_contract.events.ServiceAnnouncement()  
+@app.get("/check_service_announcements",
+         summary="Check announcements",
+         tags=["Provider Functions"], 
+         description="Endpoint to check for new announcements")
+async def check_service_announcements_endpoint():
+    try:
+        new_service_event = Federation_contract.events.ServiceAnnouncement()  
 
-# #         # Determine the current block number
-# #         current_block = web3.eth.blockNumber
+        # Determine the current block number
+        current_block = web3.eth.blockNumber
 
-# #         # Calculate the start block for the event search (last 20 blocks)
-# #         start_block = max(0, current_block - 20)  # Ensure start block is not negative
+        # Calculate the start block for the event search (last 20 blocks)
+        start_block = max(0, current_block - 20)  # Ensure start block is not negative
 
-# #         # Fetch new events from the last 20 blocks
-# #         new_events = new_service_event.createFilter(fromBlock=start_block, toBlock='latest').get_all_entries()
+        # Fetch new events from the last 20 blocks
+        new_events = new_service_event.createFilter(fromBlock=start_block, toBlock='latest').get_all_entries()
 
-# #         open_services = []
-# #         message = ""
+        open_services = []
+        message = ""
 
-# #         for event in new_events:
-# #             service_id = web3.toText(event['args']['id']).rstrip('\x00')
-# #             requirements = web3.toText(event['args']['requirements']).rstrip('\x00')
-# #             tx_hash = web3.toHex(event['transactionHash'])
-# #             address = event['address']
-# #             block_number = event['blockNumber']
-# #             event_name = event['event']
+        for event in new_events:
+            service_id = web3.toText(event['args']['id']).rstrip('\x00')
+            requirements = web3.toText(event['args']['requirements']).rstrip('\x00')
+            tx_hash = web3.toHex(event['transactionHash'])
+            address = event['address']
+            block_number = event['blockNumber']
+            event_name = event['event']
 
-# #             if GetServiceState(service_id) == 0:
-# #                 open_services.append(service_id)
+            if GetServiceState(service_id) == 0:
+                open_services.append(service_id)
 
-# #         if len(open_services) > 0:
-# #             service_details = {
-# #                     "service_id": service_id,
-# #                     "requirements": requirements,
-# #                     "tx_hash": tx_hash,
-# #                     "contract_address": address,
-# #                     "block": block_number,
-# #                     "event_name": event_name
-# #             }
-# #             print('Announcement received:')
-# #             print(new_events)
-# #             return {"Announcements": service_details}
-# #         else:
-# #             return {"No new events found": "No new services announced in the last 20 blocks."}
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+        if len(open_services) > 0:
+            service_details = {
+                    "service_id": service_id,
+                    "requirements": requirements,
+                    "tx_hash": tx_hash,
+                    "contract_address": address,
+                    "block": block_number,
+                    "event_name": event_name
+            }
+            print('Announcement received:')
+            print(new_events)
+            return {"Announcements": service_details}
+        else:
+            return {"No new events found": "No new services announced in the last 20 blocks."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.post("/place_bid/{service_id}-{service_price}",
-# #           summary="Place a bid",
-# #           tags=["Provider Functions"],
-# #           description="Endpoint to place a bid for a service")
-# # def place_bid_endpoint(service_id: str, service_price: int):
-# #     global winnerChosen_event 
-# #     try:
-# #         winnerChosen_event  = PlaceBid(service_id, service_price)
-# #         print("\n\033[1;32m(TX-2) Bid offer sent to the SC\033[0m")
-# #         return {"message": "Bid offer sent to the SC"}
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+@app.post("/place_bid/{service_id}-{service_price}",
+          summary="Place a bid",
+          tags=["Provider Functions"],
+          description="Endpoint to place a bid for a service")
+def place_bid_endpoint(service_id: str, service_price: int):
+    global winnerChosen_event 
+    try:
+        winnerChosen_event  = PlaceBid(service_id, service_price)
+        print("\n\033[1;32m(TX-2) Bid offer sent to the SC\033[0m")
+        return {"message": "Bid offer sent to the SC"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.get('/check_bids/{service_id}',
-# #          summary="Check bids",
-# #          tags=["Consumer Functions"],
-# #          description="Endpoint to check bids for a service")  
-# # async def check_bids_endpoint(service_id: str):
-# #     global bids_event
-# #     message = ""
-# #     new_events = bids_event.get_all_entries()
-# #     bidderArrived = False
-# #     try:
-# #         for event in new_events:
-# #             # New bid received
-# #             event_id = str(web3.toText(event['args']['_id']))
-# #             # service id, service id, index of the bid
-# #             print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
+@app.get('/check_bids/{service_id}',
+         summary="Check bids",
+         tags=["Consumer Functions"],
+         description="Endpoint to check bids for a service")  
+async def check_bids_endpoint(service_id: str):
+    global bids_event
+    message = ""
+    new_events = bids_event.get_all_entries()
+    bidderArrived = False
+    try:
+        for event in new_events:
+            # New bid received
+            event_id = str(web3.toText(event['args']['_id']))
+            # service id, service id, index of the bid
+            print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
                     
-# #             bid_index = int(event['args']['max_bid_index'])
-# #             bidderArrived = True 
-# #             if int(bid_index) < 2:
-# #                 print("\nBids-info = [provider address , service price , bid index]\n")
-# #                 bid_info = GetBidInfo(int(bid_index-1))
-# #                 print(bid_info)
-# #                 message = {
-# #                     "provider-address": bid_info[0],
-# #                     "service-price": bid_info[1],
-# #                     "bid-index": bid_info[2]
-# #                 }
-# #                 break
-# #         if bidderArrived:
-# #             return {"bids": message}
+            bid_index = int(event['args']['max_bid_index'])
+            bidderArrived = True 
+            if int(bid_index) < 2:
+                print("\nBids-info = [provider address , service price , bid index]\n")
+                bid_info = GetBidInfo(int(bid_index-1))
+                print(bid_info)
+                message = {
+                    "provider-address": bid_info[0],
+                    "service-price": bid_info[1],
+                    "bid-index": bid_info[2]
+                }
+                break
+        if bidderArrived:
+            return {"bids": message}
 
-# #         else:
-# #             return {"message": f"No bids found for the service {service_id}"}
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+        else:
+            return {"message": f"No bids found for the service {service_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.post('/choose_provider/{bid_index}',
-# #           summary="Choose provider",
-# #           tags=["Consumer Functions"],
-# #           description="Endpoint to choose a provider")
-# # def choose_provider_endpoint(bid_index: int):
-# #     global bids_event
-# #     try:
-# #         new_events = bids_event.get_all_entries()
-# #         for event in new_events:
-# #             event_id = str(web3.toText(event['args']['_id'])).rstrip('\x00')
-# #             print("\n\033[1;32m(TX-3) Provider choosen! (bid index: " + str(bid_index) + ")\033[0m")
-# #             ChooseProvider(bid_index)
-# #             # Service closed (state 1)
-# #         return {"message": f"Provider chosen!", "service-id": event_id, "bid-index": bid_index}    
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+@app.post('/choose_provider/{bid_index}',
+          summary="Choose provider",
+          tags=["Consumer Functions"],
+          description="Endpoint to choose a provider")
+def choose_provider_endpoint(bid_index: int):
+    global bids_event
+    try:
+        new_events = bids_event.get_all_entries()
+        for event in new_events:
+            event_id = str(web3.toText(event['args']['_id'])).rstrip('\x00')
+            print("\n\033[1;32m(TX-3) Provider choosen! (bid index: " + str(bid_index) + ")\033[0m")
+            ChooseProvider(bid_index)
+            # Service closed (state 1)
+        return {"message": f"Provider chosen!", "service-id": event_id, "bid-index": bid_index}    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.get("/check_winner/{service_id}", 
-# #          summary="Check for winner",
-# #          tags=["Provider Functions"],
-# #          description="Endpoint to check if there is a winner for a service")
-# # async def check_winner_endpoint(service_id: str):
-# #     global winnerChosen_event 
-# #     try:
-# #         new_events = winnerChosen_event.get_all_entries()
-# #         winnerChosen = False
-# #         # Ask to the Federation SC if there is a winner
-# #         for event in new_events:
-# #             event_serviceid = web3.toText(event['args']['_id']).rstrip('\x00')
-# #             if event_serviceid == service_id:
-# #                 # Winner choosen
-# #                 winnerChosen = True
-# #                 break
-# #         if winnerChosen:
-# #             return {"message": f"There is a winner for the service {service_id}"}
-# #         else:
-# #             return {"message": f"No winner yet for the service {service_id}"}
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+@app.get("/check_winner/{service_id}", 
+         summary="Check for winner",
+         tags=["Provider Functions"],
+         description="Endpoint to check if there is a winner for a service")
+async def check_winner_endpoint(service_id: str):
+    global winnerChosen_event 
+    try:
+        new_events = winnerChosen_event.get_all_entries()
+        winnerChosen = False
+        # Ask to the Federation SC if there is a winner
+        for event in new_events:
+            event_serviceid = web3.toText(event['args']['_id']).rstrip('\x00')
+            if event_serviceid == service_id:
+                # Winner choosen
+                winnerChosen = True
+                break
+        if winnerChosen:
+            return {"message": f"There is a winner for the service {service_id}"}
+        else:
+            return {"message": f"No winner yet for the service {service_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.get("/check_if_i_am_winner/{service_id}",
-# #          summary="Check if I am winner",
-# #          tags=["Provider Functions"],
-# #          description="Endpoint to check if provider is the winner")
-# # async def check_if_I_am_Winner_endpoint(service_id: str):
-# #     try:
-# #         am_i_winner = CheckWinner(service_id)
-# #         if am_i_winner == True:
-# #             print("I am a Winner")
-# #             return {"message": f"I am the winner for the service {service_id}"}
-# #         else:
-# #             print("I am not a Winner")
-# #             return {"message": f"I am not the winner for the service {service_id}"}
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))
+@app.get("/check_if_i_am_winner/{service_id}",
+         summary="Check if I am winner",
+         tags=["Provider Functions"],
+         description="Endpoint to check if provider is the winner")
+async def check_if_I_am_Winner_endpoint(service_id: str):
+    try:
+        am_i_winner = CheckWinner(service_id)
+        if am_i_winner == True:
+            print("I am a Winner")
+            return {"message": f"I am the winner for the service {service_id}"}
+        else:
+            print("I am not a Winner")
+            return {"message": f"I am not the winner for the service {service_id}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-# # @app.post("/deploy_service/{service_id}",
-# #           summary="Deploy service",
-# #           tags=["Provider Functions"],
-# #           description="Endpoint for provider to deploy service")
-# # def deploy_service_endpoint(service_id: str):
-# #     try:
-# #         if CheckWinner(service_id):
-# #             # create_k8s_resource_from_yaml(f"descriptors/examples/{YAMLFile.federated_service}")
+@app.post("/deploy_service/{service_id}",
+          summary="Deploy service",
+          tags=["Provider Functions"],
+          description="Endpoint for provider to deploy service")
+def deploy_service_endpoint(service_id: str):
+    try:
+        if CheckWinner(service_id):
+            # create_k8s_resource_from_yaml(f"descriptors/examples/{YAMLFile.federated_service}")
 
-# #             # Wait for the service to be ready and get the external IP
-# #             # external_ip = wait_for_service_ready("federated-service") 
+            # Wait for the service to be ready and get the external IP
+            # external_ip = wait_for_service_ready("federated-service") 
 
-# #             ServiceDeployed(service_id, external_ip)
-# #             print("\n\033[1;32m(TX-4) Service deployed\033[0m")
-# #             return {"message": f"Service deployed (exposed ip: {external_ip})"}
-# #         else:
-# #             return {"message": "You are not the winner"}   
-# #     except Exception as e:
-# #         raise HTTPException(status_code=500, detail=str(e))    
+            ServiceDeployed(service_id, external_ip)
+            print("\n\033[1;32m(TX-4) Service deployed\033[0m")
+            return {"message": f"Service deployed (exposed ip: {external_ip})"}
+        else:
+            return {"message": "You are not the winner"}   
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))    
 
 
 # @app.post("/start_experiments_consumer_v1", tags=["Test 1: migration of the entire object detection K8s service"])
