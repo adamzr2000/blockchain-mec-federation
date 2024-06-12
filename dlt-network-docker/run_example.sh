@@ -2,8 +2,7 @@ docker run \
     -it \
     --name node1 \
     --hostname node1 \
-    --env-file node1.env \
     --rm \
     --net host \
-    -v $(pwd)/node1.env:/dlt-network/node1.env \
+    -v $(pwd)/../config/dlt/node1.env:/dlt-network/node1.env \
     dlt-node:latest

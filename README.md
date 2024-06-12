@@ -95,43 +95,6 @@ Access the `eth-netsats` web interface for additional information at `http://<vm
 ./stop_dlt_network.sh
 ```
 
-## MicroK8s Setup
-### Cluster Installation
-To effortlessly set up a fully-functional, single-node Kubernetes cluster, execute the following command:
-
-```bash
-sudo snap install microk8s --classic
-```
-
-Add the following lines to your `~/.bash_aliases` file for direct usage of `kubectl` and `helm` commands with MicroK8s:
-```bash
-alias kubectl='microk8s kubectl'
-alias helm='microk8s helm'
-```
-
-### Helm Integration
-To integrate Helm, the Kubernetes package manager, with your MicroK8s cluster, run:
-```bash
-microk8s enable helm 
-```
-
-### MetalLB Integration
-**MetalLB** is an open-source, software-based load balancer solution for Kubernetes clusters. It provides a network load balancing functionality by enabling the assignment of external IP addresses to services running within the cluster.
-
-Integrate MetalLB with your MicroK8s cluster by executing the following command and specifying the appropriate address pool:
-```bash
-microk8s enable metallb
-
-<Enter IP address range>
-(e.g. 10.5.50.80-10.5.50.90)
-```
-
-Check if the MetalLB driver is running using the following commands:
-```bash
-kubectl get pods -n metallb-system
-kubectl get configmap -n metallb-system
-```
-
 ## Usage
 
 > Note: Before starting, ensure to export the Kubernetes cluster configuration file for each VM. Navigate to the `k8s-cluster-config` directory and execute `./export_k8s_cluster_config`
@@ -147,7 +110,7 @@ cd smart-contracts
 2. Start the orchestrator's web server on each VM and specify the domain role for the federation (e.g., VM1 as consumer and VM2 as provider)
 
 ```bash
-./start_app.sh
+./start_app.sh config/federation/consumer1.env
 ```
 
 For detailed information about the federation functions, refer to the REST API documentation, which is based on Swagger UI, at: `http://<vm-ip>:8000/docs`

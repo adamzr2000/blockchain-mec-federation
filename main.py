@@ -445,7 +445,123 @@ def create_csv_file(role, header, data):
     print(f"Data saved to {file_name}")
 
 
+def deploy_docker_containers(image, name, network, replicas):
+    containers = []
+    try:
+        for i in range(replicas):
+            container_name = f"{name}_{i+1}"
+            container = client.containers.run(
+                image=image,
+                name=container_name,
+                network=network,
+                detach=True,
+                command="sh -c 'while true; do sleep 3600; done'"
+            )
+            containers.append(container)
+        
+        # Wait for containers to be ready
+        for container in containers:
+            while True:
+                container.reload()
+                if container.status == "running":
+                    print(f"Container {container_name} deployed successfully.")
+                    break
+                time.sleep(1)  # Brief pause to avoid tight loop
+
+        return containers
+    except Exception as e:
+        print(f"Failed to deploy containers: {e}")
+        return []
+
+def delete_docker_containers(name):
+    try:
+        containers = client.containers.list(all=True, filters={"name": name})
+        for container in containers:
+            container_name = container.name
+            container.remove(force=True)
+            
+            # Wait for container to be removed
+            while True:
+                remaining_containers = client.containers.list(all=True, filters={"name": container_name})
+                if not remaining_containers:
+                    print(f"Container {container_name} deleted successfully.")
+                    break
+                
+    except Exception as e:
+        print(f"Failed to delete containers: {e}")
+
+def scale_docker_containers(name, action, replicas):
+    try:
+        existing_containers = client.containers.list(all=True, filters={"name": name})
+        current_replicas = len(existing_containers)
+        
+        if action.lower() == "up":
+            new_replicas = current_replicas + replicas
+            for i in range(current_replicas, new_replicas):
+                container_name = f"{name}_{i+1}"
+                container = client.containers.run(
+                    image=existing_containers[0].image.tags[0],
+                    name=container_name,
+                    network=existing_containers[0].attrs['HostConfig']['NetworkMode'],
+                    detach=True,
+                    command="sh -c 'while true; do sleep 3600; done'"
+                )
+                print(f"Container {container_name} deployed successfully.")
+        elif action.lower() == "down":
+            new_replicas = max(0, current_replicas - replicas)
+            for i in range(current_replicas - 1, new_replicas - 1, -1):
+                container_name = f"{name}_{i+1}"
+                container = client.containers.get(container_name)
+                container.remove(force=True)
+                print(f"Container {container_name} deleted successfully.")
+        else:
+            print("Invalid action. Use 'up' or 'down'.")
+            return
+    except Exception as e:
+        print(f"Failed to scale containers: {e}")
+
+
+def get_container_ips(name):
+    ips = {}
+    try:
+        containers = client.containers.list(all=True, filters={"name": name})
+        if not containers:
+            print(f"No containers found with name: {name}")
+            return ips
+        
+        for container in containers:
+            container.reload()  # Refresh container data
+            network_settings = container.attrs['NetworkSettings']['Networks']
+            container_ips = {}
+            for network_name, network_data in network_settings.items():
+                ip_address = network_data['IPAddress']
+                container_ips[network_name] = ip_address
+                print(f"Container {container.name} in network {network_name} has IP address: {ip_address}")
+            ips[container.name] = container_ips
+        return ips
+    except Exception as e:
+        print(f"Failed to get IP addresses for containers: {e}")
+        return ips
+
+
 # -------------------------------------------- Docker API FUNCTIONS --------------------------------------------#
+@app.post("/deploy_docker_service/{image}-{name}-{network}-{replicas}", tags=["Docker Functions"], summary="Deploy docker service")
+def deploy_docker_containers_endpoint(image: str, name: str, network: str, replicas: int):
+    try:
+        containers = deploy_docker_containers(image, name, network, replicas)
+        ips = get_container_ips(name)
+        return {"message": f"Deployed {len(containers)} containers successfully.", "ips": ips}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/delete_docker_service", tags=["Docker Functions"], summary="Delete docker service")
+def delete_docker_containers_endpoint(name: str):
+    try:
+        delete_docker_containers(name)
+        return {"message": f"Deleted containers with name {request.name} successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 # ------------------------------------------------------------------------------------------------------------------------------#
 
 
