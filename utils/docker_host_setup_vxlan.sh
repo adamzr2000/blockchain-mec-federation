@@ -2,10 +2,12 @@
 
 # Function to display usage information
 usage() {
-    echo "Usage: $0 -l <local_ip> -r <remote_ip> -i <interface_name>"
+    echo "Usage: $0 -l <local_ip> -r <remote_ip> -i <interface_name> -v <vxlan_id> -p <dst_port>"
     echo "  -l <local_ip>        Local IP address"
     echo "  -r <remote_ip>       Remote IP address"
     echo "  -i <interface_name>  Interface name (e.g., enp0s3)"
+    echo "  -v <vxlan_id>        VXLAN ID"
+    echo "  -p <dst_port>        Destination port"
     exit 1
 }
 
@@ -27,17 +29,19 @@ validate_ip() {
 }
 
 # Parse input arguments
-while getopts "l:r:i:" opt; do
+while getopts "l:r:i:v:p:" opt; do
     case ${opt} in
         l ) local_ip=$OPTARG ;;
         r ) remote_ip=$OPTARG ;;
         i ) dev_interface=$OPTARG ;;
+        v ) vxlan_id=$OPTARG ;;
+        p ) dst_port=$OPTARG ;;
         * ) usage ;;
     esac
 done
 
 # Check if all required arguments are provided
-if [ -z "$local_ip" ] || [ -z "$remote_ip" ] || [ -z "$dev_interface" ]; then
+if [ -z "$local_ip" ] || [ -z "$remote_ip" ] || [ -z "$dev_interface" ] || [ -z "$vxlan_id" ] || [ -z "$dst_port" ]; then
     usage
 fi
 
@@ -72,7 +76,7 @@ fi
 
 # Step 3: Create a VXLAN network interface.
 echo -e "\nCreating VXLAN network interface 'vxlan200'..."
-sudo ip link add vxlan200 type vxlan id 200 local $local_ip remote $remote_ip dstport 4789 dev $dev_interface
+sudo ip link add vxlan200 type vxlan id $vxlan_id local $local_ip remote $remote_ip dstport $dst_port dev $dev_interface
 
 # Step 4: Enable the VXLAN network interface.
 echo -e "\nEnabling the VXLAN interface 'vxlan200'..."

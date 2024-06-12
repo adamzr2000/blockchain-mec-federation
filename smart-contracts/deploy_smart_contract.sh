@@ -10,5 +10,5 @@ echo "$output"
 contract_address=$(echo "$output" | grep "contract address:" | awk '{print $4}')
 
 # Save the contract address in the ../code/ directory
-echo "CONTRACT_ADDRESS=$contract_address" > ./.env
-echo "Contract Address saved in ./.env file: $contract_address"
+echo "CONTRACT_ADDRESS=$contract_address" > ./smart-contract.env
+echo "Contract Address saved in ./smart-contract.env file: $contract_address"

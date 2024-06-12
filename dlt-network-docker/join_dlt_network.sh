@@ -28,7 +28,7 @@ fi
 
 # Proceed with the operation
 START_CMD="./${NODE_SELECTION}_start.sh"
-DOCKER_CMD="docker run -it --name $NODE_SELECTION --hostname $NODE_SELECTION --network host --rm -v $(pwd)/.env:/dlt-network/.env dlt-node $START_CMD"
+DOCKER_CMD="docker run -it --name $NODE_SELECTION --hostname $NODE_SELECTION --network host --rm -v $(pwd)/$NODE_SELECTION.env:/dlt-network/$NODE_SELECTION.env dlt-node $START_CMD"
 
 echo "Starting $NODE_SELECTION with command $START_CMD..."
 eval "$DOCKER_CMD"

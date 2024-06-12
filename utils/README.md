@@ -15,12 +15,18 @@ chmod +x docker_host_setup_vxlan.sh
 
 Example:
 
+
 ```sh
-./docker_host_setup_vxlan.sh -l 192.168.56.104 -r 192.168.56.105 -i enp0s3
+./docker_host_setup_vxlan.sh -l <local_ip> -r <remote_ip> -i <interface_name> -v <vxlan_id> -p <dst_port>
+```
+
+
+```sh
+./docker_host_setup_vxlan.sh -l 192.168.56.104 -r 192.168.56.105 -i enp0s3 -v 200 -p 4789
 ```
 
 ```sh
-./docker_host_setup_vxlan.sh -l 192.168.56.105 -r 192.168.56.104 -i enp0s3
+./docker_host_setup_vxlan.sh -l 192.168.56.105 -r 192.168.56.104 -i enp0s3 -v 200 -p 4789
 ```
 
 ```sh
