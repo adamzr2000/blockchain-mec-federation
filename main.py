@@ -838,6 +838,7 @@ def deploy_service_endpoint(service_id: str):
 
             # Wait for the service to be ready and get the external IP
             # external_ip = wait_for_service_ready("federated-service") 
+            external_ip = "10.10.0.10"
 
             ServiceDeployed(service_id, external_ip)
             print("\n\033[1;32m(TX-4) Service deployed\033[0m")
@@ -1052,7 +1053,10 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
 
             # Wait for the service to be ready and get the external IP
             external_ip = deploy_docker_containers(requested_service, requested_service, "bridge", int(requested_replicas))
-
+            external_ip = "10.10.0.10"
+            vxlan_id = "200"
+            vxlan_port = "4789"
+            
             # Deployment finished
             t_deployment_finished = time.time() - process_start_time
             data.append(['deployment_finished', t_deployment_finished])
