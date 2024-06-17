@@ -1083,24 +1083,14 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             docker_subnet = "10.0.0.0/16"
             docker_ip_range = f"10.0.{dlt_node_id}.0/24"
 
-            # Print all variables
-            print("Federated Host:", federated_host)
-            print("Service Endpoint Consumer:", service_endpoint_consumer)
-            print("Remote IP:", remote_ip)
-            print("Interface Name:", interface_name)
-            print("VXLAN ID:", vxlan_id)
-            print("VXLAN Port:", vxlan_port)
-            print("Docker Subnet:", docker_subnet)
-            print("Docker IP Range:", docker_ip_range)
-
             # Sets up the federation docker network and the VXLAN network interface
-            # configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+            configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
             # Deploy docker service and wait to be ready and get an IP address
-            # containers = deploy_docker_containers(requested_service, requested_service, "federation-net", int(requested_replicas))
+            containers = deploy_docker_containers(requested_service, requested_service, "federation-net", int(requested_replicas))
             # ips = get_container_ips(name)
             
-            federated_host = "10.10.0.10"
+            federated_host = "10.0.2.1"
 
             
             # Deployment finished
