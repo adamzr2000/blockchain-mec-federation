@@ -35,7 +35,7 @@ app = FastAPI(
     title="DLT Service Federation API Documentation",
     openapi_tags=tags_metadata,
     description="""
-- This API provides endpoints for interacting with the DLT network and Kubernetes orchestrator.
+- This API provides endpoints for interacting with the DLT network and a custom-built Docker orchestrator.
 
 - The federation procedures are stored and deployed on a Federation Smart Contract, which is running on top of a permissioned blockchain network (private Ethereum).
 
@@ -49,23 +49,21 @@ app = FastAPI(
 
 ADs register to the Federation SC with a single-transaction registration, using its unique blockchain address.
 
-**2) ANNOUNCEMENT**
+**2) ANNOUNCEMENT & NEGOTIATION**
 
 Consumer AD announces that it needs service federation (service extension or new service)
 
-**3) NEGOTIATION**
-
 Provider AD(s) listen for federation events. If they receive an offer, they analyze if they can satisfy the requirements and send back an answer with the price of the service
 
-**4) ACCEPTANCE & DEPLOYMENT**
+**3) ACCEPTANCE & DEPLOYMENT**
 
 Consumer AD analyzes all collected answers and chooses an offer of a single provider domain.
 
 Provider AD starts the deployment of the requested federated service.
 
-**5) USAGE & CHARGING**
+**4) USAGE & CHARGING**
 
-Once the provider deploys the federated service, it notifies the consumer AD with connection details
+Once the provider deploys the federated service, it notifies the consumer AD with connection details, and both domains establish data plane connectivity using VxLAN
 
 """
 )
@@ -158,7 +156,6 @@ domain_registered = False
 # Initialize domain-specific configurations and variables
 if domain == "consumer":
     # Consumer-specific variables
-    # service_id = 'service' + str(int(time.time()))
     service_endpoint_consumer = ip_address
     service_consumer_address = block_address
     service_requirements = 'service=alpine;replicas=1'
@@ -232,12 +229,9 @@ def AnnounceService():
     
     # Send the signed transaction
     tx_hash = send_signed_transaction(announce_transaction)
-    
     block = web3.eth.getBlock('latest')
     block_number = block['number']
-    
-    event_filter = Federation_contract.events.NewBid.createFilter(fromBlock=web3.toHex(block_number))
-    
+    event_filter = Federation_contract.events.NewBid.createFilter(fromBlock=web3.toHex(block_number))    
     return event_filter
 
 def GetBidInfo(bid_index):
@@ -315,7 +309,6 @@ def ServiceAnnouncementEvent():
     print("\nLatest block:",blocknumber)
     event_filter = Federation_contract.events.ServiceAnnouncement.createFilter(fromBlock=web3.toHex(blocknumber))
     return event_filter
-
 
 def PlaceBid(service_id, service_price):
     """
@@ -546,7 +539,7 @@ def get_container_ips(name):
 
 # -------------------------------------------- Docker API FUNCTIONS --------------------------------------------#
 @app.post("/deploy_docker_service/{image}-{name}-{network}-{replicas}", tags=["Docker Functions"], summary="Deploy docker service")
-def deploy_docker_containers_endpoint(image: str, name: str, network: str, replicas: int):
+def deploy_docker_containers_endpoint(image: str, name: str, network: str = "bridge", replicas: int):
     try:
         containers = deploy_docker_containers(image, name, network, replicas)
         ips = get_container_ips(name)
@@ -555,7 +548,7 @@ def deploy_docker_containers_endpoint(image: str, name: str, network: str, repli
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/delete_docker_service", tags=["Docker Functions"], summary="Delete docker service")
+@app.post("/delete_docker_service/{name}", tags=["Docker Functions"], summary="Delete docker service")
 def delete_docker_containers_endpoint(name: str):
     try:
         delete_docker_containers(name)

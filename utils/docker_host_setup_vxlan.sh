@@ -2,12 +2,14 @@
 
 # Function to display usage information
 usage() {
-    echo "Usage: $0 -l <local_ip> -r <remote_ip> -i <interface_name> -v <vxlan_id> -p <dst_port>"
+    echo "Usage: $0 -l <local_ip> -r <remote_ip> -i <interface_name> -v <vxlan_id> -p <dst_port> -s <subnet> -d <ip_range>"
     echo "  -l <local_ip>        Local IP address"
     echo "  -r <remote_ip>       Remote IP address"
     echo "  -i <interface_name>  Interface name (e.g., enp0s3)"
     echo "  -v <vxlan_id>        VXLAN ID"
     echo "  -p <dst_port>        Destination port"
+    echo "  -s <subnet>          Subnet for Docker network (e.g., 10.0.0.0/16)"
+    echo "  -d <ip_range>        IP range for Docker network (e.g., 10.0.1.0/24)"
     exit 1
 }
 
@@ -29,19 +31,21 @@ validate_ip() {
 }
 
 # Parse input arguments
-while getopts "l:r:i:v:p:" opt; do
+while getopts "l:r:i:v:p:s:d:" opt; do
     case ${opt} in
         l ) local_ip=$OPTARG ;;
         r ) remote_ip=$OPTARG ;;
         i ) dev_interface=$OPTARG ;;
         v ) vxlan_id=$OPTARG ;;
         p ) dst_port=$OPTARG ;;
+        s ) subnet=$OPTARG ;;
+        d ) ip_range=$OPTARG ;;
         * ) usage ;;
     esac
 done
 
 # Check if all required arguments are provided
-if [ -z "$local_ip" ] || [ -z "$remote_ip" ] || [ -z "$dev_interface" ] || [ -z "$vxlan_id" ] || [ -z "$dst_port" ]; then
+if [ -z "$local_ip" ] || [ -z "$remote_ip" ] || [ -z "$dev_interface" ] || [ -z "$vxlan_id" ] || [ -z "$dst_port" ] || [ -z "$subnet" ] || [ -z "$ip_range" ]; then
     usage
 fi
 
@@ -59,8 +63,8 @@ fi
 # This script sets up a Docker network and a VXLAN network interface.
 
 # Step 1: Create a Docker network.
-echo -e "\nCreating Docker network 'federation-net' with subnet 10.10.1.0/16..."
-network_id=$(sudo docker network create --subnet 10.10.1.0/16 federation-net)
+echo -e "\nCreating Docker network 'federation-net' with subnet $subnet and IP range $ip_range..."
+network_id=$(sudo docker network create --subnet $subnet --ip-range $ip_range federation-net)
 
 # Step 2: Verify the Docker network creation and extract the bridge name from brctl show.
 echo -e "\nListing Docker networks to verify 'federation-net' is created..."

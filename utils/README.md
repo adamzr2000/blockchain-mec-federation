@@ -22,17 +22,17 @@ Example:
 
 
 ```sh
-./docker_host_setup_vxlan.sh -l 192.168.56.104 -r 192.168.56.105 -i enp0s3 -v 200 -p 4789
+./docker_host_setup_vxlan.sh -l 192.168.56.104 -r 192.168.56.105 -i enp0s3 -v 200 -p 4789 -s 10.0.0.0/16 -d 10.0.1.0/24
 ```
 
 ```sh
-./docker_host_setup_vxlan.sh -l 192.168.56.105 -r 192.168.56.104 -i enp0s3 -v 200 -p 4789
+./docker_host_setup_vxlan.sh -l 192.168.56.105 -r 192.168.56.104 -i enp0s3 -v 200 -p 4789 -s 10.0.0.0/16 -d 10.0.2.0/24
 ```
 
 ```sh
-sudo docker run --name alpine1 -it --rm --network federation-net --ip 10.10.0.2 alpine
+sudo docker run --name alpine1 -it --rm --network federation-net alpine
 ```
 
 ```sh
-sudo docker run --name alpine2 -it --rm --network federation-net --ip 10.10.0.3 alpine
+sudo docker run --name alpine2 -it --rm --network federation-net alpine
 ```
