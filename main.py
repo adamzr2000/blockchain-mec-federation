@@ -547,7 +547,7 @@ def get_container_ips(name):
 
 # -------------------------------------------- Docker API FUNCTIONS --------------------------------------------#
 @app.post("/deploy_docker_service/{image}-{name}-{network}-{replicas}", tags=["Docker Functions"], summary="Deploy docker service")
-def deploy_docker_containers_endpoint(image: str, name: str, network: str = "bridge", replicas: int):
+def deploy_docker_containers_endpoint(image: str, name: str, network: str, replicas: int):
     try:
         containers = deploy_docker_containers(image, name, network, replicas)
         ips = get_container_ips(name)
