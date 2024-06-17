@@ -167,7 +167,6 @@ else:  # Provider
     federated_host = ''  # Placeholder for federated service deployment
     service_price = 0
     bid_index = 0
-    winner = web3.eth.accounts[0]  # Assuming the first account as the default winner for simplicity
     manager_address = ''  # Placeholder for manager contract address
     winnerChosen_event = None  # Placeholder for event listener setup
 
@@ -278,7 +277,7 @@ def GetServiceState(service_id):
     service_state = Federation_contract.functions.GetServiceState(_id=web3.toBytes(text=service_id)).call()
     return service_state
 
-def GetDeployedInfo(service_id):
+def GetDeployedInfo(service_id, domain):
     """
     Consumer AD retrieves the deployment information of a service, including the service ID, provider's endpoint, and external IP (exposed IP for the federated service).
     
@@ -288,13 +287,22 @@ def GetDeployedInfo(service_id):
     Returns:
         tuple: Contains the external IP and provider's endpoint of the deployed service.
     """    
-    service_id_bytes = web3.toBytes(text=service_id)  # Convert string to bytes
-    service_id, service_endpoint_provider, external_ip = Federation_contract.functions.GetServiceInfo(_id=service_id_bytes, provider=False, call_address=block_address).call()
-    _service_id = service_id.rstrip(b'\x00')  # Apply rstrip on bytes-like object
-    _service_endpoint_provider = service_endpoint_provider.rstrip(b'\x00')
-    _external_ip = external_ip.rstrip(b'\x00')
-    return _external_ip, _service_endpoint_provider
-    #return service_endpoint_provider
+    if domain == "consumer":
+        service_id_bytes = web3.toBytes(text=service_id)  # Convert string to bytes
+        service_id, service_endpoint_provider, federated_host = Federation_contract.functions.GetServiceInfo(
+            _id=service_id_bytes, provider=False, call_address=block_address).call()
+        _service_id = service_id.rstrip(b'\x00')  # Apply rstrip on bytes-like object
+        _service_endpoint_provider = service_endpoint_provider.rstrip(b'\x00')
+        _federated_host = federated_host.rstrip(b'\x00')
+        return _federated_host, _service_endpoint_provider
+    else:
+        service_id_bytes = web3.toBytes(text=service_id)  # Convert string to bytes
+        service_id, service_endpoint_provider, federated_host = Federation_contract.functions.GetServiceInfo(
+            _id=service_id_bytes, provider=True, call_address=block_address).call()
+        _service_id = service_id.rstrip(b'\x00')  # Apply rstrip on bytes-like object
+        _service_endpoint_consumer = service_endpoint_provider.rstrip(b'\x00')
+        _federated_host = ""
+        return _federated_host, _service_endpoint_consumer
 
 def ServiceAnnouncementEvent():
     """
@@ -360,17 +368,17 @@ def CheckWinner(service_id):
     return result
 
 
-def ServiceDeployed(service_id, external_ip):
+def ServiceDeployed(service_id, federated_host):
     """
     Provider AD confirms the operation of a service deployment.
     This transaction includes the external IP and the service ID, and it records the successful deployment.
     
     Args:
         service_id (str): The unique identifier of the service.
-        external_ip (str): The external IP address for the deployed service (~ exposed IP).
+        federated_host (str): The external IP address for the deployed service (~ exposed IP).
     """
     service_deployed_transaction = Federation_contract.functions.ServiceDeployed(
-        info=web3.toBytes(text=external_ip),
+        info=web3.toBytes(text=federated_host),
         _id=web3.toBytes(text=service_id)
     ).buildTransaction({
         'from': block_address,
@@ -642,25 +650,17 @@ async def check_service_state_endpoint(service_id: str):
 @app.get("/check_deployed_info/{service_id}",
          summary="Get deployed info",
          tags=["Default DLT Functions"],
-         description="Endpoint to get deployed info for a service and check E2E connectivity.") 
+         description="Endpoint to get deployed info for a service.") 
 async def check_deployed_info_endpoint(service_id: str):
     try:
         # Service deployed info
-        external_ip, service_endpoint_provider = GetDeployedInfo(service_id)  # Assume this function exists
-        external_ip = external_ip.decode('utf-8')
-        service_endpoint_provider = service_endpoint_provider.decode('utf-8')
-
-        # Establish connectivity with the federated service
-        connected, response_content = check_service_connectivity(external_ip)
-        if not connected:
-            print("Failed to establish connection with the federated service.")
-            return {"error": "Failed to establish connection with the federated service."}
+        federated_host, service_endpoint = GetDeployedInfo(service_id, domain)  
+        federated_host = federated_host.decode('utf-8')
+        service_endpoint = service_endpoint.decode('utf-8')
 
         message = {
-            "service-endpoint-provider": service_endpoint_provider,
-            "external-ip": external_ip,
-            "connectivity-status": "Successfully established E2E connectivity",
-            "service-response": response_content
+            "service-endpoint": service_endpoint,
+            "federated-host": federated_host
         }
         return {"message": message}
     except Exception as e:
@@ -830,16 +830,42 @@ def deploy_service_endpoint(service_id: str):
             # create_k8s_resource_from_yaml(f"descriptors/examples/{YAMLFile.federated_service}")
 
             # Wait for the service to be ready and get the external IP
-            # external_ip = wait_for_service_ready("federated-service") 
-            external_ip = "10.10.0.10"
+            # federated_host = wait_for_service_ready("federated-service") 
+            federated_host = "10.10.0.10"
 
-            ServiceDeployed(service_id, external_ip)
+            ServiceDeployed(service_id, federated_host)
             print("\n\033[1;32m(TX-4) Service deployed\033[0m")
-            return {"message": f"Service deployed (exposed ip: {external_ip})"}
+            return {"message": f"Service deployed (exposed ip: {federated_host})"}
         else:
             return {"message": "You are not the winner"}   
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
+
+
+def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range):
+    script_path = './utils/docker_host_setup_vxlan.sh'
+    
+    # Construct the command with arguments
+    command = [
+        'bash', script_path,
+        '-l', local_ip,
+        '-r', remote_ip,
+        '-i', interface_name,
+        '-v', vxlan_id,
+        '-p', dst_port,
+        '-s', subnet,
+        '-d', ip_range
+    ]
+    
+    try:
+        # Run the script
+        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        # Print the output of the script
+        print(result.stdout.decode())
+        
+    except subprocess.CalledProcessError as e:
+        print(f"Error occurred while running the script: {e.stderr.decode()}")
 
 
 @app.post("/start_experiments_consumer_v1", tags=["Test 1"])
@@ -912,16 +938,16 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             data.append(['confirm_deployment_received', t_confirm_deployment_received])
             
             # Service deployed info
-            external_ip, service_endpoint_provider = GetDeployedInfo(service_id)
+            federated_host, service_endpoint_provider = GetDeployedInfo(service_id, domain)
             
             t_check_connectivity_federated_service_start = time.time() - process_start_time
             data.append(['check_connectivity_federated_service_start', t_check_connectivity_federated_service_start])
 
-            external_ip = external_ip.decode('utf-8')
+            federated_host = federated_host.decode('utf-8')
             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
 
             print("Federated service info:")
-            print("External IP:", external_ip)
+            print("External IP:", federated_host)
             print("Service endpoint provider:", service_endpoint_provider)
 
 
@@ -931,7 +957,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             # connected = True
             # # connected = False
             # while not connected and retry_count < retry_limit:
-            #     connected, response_content = check_service_connectivity(external_ip)
+            #     connected, response_content = check_service_connectivity(federated_host)
             #     if not connected:
             #         print("Failed to establish connection with the federated service. Retrying...")
             #         retry_count += 1
@@ -1044,11 +1070,38 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                     # print("I am the winner")
                     break
 
-            # Wait for the service to be ready and get the external IP
-            external_ip = deploy_docker_containers(requested_service, requested_service, "bridge", int(requested_replicas))
-            external_ip = "10.10.0.10"
+
+            local_ip = ip_address
+            
+            # Service deployed info
+            federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
+
+            remote_ip = service_endpoint_consumer.decode('utf-8')
+            interface_name = "enp0s3"
             vxlan_id = "200"
             vxlan_port = "4789"
+            docker_subnet = "10.0.0.0/16"
+            docker_ip_range = f"10.0.{dlt_node_id}.0/24"
+
+            # Print all variables
+            print("Federated Host:", federated_host)
+            print("Service Endpoint Consumer:", service_endpoint_consumer)
+            print("Remote IP:", remote_ip)
+            print("Interface Name:", interface_name)
+            print("VXLAN ID:", vxlan_id)
+            print("VXLAN Port:", vxlan_port)
+            print("Docker Subnet:", docker_subnet)
+            print("Docker IP Range:", docker_ip_range)
+
+            # Sets up the federation docker network and the VXLAN network interface
+            # configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+
+            # Deploy docker service and wait to be ready and get an IP address
+            # containers = deploy_docker_containers(requested_service, requested_service, "federation-net", int(requested_replicas))
+            # ips = get_container_ips(name)
+            
+            federated_host = "10.10.0.10"
+
             
             # Deployment finished
             t_deployment_finished = time.time() - process_start_time
@@ -1057,12 +1110,12 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             # Deployment confirmation sent
             t_confirm_deployment_sent = time.time() - process_start_time
             data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
-            ServiceDeployed(service_id, external_ip)
+            ServiceDeployed(service_id, federated_host)
 
             total_duration = time.time() - process_start_time
                 
             print("\n\033[1;32m(TX-4) Service deployed\033[0m")
-            print("External IP:", external_ip)
+            print("External IP:", federated_host)
             DisplayServiceState(service_id)
                 
             if export_to_csv:
