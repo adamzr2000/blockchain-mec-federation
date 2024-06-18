@@ -433,8 +433,8 @@ def extract_service_requirements(requirements):
     match = re.match(r'service=(.*?);replicas=(.*)', requirements)
 
     if match:
-        requested_service = match.group(1).decode('utf-8')
-        replicas = match.group(2).decode('utf-8')
+        requested_service = match.group(1)
+        replicas = match.group(2)
         return requested_service, replicas
     else:
         logger.error(f"Invalid requirements format: {requirements}")
@@ -612,7 +612,7 @@ async def web3_info_endpoint():
         logger.info(f"IP address: {ip_address}")
         logger.info(f"Ethereum address: {block_address}")
         logger.info(f"Ethereum node: {eth_node_url}")
-        logger.info(f"Federation contract address:{contract_address}")
+        logger.info(f"Federation contract address: {contract_address}")
         message = {
             "ip-address": ip_address,
             "ethereum-address": block_address,
@@ -1043,6 +1043,10 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                     requirements = web3.toText(event['args']['requirements'])
 
                     requested_service, requested_replicas = extract_service_requirements(requirements.rstrip('\x00'))
+
+                    requested_service = requested_service.decode('utf-8')
+                    requested_replicas = requested_replicas.decode('utf-8')
+
                     
                     if GetServiceState(service_id) == 0:
                         open_services.append(service_id)
