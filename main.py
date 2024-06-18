@@ -122,7 +122,7 @@ try:
     if web3.isConnected():
         # Attempt to get the Geth version to confirm a successful connection
         geth_version = web3.clientVersion
-        logger.info(f"Successfully connected to Ethereum node {eth_node_url} - Version = {geth_version}")
+        logger.info(f"Successfully connected to Ethereum node {eth_node_url} - Version: {geth_version}")
         
     else:
         logger.error(f"Failed to connect to the Ethereum node {eth_node_url}")
@@ -189,11 +189,11 @@ else:  # Provider
 try:
     client = docker.from_env()
     version_info = client.version()
-    logger.info(f"Successfully connected to Docker daemon - Version = {version_info['Version']}")
+    logger.info(f"Successfully connected to Docker daemon - Version: {version_info['Version']}")
 except Exception as e:
     logger.error(f"Failed to connect to Docker daemon: {e}")
 
-logger.info(f"Configuration completed for {domain_name} with IP address = {ip_address}")
+logger.info(f"Configuration completed for {domain_name} with IP address {ip_address}")
 
 #-------------------------- Initialize TEST variables ------------------------------#
 # List to store the timestamps of each federation step
@@ -919,7 +919,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             data.append(['service_announced', t_service_announced])
             bids_event = AnnounceService()
 
-            logger.info(f"\nService Announcement sent to the SC - Service ID = {service_id}")
+            logger.info(f"\nService Announcement sent to the SC - Service ID: {service_id}")
 
             # Consumer AD wait for provider bids
             bidderArrived = False
@@ -951,7 +951,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
                         data.append(['winner_choosen', t_winner_choosen])
                         
                         ChooseProvider(int(bid_index)-1)
-                        logger.info(f"\nProvider Choosen - Bid Index = {bid_index-1}")
+                        logger.info(f"\nProvider Choosen - Bid Index: {bid_index-1}")
 
                         # Service closed (state 1)
                         #DisplayServiceState(service_id)
@@ -975,7 +975,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             federated_host = federated_host.decode('utf-8')
             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
 
-            logger.info(f"\nFederated Service Info - Service Endpoint Provider = {service_endpoint_provider}, Federated Host = {federated_host}")
+            logger.info(f"\nFederated Service Info - Service Endpoint Provider: {service_endpoint_provider}, Federated Host: {federated_host}")
 
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
@@ -1053,7 +1053,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                     t_announce_received = time.time() - process_start_time
                     data.append(['announce_received', t_announce_received])
                     
-                    logger.info(f"\nAnnouncement Received - Service ID = {service_id}, Requested Service = {repr(requested_service)}, Requested Replicas = {repr(requested_replicas)}")
+                    logger.info(f"\nAnnouncement Received - Service ID: {service_id}, Requested Service: {repr(requested_service)}, Requested Replicas: {repr(requested_replicas)}")
                     print(new_events)
                     newService = True
                 
@@ -1065,7 +1065,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             price = 10
             winnerChosen_event = PlaceBid(service_id, price)
 
-            logger.info(f"\nBid Offer sent to the SC - Service ID = {service_id}, Price = {price} €")
+            logger.info(f"\nBid Offer sent to the SC - Service ID: {service_id}, Price: {price} €")
             
             # Ask to the Federation SC if there is a winner (wait...)
         
@@ -1099,7 +1099,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
 
             service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
 
-            logger.info(f"\nService Endpoint Consumer = {service_endpoint_consumer}")
+            logger.info(f"\nService Endpoint Consumer: {service_endpoint_consumer}")
 
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
@@ -1123,7 +1123,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
 
             total_duration = time.time() - process_start_time
 
-            logger.info(f"\nService Deployed - Federated Host = {federated_host}")
+            logger.info(f"\nService Deployed - Federated Host: {federated_host}")
  
             DisplayServiceState(service_id)
                 
