@@ -308,7 +308,7 @@ def GetDeployedInfo(service_id, domain):
             _id=service_id_bytes, provider=False, call_address=block_address).call()
         _service_id = service_id.rstrip(b'\x00')  # Apply rstrip on bytes-like object
         _service_endpoint_provider = service_endpoint_provider.rstrip(b'\x00')
-        _federated_host = federated_host.rstrip(b'\x00'
+        _federated_host = federated_host.rstrip(b'\x00')
         return _federated_host, _service_endpoint_provider
     else:
         service_id_bytes = web3.toBytes(text=service_id)  # Convert string to bytes
