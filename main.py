@@ -329,7 +329,7 @@ def ServiceAnnouncementEvent():
     """    
     block = web3.eth.getBlock('latest')
     blocknumber = block['number']
-    logger.info(f"Latest block: {blocknumber}")
+    # logger.info(f"Latest block: {blocknumber}")
     event_filter = Federation_contract.events.ServiceAnnouncement.createFilter(fromBlock=web3.toHex(blocknumber))
     return event_filter
 
@@ -359,7 +359,7 @@ def PlaceBid(service_id, service_price):
 
     block = web3.eth.getBlock('latest')
     block_number = block['number']
-    logger.info(f"Latest block: {block_number}")
+    # logger.info(f"Latest block: {block_number}")
 
     event_filter = Federation_contract.events.ServiceAnnouncementClosed.createFilter(fromBlock=web3.toHex(block_number))
 
@@ -896,7 +896,7 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
 
-@app.post("/start_experiments_consumer_v1", tags=["Test 1"])
+@app.post("/start_experiments_consumer_v1", tags=["Test 1: Select the first provider offer"])
 def start_experiments_consumer_entire_service(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
@@ -940,6 +940,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
                     if int(bid_index) < 2:
                         bid_info = GetBidInfo(int(bid_index-1))
                         print(bid_info)
+                        print("Bid index:", bid_index)
                     
                         # Winner choosen 
                         t_winner_choosen = time.time() - process_start_time
