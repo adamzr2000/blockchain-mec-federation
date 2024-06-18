@@ -67,7 +67,6 @@ echo -e "\nCreating Docker network 'federation-net' with subnet $subnet and IP r
 network_id=$(sudo docker network create --subnet $subnet --ip-range $ip_range federation-net)
 
 # Step 2: Verify the Docker network creation and extract the bridge name from brctl show.
-echo -e "\nListing Docker networks to verify 'federation-net' is created..."
 sudo docker network inspect $network_id > /dev/null
 
 # Extract the bridge name associated with the created network
@@ -75,27 +74,27 @@ bridge_name=$(sudo brctl show | grep $(echo $network_id | cut -c 1-12) | awk '{p
 if [ -z "$bridge_name" ]; then
     echo "Bridge name could not be retrieved."
 else
-    echo "Bridge name: $bridge_name"
+    echo -e "\nSuccessfully created Docker network 'federation-net' - Network ID: $network_id, Bridge Name: $bridge_name"
 fi
 
 # Step 3: Create a VXLAN network interface.
-echo -e "\nCreating VXLAN network interface 'vxlan200'..."
+echo -e "\nCreating VXLAN network interface 'vxlan200' with parameters - VXLAN ID: $vxlan_id, Local IP: $local_ip, Remote IP: $remote_ip, Destination Port: $dst_port, Device Interface: $dev_interface"
 sudo ip link add vxlan200 type vxlan id $vxlan_id local $local_ip remote $remote_ip dstport $dst_port dev $dev_interface
 
 # Step 4: Enable the VXLAN network interface.
-echo -e "\nEnabling the VXLAN interface 'vxlan200'..."
+# echo -e "\nEnabling the VXLAN interface 'vxlan200'..."
 sudo ip link set vxlan200 up
 
 # Step 5: Verify that the VXLAN interface is correctly configured.
-echo -e "\nChecking the list of interfaces for 'vxlan200'..."
-ip a | grep vxlan
+# echo -e "\nChecking the list of interfaces for 'vxlan200'..."
+# ip a | grep vxlan
 
 # Step 6: Display the Docker bridge names and check the connectivity.
-echo -e "\nDisplaying bridge connections..."
-sudo brctl show
+# echo -e "\nDisplaying bridge connections..."
+# sudo brctl show
 
 # Step 7: Attach the newly created VXLAN interface to the docker bridge.
 echo -e "\nAttaching VXLAN interface 'vxlan200' to the Docker bridge '$bridge_name'..."
 sudo brctl addif $bridge_name vxlan200
 
-echo -e "\nSetup completed successfully."
+echo -e "\nFederation completed successfully."

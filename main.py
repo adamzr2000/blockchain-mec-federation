@@ -379,7 +379,7 @@ def CheckWinner(service_id):
     result = False
     if state == 1:
         result = Federation_contract.functions.isWinner(_id=web3.toBytes(text=service_id), _winner=block_address).call()
-        print("Am I a Winner? ", result)
+        # print("Am I a Winner? ", result)
     return result
 
 
@@ -924,7 +924,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             # Consumer AD wait for provider bids
             bidderArrived = False
 
-            logger.info("Waiting for bids...\n")
+            logger.info("\nWaiting for bids...")
             while bidderArrived == False:
                 new_events = bids_event.get_all_entries()
                 for event in new_events:
@@ -939,7 +939,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
 
                     # service id, service id, index of the bid
                     # print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
-                    logger.info("Entered bids format: [provider_address, service_price, bid_index]")
+                    logger.info("\nEntered bids format: [provider_address, service_price, bid_index]")
                     bid_index = int(event['args']['max_bid_index'])
                     bidderArrived = True 
                     if int(bid_index) < 2:
@@ -975,7 +975,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             federated_host = federated_host.decode('utf-8')
             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
 
-            logger.info(f"Federated Service Info - Service Endpoint Provider = {service_endpoint_provider}, Federated Host = {federated_host}")
+            logger.info(f"\nFederated Service Info - Service Endpoint Provider = {service_endpoint_provider}, Federated Host = {federated_host}")
 
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
@@ -1034,7 +1034,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             open_services = []
 
             # Provider AD wait for service announcements
-            logger.info("Subscribed to federation events...")
+            logger.info("\nSubscribed to federation events...")
             while newService == False:
                 new_events = newService_event.get_all_entries()
                 for event in new_events:
@@ -1053,7 +1053,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                     t_announce_received = time.time() - process_start_time
                     data.append(['announce_received', t_announce_received])
                     
-                    logger.info(f"Announcement Received - Service ID = {service_id}, Requested Service = {repr(requested_service)}, Requested Replicas = {repr(requested_replicas)}")
+                    logger.info(f"\nAnnouncement Received - Service ID = {service_id}, Requested Service = {repr(requested_service)}, Requested Replicas = {repr(requested_replicas)}")
                     print(new_events)
                     newService = True
                 
@@ -1062,9 +1062,10 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             # Place a bid offer to the Federation SC
             t_bid_offer_sent = time.time() - process_start_time
             data.append(['bid_offer_sent', t_bid_offer_sent])
-            winnerChosen_event = PlaceBid(service_id, 10)
+            price = 10
+            winnerChosen_event = PlaceBid(service_id, price)
 
-            logger.info("Bid Offer sent to the SC")
+            logger.info(f"\nBid Offer sent to the SC - Service ID = {service_id}, Price = {price} €")
             
             # Ask to the Federation SC if there is a winner (wait...)
         
@@ -1086,9 +1087,9 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                 # Provider AD ask if he is the winner
                 am_i_winner = CheckWinner(service_id)
                 if am_i_winner == True:
-                    logger.info(f"I am the winner for {service_id}")
+                    logger.info(f"\nI am the winner for {service_id}")
                     # Start deployment of the requested federated service
-                    logger.info("Start deployment of the requested federated service...")
+                    logger.info("\nStart deployment of the requested federated service...")
                     t_deployment_start = time.time() - process_start_time
                     data.append(['deployment_start', t_deployment_start])
                     break
@@ -1098,7 +1099,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
 
             service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
 
-            logger.info(f"Service Endpoint Consumer = {service_endpoint_consumer}")
+            logger.info(f"\nService Endpoint Consumer = {service_endpoint_consumer}")
 
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
@@ -1122,7 +1123,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
 
             total_duration = time.time() - process_start_time
 
-            logger.info(f"Service Deployed - Federated Host = {federated_host}")
+            logger.info(f"\nService Deployed - Federated Host = {federated_host}")
  
             DisplayServiceState(service_id)
                 
