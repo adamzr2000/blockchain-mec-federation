@@ -9,6 +9,7 @@ import sys
 import re
 from pathlib import Path
 import docker
+import logging
 
 from dotenv import load_dotenv, find_dotenv
 from web3 import Web3, HTTPProvider, WebsocketProvider
@@ -75,6 +76,13 @@ def check_env_var(var_name):
         raise EnvironmentError(f"Environment variable {var_name} is not set.")
     return value
 
+# Set up logging
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
 # Load environment variables from the federation .env file passed as a command-line argument
 federation_env_file = os.getenv('FEDERATION_ENV_FILE')
 if federation_env_file:
@@ -114,11 +122,12 @@ try:
     if web3.isConnected():
         # Attempt to get the Geth version to confirm a successful connection
         geth_version = web3.clientVersion
-        print(f"Successfully connected to Ethereum node successfully (version={geth_version}")
+        logger.info(f"Successfully connected to Ethereum node successfully (version={geth_version}")
+        
     else:
-        print("Failed to connect to the Ethereum node.")
+        logger.error(f"Failed to connect to the Ethereum node {eth_node_url}")
 except Exception as e:
-    print(f"An error occurred while trying to connect to the Ethereum node: {e}")
+    logger.error(f"An error occurred while trying to connect to the Ethereum node: {e}")
 
 # Load smart contract ABI
 contract_abi = json.load(open("smart-contracts/build/contracts/Federation.json"))["abi"]
@@ -180,11 +189,11 @@ else:  # Provider
 try:
     client = docker.from_env()
     version_info = client.version()
-    print(f"Successfully connected to Docker daemon (version={version_info['Version']})")
+    logger.info(f"Successfully connected to Docker daemon (version={version_info['Version']})")
 except Exception as e:
-    print(f"Failed to connect to Docker daemon: {e}")
+    logger.error(f"Failed to connect to Docker daemon: {e}")
 
-print(f"Configuration completed for {domain_name} with IP {ip_address}")
+logger.info(f"Configuration completed for {domain_name} with IP {ip_address}")
 
 #-------------------------- Initialize TEST variables ------------------------------#
 # List to store the timestamps of each federation step
@@ -409,7 +418,7 @@ def DisplayServiceState(service_id):
     elif current_service_state == 2:
         print("\nService state", "Deployed")
     else:
-        print(f"Error: state for service {service_id} is {current_service_state}")
+        logger.error(f"Error: state for service {service_id} is {current_service_state}")
 
 def extract_service_requirements(requirements):
     """
@@ -428,6 +437,7 @@ def extract_service_requirements(requirements):
         replicas = match.group(2).decode('utf-8')
         return requested_service, replicas
     else:
+        logger.error(f"Invalid requirements format: {requirements}")
         return None, None
 
 # def extract_service_endpoint(endpoint):
@@ -448,6 +458,7 @@ def extract_service_requirements(requirements):
 #         vxlan_port = match.group(3).decode('utf-8')
 #         return ip_address, vxlan_id, vxlan_port
 #     else:
+        #   logger.error(f"Invalid endpoint format: {endpoint}")
 #         return None, None, None
 
 def create_csv_file(role, header, data):
@@ -469,7 +480,7 @@ def create_csv_file(role, header, data):
         writer.writerow(header)  # Write the header
         writer.writerows(data)  # Write the data
 
-    print(f"Data saved to {file_name}")
+    logger.info(f"Data saved to {file_name}")
 
 
 def deploy_docker_containers(image, name, network, replicas):
@@ -491,13 +502,13 @@ def deploy_docker_containers(image, name, network, replicas):
             while True:
                 container.reload()
                 if container.status == "running":
-                    print(f"Container {container_name} deployed successfully.")
+                    logger.info(f"Container {container_name} deployed successfully.")
                     break
                 time.sleep(1)  # Brief pause to avoid tight loop
 
         return containers
     except Exception as e:
-        print(f"Failed to deploy containers: {e}")
+        logger.error(f"Failed to deploy containers: {e}")
         return []
 
 def delete_docker_containers(name):
@@ -511,11 +522,11 @@ def delete_docker_containers(name):
             while True:
                 remaining_containers = client.containers.list(all=True, filters={"name": container_name})
                 if not remaining_containers:
-                    print(f"Container {container_name} deleted successfully.")
+                    logger.info(f"Container {container_name} deleted successfully.")
                     break
                 
     except Exception as e:
-        print(f"Failed to delete containers: {e}")
+        logger.error(f"Failed to delete containers: {e}")
 
 def scale_docker_containers(name, action, replicas):
     try:
@@ -533,19 +544,19 @@ def scale_docker_containers(name, action, replicas):
                     detach=True,
                     command="sh -c 'while true; do sleep 3600; done'"
                 )
-                print(f"Container {container_name} deployed successfully.")
+                logger.info(f"Container {container_name} deployed successfully.")
         elif action.lower() == "down":
             new_replicas = max(0, current_replicas - replicas)
             for i in range(current_replicas - 1, new_replicas - 1, -1):
                 container_name = f"{name}_{i+1}"
                 container = client.containers.get(container_name)
                 container.remove(force=True)
-                print(f"Container {container_name} deleted successfully.")
+                logger.info(f"Container {container_name} deleted successfully.")
         else:
-            print("Invalid action. Use 'up' or 'down'.")
+            logger.error("Invalid action. Use 'up' or 'down'.")
             return
     except Exception as e:
-        print(f"Failed to scale containers: {e}")
+        logger.error(f"Failed to scale containers: {e}")
 
 
 def get_container_ips(name):
@@ -553,7 +564,7 @@ def get_container_ips(name):
     try:
         containers = client.containers.list(all=True, filters={"name": name})
         if not containers:
-            print(f"No containers found with name: {name}")
+            logger.error(f"No containers found with name: {name}")
             return container_ips
         
         for container in containers:
@@ -598,12 +609,14 @@ def delete_docker_containers_endpoint(name: str):
          description="Endpoint to get Web3 and Ethereum node info")
 async def web3_info_endpoint():
     try:
-        print("\n\033[1m" + "IP address: " + str(ip_address) + "\033[0m")
-        print("\033[1m" + "Ethereum address: " + str(block_address) + "\033[0m")
-        print("Federation contract:\n", Federation_contract.functions)
+        logger.info(f"IP address: {ip_address}")
+        logger.info(f"Ethereum address: {block_address}")
+        logger.info(f"Ethereum node: {eth_node_url}")
+        logger.info(f"Federation contract address:{contract_address}")
         message = {
             "ip-address": ip_address,
             "ethereum-address": block_address,
+            "ethereum-node": eth_node_url,
             "contract-address": contract_address,
             "domain-name": domain_name,
             "service-id": service_id
@@ -631,7 +644,7 @@ def register_domain_endpoint():
             tx_hash = send_signed_transaction(add_operator_transaction)
 
             domain_registered = True
-            print("\n\033[1;32m(TX) Domain has been registered\033[0m")
+            logger.info(f"Domain {domain_name} has been registered")
             return {"message": f"Domain {domain_name} has been registered"}
         else:
             error_message = f"Domain {domain_name} is already registered in the SC"
@@ -647,7 +660,7 @@ def create_service_announcement_endpoint():
     global bids_event
     try:
         bids_event = AnnounceService()
-        print("\n\033[1;32m(TX-1) Service announcement sent to the SC\033[0m")
+        logger.info("Service announcement sent to the SC")
         return {"message": "Service announcement sent to the SC"}
 
     except Exception as e:
@@ -729,8 +742,7 @@ async def check_service_announcements_endpoint():
                     "block": block_number,
                     "event_name": event_name
             }
-            print('Announcement received:')
-            print(new_events)
+            logger.info(f"Announcement received: {new_events}")
             return {"Announcements": service_details}
         else:
             return {"No new events found": "No new services announced in the last 20 blocks."}
@@ -745,7 +757,7 @@ def place_bid_endpoint(service_id: str, service_price: int):
     global winnerChosen_event 
     try:
         winnerChosen_event  = PlaceBid(service_id, service_price)
-        print("\n\033[1;32m(TX-2) Bid offer sent to the SC\033[0m")
+        logger.info("Bid offer sent to the SC")
         return {"message": "Bid offer sent to the SC"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -764,14 +776,12 @@ async def check_bids_endpoint(service_id: str):
             # New bid received
             event_id = str(web3.toText(event['args']['_id']))
             # service id, service id, index of the bid
-            print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
-                    
+            logger.info(f"{service_id}, {web3.toText(event['args']['_id'])}, {event['args']['max_bid_index']}")
             bid_index = int(event['args']['max_bid_index'])
             bidderArrived = True 
             if int(bid_index) < 2:
-                print("\nBids-info = [provider address , service price , bid index]\n")
                 bid_info = GetBidInfo(int(bid_index-1))
-                print(bid_info)
+                logger.info(bid_info)
                 message = {
                     "provider-address": bid_info[0],
                     "service-price": bid_info[1],
@@ -796,7 +806,7 @@ def choose_provider_endpoint(bid_index: int):
         new_events = bids_event.get_all_entries()
         for event in new_events:
             event_id = str(web3.toText(event['args']['_id'])).rstrip('\x00')
-            print("\n\033[1;32m(TX-3) Provider choosen! (bid index: " + str(bid_index) + ")\033[0m")
+            logger.info(f"Provider chosen! (bid index: {bid_index})")
             ChooseProvider(bid_index)
             # Service closed (state 1)
         return {"message": f"Provider chosen!", "service-id": event_id, "bid-index": bid_index}    
@@ -834,10 +844,10 @@ async def check_if_I_am_Winner_endpoint(service_id: str):
     try:
         am_i_winner = CheckWinner(service_id)
         if am_i_winner == True:
-            print("I am a Winner")
+            logger.info("I am a Winner")
             return {"message": f"I am the winner for the service {service_id}"}
         else:
-            print("I am not a Winner")
+            logger.warning("I am not a Winner")
             return {"message": f"I am not the winner for the service {service_id}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -856,7 +866,7 @@ def deploy_service_endpoint(service_id: str):
             federated_host = "10.10.0.10"
 
             ServiceDeployed(service_id, federated_host)
-            print("\n\033[1;32m(TX-4) Service deployed\033[0m")
+            logger.info("Service deployed")
             return {"message": f"Service deployed (exposed ip: {federated_host})"}
         else:
             return {"message": "You are not the winner"}   
@@ -864,12 +874,12 @@ def deploy_service_endpoint(service_id: str):
         raise HTTPException(status_code=500, detail=str(e))    
 
 
-def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range):
+def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, sudo_password = 'adamimdea;'):
     script_path = './utils/docker_host_setup_vxlan.sh'
     
     # Construct the command with arguments
     command = [
-        'bash', script_path,
+        'sudo', '-S', 'bash', script_path,
         '-l', local_ip,
         '-r', remote_ip,
         '-i', interface_name,
@@ -880,15 +890,16 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
     ]
     
     try:
-        # Run the script
-        result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Run the command with sudo and password
+        result = subprocess.run(command, input=sudo_password.encode() + b'\n', check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
         # Print the output of the script
         print(result.stdout.decode())
         
     except subprocess.CalledProcessError as e:
-        print(f"Error occurred while running the script: {e.stderr.decode()}")
-
+        logger.error(f"Error occurred while running the script: {e.stderr.decode()}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {str(e)}")
 
 @app.post("/start_experiments_consumer_v1", tags=["Test 1"])
 def start_experiments_consumer_entire_service(export_to_csv: bool = False):
@@ -907,14 +918,13 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             t_service_announced = time.time() - process_start_time
             data.append(['service_announced', t_service_announced])
             bids_event = AnnounceService()
-            print("\nSERVICE_ID:", service_id) # service + timestamp
 
-            print("\n\033[1;32m(TX-1) Service announcement sent to the SC\033[0m")
+            logger.info(f"\nService Announcement sent to the SC - Service ID = {service_id}")
 
             # Consumer AD wait for provider bids
             bidderArrived = False
 
-            print("Waiting for bids...\n")
+            logger.info("Waiting for bids...\n")
             while bidderArrived == False:
                 new_events = bids_event.get_all_entries()
                 for event in new_events:
@@ -928,23 +938,20 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
                     # Choosing provider
 
                     # service id, service id, index of the bid
-                    print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
-                    print("BIDS ENTERED")
+                    # print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
+                    logger.info("Entered bids format: [provider_address, service_price, bid_index]")
                     bid_index = int(event['args']['max_bid_index'])
                     bidderArrived = True 
                     if int(bid_index) < 2:
-
-                        print("\nBids-info = [provider address , service price , bid index]\n")
                         bid_info = GetBidInfo(int(bid_index-1))
                         print(bid_info)
                     
-
                         # Winner choosen 
                         t_winner_choosen = time.time() - process_start_time
                         data.append(['winner_choosen', t_winner_choosen])
                         
                         ChooseProvider(int(bid_index)-1)
-                        print("\n\033[1;32m(TX-3) Provider choosen! (bid index=" + str(bid_index-1) + ")\033[0m")
+                        logger.info(f"\nProvider Choosen - Bid Index = {bid_index-1}")
 
                         # Service closed (state 1)
                         #DisplayServiceState(service_id)
@@ -967,15 +974,12 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
 
             federated_host = federated_host.decode('utf-8')
             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
-            
-            print("Federated service info:")
-            print("Service endpoint provider:", service_endpoint_provider)
-            print("Federated host:", federated_host)
+
+            logger.info(f"Federated Service Info - Service Endpoint Provider = {service_endpoint_provider}, Federated Host = {federated_host}")
 
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
-            
             # # Establish connectivity with the federated service
             # retry_limit = 5  # Maximum number of connection attempts
             # retry_count = 0
@@ -996,14 +1000,14 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
 
             total_duration = time.time() - process_start_time
 
-            print(f"Federation process completed in {total_duration:.2f} seconds")
+            logger.info(f"Federation process completed in {total_duration:.2f} seconds")
 
             if export_to_csv:
                 # Export the data to a csv file only if export_to_csv is True
                 create_csv_file(domain, header, data)
-                print(f"Data exported to CSV for {domain}.")
+                logger.info(f"Data exported to CSV for {domain}.")
             else:
-                print("CSV export not requested.")
+                logger.warning("CSV export not requested.")
 
             return {"message": f"Federation process completed in {total_duration:.2f} seconds"}
         else:
@@ -1025,14 +1029,12 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
 
             global winnerChosen_event 
             service_id = ''
-            print("\nSERVICE_ID:", service_id)
-
             newService_event = ServiceAnnouncementEvent()
             newService = False
             open_services = []
 
             # Provider AD wait for service announcements
-            print("Subscribed to federation events...")
+            logger.info("Subscribed to federation events...")
             while newService == False:
                 new_events = newService_event.get_all_entries()
                 for event in new_events:
@@ -1050,11 +1052,9 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                     # Announcement received
                     t_announce_received = time.time() - process_start_time
                     data.append(['announce_received', t_announce_received])
-
-                    print('Announcement received:')
+                    
+                    logger.info(f"Announcement Received - Service ID = {service_id}, Requested Service = {repr(requested_service)}, Requested Replicas = {repr(requested_replicas)}")
                     print(new_events)
-                    print("\n\033[1;33mRequested service: " + repr(requested_service) + "\033[0m")
-                    print("\033[1;33mRequested replicas: " + repr(requested_replicas) + "\033[0m")
                     newService = True
                 
             service_id = open_services[-1]
@@ -1064,7 +1064,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             data.append(['bid_offer_sent', t_bid_offer_sent])
             winnerChosen_event = PlaceBid(service_id, 10)
 
-            print("\n\033[1;32m(TX-2) Bid offer sent to the SC\033[0m")
+            logger.info("Bid Offer sent to the SC")
             
             # Ask to the Federation SC if there is a winner (wait...)
         
@@ -1078,7 +1078,6 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                         # Winner choosen received
                         t_winner_received = time.time() - process_start_time
                         data.append(['winner_received', t_winner_received])
-                        print("There is a winner")
                         winnerChosen = True
                         break
             
@@ -1087,23 +1086,19 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                 # Provider AD ask if he is the winner
                 am_i_winner = CheckWinner(service_id)
                 if am_i_winner == True:
+                    logger.info(f"I am the winner for {service_id}")
                     # Start deployment of the requested federated service
-                    print("Start deployment of the requested federated service...")
+                    logger.info("Start deployment of the requested federated service...")
                     t_deployment_start = time.time() - process_start_time
                     data.append(['deployment_start', t_deployment_start])
-                    # print("I am the winner")
                     break
 
-            
             # Service deployed info
             federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
 
             service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
-            
-            print("Service endpoint consumer:")
-            print("IP address:", service_endpoint_consumer)
-            print("VXLAN id:", vxlan_id)
-            print("VXLAN port:", vxlan_port)
+
+            logger.info(f"Service Endpoint Consumer = {service_endpoint_consumer}")
 
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
@@ -1126,18 +1121,17 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             ServiceDeployed(service_id, federated_host)
 
             total_duration = time.time() - process_start_time
-                
-            print("\n\033[1;32m(TX-4) Service deployed\033[0m")
-            print("Federated host:", federated_host)
+
+            logger.info(f"Service Deployed - Federated Host = {federated_host}")
+ 
             DisplayServiceState(service_id)
                 
             if export_to_csv:
                 # Export the data to a csv file only if export_to_csv is True
                 create_csv_file(domain, header, data)
-                print(f"Data exported to CSV for {domain}.")
+                logger.info(f"Data exported to CSV for {domain}.")
             else:
-                print("CSV export not requested.")
-
+                logger.warning("CSV export not requested.")
 
             return {"message": f"Federation process completed in {total_duration:.2f} seconds"}
         else:
