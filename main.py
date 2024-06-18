@@ -329,7 +329,7 @@ def ServiceAnnouncementEvent():
     """    
     block = web3.eth.getBlock('latest')
     blocknumber = block['number']
-    print("\nLatest block:",blocknumber)
+    logger.info(f"Latest block: {blocknumber}")
     event_filter = Federation_contract.events.ServiceAnnouncement.createFilter(fromBlock=web3.toHex(blocknumber))
     return event_filter
 
@@ -359,7 +359,7 @@ def PlaceBid(service_id, service_price):
 
     block = web3.eth.getBlock('latest')
     block_number = block['number']
-    print("\nLatest block:", block_number)
+    logger.info(f"Latest block: {block_number}")
 
     event_filter = Federation_contract.events.ServiceAnnouncementClosed.createFilter(fromBlock=web3.toHex(block_number))
 
@@ -493,6 +493,7 @@ def deploy_docker_containers(image, name, network, replicas):
                 name=container_name,
                 network=network,
                 detach=True,
+                auto_remove=True,
                 command="sh -c 'while true; do sleep 3600; done'"
             )
             containers.append(container)
@@ -859,15 +860,9 @@ async def check_if_I_am_Winner_endpoint(service_id: str):
 def deploy_service_endpoint(service_id: str):
     try:
         if CheckWinner(service_id):
-            # create_k8s_resource_from_yaml(f"descriptors/examples/{YAMLFile.federated_service}")
-
-            # Wait for the service to be ready and get the external IP
-            # federated_host = wait_for_service_ready("federated-service") 
-            federated_host = "10.10.0.10"
-
-            ServiceDeployed(service_id, federated_host)
+            ServiceDeployed(service_id, "")
             logger.info("Service deployed")
-            return {"message": f"Service deployed (exposed ip: {federated_host})"}
+            return {"message": "Service deployed"}
         else:
             return {"message": "You are not the winner"}   
     except Exception as e:
@@ -979,24 +974,6 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
 
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
-
-            # # Establish connectivity with the federated service
-            # retry_limit = 5  # Maximum number of connection attempts
-            # retry_count = 0
-            # connected = True
-            # # connected = False
-            # while not connected and retry_count < retry_limit:
-            #     connected, response_content = check_service_connectivity(federated_host)
-            #     if not connected:
-            #         print("Failed to establish connection with the federated service. Retrying...")
-            #         retry_count += 1
-            #         time.sleep(2)  # Wait for 2 seconds before retrying
-            # if not connected:
-            #     print(f"Unable to establish connection with the federated service after {retry_limit} attempts.")
-            #     return {"error": f"Failed to establish connection with the federated service after {retry_limit} attempts."}
-
-            t_check_connectivity_federated_service_finished = time.time() - process_start_time
-            data.append(['check_connectivity_federated_service_finished', t_check_connectivity_federated_service_finished])
 
             total_duration = time.time() - process_start_time
 
