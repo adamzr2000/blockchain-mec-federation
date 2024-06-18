@@ -122,7 +122,7 @@ try:
     if web3.isConnected():
         # Attempt to get the Geth version to confirm a successful connection
         geth_version = web3.clientVersion
-        logger.info(f"Successfully connected to Ethereum node successfully (version={geth_version}")
+        logger.info(f"Successfully connected to Ethereum node {eth_node_url} - Version = {geth_version}")
         
     else:
         logger.error(f"Failed to connect to the Ethereum node {eth_node_url}")
@@ -189,11 +189,11 @@ else:  # Provider
 try:
     client = docker.from_env()
     version_info = client.version()
-    logger.info(f"Successfully connected to Docker daemon (version={version_info['Version']})")
+    logger.info(f"Successfully connected to Docker daemon - Version = {version_info['Version']}")
 except Exception as e:
     logger.error(f"Failed to connect to Docker daemon: {e}")
 
-logger.info(f"Configuration completed for {domain_name} with IP {ip_address}")
+logger.info(f"Configuration completed for {domain_name} with IP address = {ip_address}")
 
 #-------------------------- Initialize TEST variables ------------------------------#
 # List to store the timestamps of each federation step
@@ -1043,10 +1043,6 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                     requirements = web3.toText(event['args']['requirements'])
 
                     requested_service, requested_replicas = extract_service_requirements(requirements.rstrip('\x00'))
-
-                    requested_service = requested_service.decode('utf-8')
-                    requested_replicas = requested_replicas.decode('utf-8')
-
                     
                     if GetServiceState(service_id) == 0:
                         open_services.append(service_id)
