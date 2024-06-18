@@ -1,14 +1,14 @@
 module.exports = {
   networks: {
     development: {
-      host: "192.168.56.104",
+      host: "192.168.56.104", 
       port: 7545,
       network_id: "*"
     },
 
     node1: {
-      host: "192.168.56.104",
-      port: 3334,            
+      host: process.env.IP_NODE_1,
+      port: process.env.WS_PORT_NODE_1,            
       network_id: "1234",    
       websockets: true       
     },

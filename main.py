@@ -937,10 +937,11 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
                     logger.info("Entered bids format: [provider_address, service_price, bid_index]")
                     bid_index = int(event['args']['max_bid_index'])
                     bidderArrived = True 
+
+                    # Received bids
                     if int(bid_index) < 2:
                         bid_info = GetBidInfo(int(bid_index-1))
                         print(bid_info)
-                        print("Bid index:", bid_index)
                     
                         # Winner choosen 
                         t_winner_choosen = time.time() - process_start_time
