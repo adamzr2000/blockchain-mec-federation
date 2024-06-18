@@ -101,6 +101,7 @@ else:
 domain = os.getenv('DOMAIN_FUNCTION').strip().lower()
 domain_name = os.getenv('DOMAIN_NAME')
 dlt_node_id = os.getenv('DLT_NODE_ID')
+interface_name = os.getenv('INTERFACE_NAME')
 
 # Configure Web3
 eth_node_url = os.getenv(f'WS_NODE_{dlt_node_id}_URL')
@@ -150,12 +151,16 @@ bid_index = 0
 winner = coinbase
 manager_address = ''
 winnerChosen_event = None
-service_endpoint = ''
 domain_registered = False
+vxlan_id="200"
+vxlan_port="4789"
+docker_subnet = "10.0.0.0/16"
+docker_ip_range = f"10.0.{dlt_node_id}.0/24"
 
 # Initialize domain-specific configurations and variables
 if domain == "consumer":
     # Consumer-specific variables
+    # service_endpoint_consumer = f"ip_address={ip};vxlan_id=200;vxlan_port=4789"
     service_endpoint_consumer = ip_address
     service_consumer_address = block_address
     service_requirements = 'service=alpine;replicas=1'
@@ -163,6 +168,7 @@ if domain == "consumer":
 
 else:  # Provider
     # Provider-specific variables
+    # service_endpoint_provider = f"ip_address={ip};vxlan_id=200;vxlan_port=4789"
     service_endpoint_provider = ip_address
     federated_host = ''  # Placeholder for federated service deployment
     service_price = 0
@@ -293,7 +299,7 @@ def GetDeployedInfo(service_id, domain):
             _id=service_id_bytes, provider=False, call_address=block_address).call()
         _service_id = service_id.rstrip(b'\x00')  # Apply rstrip on bytes-like object
         _service_endpoint_provider = service_endpoint_provider.rstrip(b'\x00')
-        _federated_host = federated_host.rstrip(b'\x00')
+        _federated_host = federated_host.rstrip(b'\x00'
         return _federated_host, _service_endpoint_provider
     else:
         service_id_bytes = web3.toBytes(text=service_id)  # Convert string to bytes
@@ -410,7 +416,7 @@ def extract_service_requirements(requirements):
     Extracts service and replicas from the requirements string.
 
     Args:
-    - requirements (str): String containing service and replicas in the format "service=X;replicas=Y".
+    - requirements (str): String containing service and replicas in the format "service=A;replicas=B".
 
     Returns:
     - tuple: A tuple containing extracted service and replicas.
@@ -418,11 +424,31 @@ def extract_service_requirements(requirements):
     match = re.match(r'service=(.*?);replicas=(.*)', requirements)
 
     if match:
-        requested_service = match.group(1)
-        replicas = match.group(2)
+        requested_service = match.group(1).decode('utf-8')
+        replicas = match.group(2).decode('utf-8')
         return requested_service, replicas
     else:
         return None, None
+
+# def extract_service_endpoint(endpoint):
+#     """
+#     Extracts the IP address, VXLAN ID, and VXLAN port from the endpoint string.
+
+#     Args:
+#     - endpoint (str): String containing the endpoint information in the format "ip_address=A;vxlan_id=B;vxlan_port=C".
+
+#     Returns:
+#     - tuple: A tuple containing the extracted IP address, VXLAN ID, and VXLAN port.
+#     """
+#     match = re.match(r'ip_address=(.*?);vxlan_id=(.*?);vxlan_port=(.*)', endpoint)
+
+#     if match:
+#         ip_address = match.group(1).decode('utf-8')
+#         vxlan_id = match.group(2).decode('utf-8')
+#         vxlan_port = match.group(3).decode('utf-8')
+#         return ip_address, vxlan_id, vxlan_port
+#     else:
+#         return None, None, None
 
 def create_csv_file(role, header, data):
     # Determine the base directory based on the role
@@ -523,26 +549,24 @@ def scale_docker_containers(name, action, replicas):
 
 
 def get_container_ips(name):
-    ips = {}
+    container_ips = {}
     try:
         containers = client.containers.list(all=True, filters={"name": name})
         if not containers:
             print(f"No containers found with name: {name}")
-            return ips
+            return container_ips
         
         for container in containers:
             container.reload()  # Refresh container data
             network_settings = container.attrs['NetworkSettings']['Networks']
-            container_ips = {}
             for network_name, network_data in network_settings.items():
                 ip_address = network_data['IPAddress']
-                container_ips[network_name] = ip_address
-                print(f"Container {container.name} in network {network_name} has IP address: {ip_address}")
-            ips[container.name] = container_ips
-        return ips
+                container_ips[container.name] = ip_address
+                # print(f"Container {container.name} in network {network_name} has IP address: {ip_address}")
+        return container_ips
     except Exception as e:
         print(f"Failed to get IP addresses for containers: {e}")
-        return ips
+        return container_ips
 
 
 # -------------------------------------------- Docker API FUNCTIONS --------------------------------------------#
@@ -655,12 +679,10 @@ async def check_deployed_info_endpoint(service_id: str):
     try:
         # Service deployed info
         federated_host, service_endpoint = GetDeployedInfo(service_id, domain)  
-        federated_host = federated_host.decode('utf-8')
-        service_endpoint = service_endpoint.decode('utf-8')
 
         message = {
-            "service-endpoint": service_endpoint,
-            "federated-host": federated_host
+            "service-endpoint": service_endpoint.decode('utf-8'),
+            "federated-host": federated_host.decode('utf-8')
         }
         return {"message": message}
     except Exception as e:
@@ -945,12 +967,15 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
 
             federated_host = federated_host.decode('utf-8')
             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
-
+            
             print("Federated service info:")
-            print("External IP:", federated_host)
             print("Service endpoint provider:", service_endpoint_provider)
+            print("Federated host:", federated_host)
 
+            # Sets up the federation docker network and the VXLAN network interface
+            configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
+            
             # # Establish connectivity with the federated service
             # retry_limit = 5  # Maximum number of connection attempts
             # retry_count = 0
@@ -972,7 +997,6 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             total_duration = time.time() - process_start_time
 
             print(f"Federation process completed in {total_duration:.2f} seconds")
-            # print(response_content)
 
             if export_to_csv:
                 # Export the data to a csv file only if export_to_csv is True
@@ -1070,29 +1094,28 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
                     # print("I am the winner")
                     break
 
-
-            local_ip = ip_address
             
             # Service deployed info
             federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
 
-            remote_ip = service_endpoint_consumer.decode('utf-8')
-            interface_name = "enp0s3"
-            vxlan_id = "200"
-            vxlan_port = "4789"
-            docker_subnet = "10.0.0.0/16"
-            docker_ip_range = f"10.0.{dlt_node_id}.0/24"
+            service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
+            
+            print("Service endpoint consumer:")
+            print("IP address:", service_endpoint_consumer)
+            print("VXLAN id:", vxlan_id)
+            print("VXLAN port:", vxlan_port)
 
             # Sets up the federation docker network and the VXLAN network interface
-            configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+            configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
             # Deploy docker service and wait to be ready and get an IP address
-            containers = deploy_docker_containers(requested_service, requested_service, "federation-net", int(requested_replicas))
-            # ips = get_container_ips(name)
+            deploy_docker_containers(requested_service, requested_service, "federation-net", int(requested_replicas))
             
-            federated_host = "10.0.2.1"
-
-            
+            container_ips = get_container_ips(requested_service)
+            if container_ips:
+                first_container_name = next(iter(container_ips))
+                federated_host = container_ips[first_container_name]
+                        
             # Deployment finished
             t_deployment_finished = time.time() - process_start_time
             data.append(['deployment_finished', t_deployment_finished])
@@ -1105,7 +1128,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             total_duration = time.time() - process_start_time
                 
             print("\n\033[1;32m(TX-4) Service deployed\033[0m")
-            print("External IP:", federated_host)
+            print("Federated host:", federated_host)
             DisplayServiceState(service_id)
                 
             if export_to_csv:

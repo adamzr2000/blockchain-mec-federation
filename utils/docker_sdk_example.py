@@ -114,20 +114,24 @@ def exec_command_in_container(name, command):
         print(f"Failed to execute command in containers: {e}")
 
 def get_container_ips(name):
+    container_ips = {}
     try:
         containers = client.containers.list(all=True, filters={"name": name})
         if not containers:
             print(f"No containers found with name: {name}")
-            return
+            return container_ips
         
         for container in containers:
             container.reload()  # Refresh container data
             network_settings = container.attrs['NetworkSettings']['Networks']
             for network_name, network_data in network_settings.items():
                 ip_address = network_data['IPAddress']
+                container_ips[container.name] = ip_address
                 print(f"Container {container.name} in network {network_name} has IP address: {ip_address}")
+        return container_ips
     except Exception as e:
         print(f"Failed to get IP addresses for containers: {e}")
+        return container_ips
 
 def interactive_menu():
     while True:
@@ -165,7 +169,11 @@ def interactive_menu():
             exec_command_in_container(name, command)
         elif choice == '6':
             name = input("Enter the service name to get container IP addresses: ")
-            get_container_ips(name)
+            container_ips = get_container_ips(name)
+            if container_ips:
+                first_container_name = next(iter(container_ips))
+                first_ip_address = container_ips[first_container_name]
+                print(f"The IP address of the first container ({first_container_name}) is: {first_ip_address}")
         elif choice == '7':
             print("Exiting...")
             break
