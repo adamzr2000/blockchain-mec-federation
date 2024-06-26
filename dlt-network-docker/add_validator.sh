@@ -23,24 +23,43 @@ fi
 CURRENT_SIGNER_NODE=$1
 NEW_SIGNER_NODE=$2
 
+# Debug: Print current and new signer node selections
+echo "Current signer node: $CURRENT_SIGNER_NODE"
+echo "New signer node: $NEW_SIGNER_NODE"
+
 # Handle selections
 handle_selection "$CURRENT_SIGNER_NODE"
 handle_selection "$NEW_SIGNER_NODE"
 
-# Function to get environment variable from a Docker container
-get_env_var() {
-    local container=$1
-    local var_name=$2
-    docker exec "$container" printenv "$var_name"
-}
+# Source the environment variables from the corresponding .env files
+source "${CURRENT_SIGNER_NODE}.env"
+source "${NEW_SIGNER_NODE}.env"
 
-# Get environment variables from the current signer node container
-ETHERBASE_CURRENT=$(get_env_var "$CURRENT_SIGNER_NODE" "ETHERBASE_${CURRENT_SIGNER_NODE^^}")
-IP_CURRENT=$(get_env_var "$CURRENT_SIGNER_NODE" "IP_${CURRENT_SIGNER_NODE^^}")
-WS_PORT_CURRENT=$(get_env_var "$CURRENT_SIGNER_NODE" "WS_PORT_${CURRENT_SIGNER_NODE^^}")
+# Extract the ID from the node names
+CURRENT_SIGNER_ID=${CURRENT_SIGNER_NODE: -1}
+NEW_SIGNER_ID=${NEW_SIGNER_NODE: -1}
 
-# Get the etherbase of the new signer node
-ETHERBASE_NEW=$(get_env_var "$NEW_SIGNER_NODE" "ETHERBASE_${NEW_SIGNER_NODE^^}")
+# Extract the environment variables for the current signer node
+ETHERBASE_CURRENT_VAR="ETHERBASE_NODE_${CURRENT_SIGNER_ID}"
+IP_CURRENT_VAR="IP_NODE_${CURRENT_SIGNER_ID}"
+WS_PORT_CURRENT_VAR="WS_PORT_NODE_${CURRENT_SIGNER_ID}"
+
+ETHERBASE_CURRENT=${!ETHERBASE_CURRENT_VAR}
+IP_CURRENT=${!IP_CURRENT_VAR}
+WS_PORT_CURRENT=${!WS_PORT_CURRENT_VAR}
+
+# Extract the etherbase of the new signer node
+ETHERBASE_NEW_VAR="ETHERBASE_NODE_${NEW_SIGNER_ID}"
+ETHERBASE_NEW=${!ETHERBASE_NEW_VAR}
+
+# Debug: Print the retrieved environment variables
+echo "Current signer node environment variables:"
+echo "ETHERBASE_CURRENT: $ETHERBASE_CURRENT"
+echo "IP_CURRENT: $IP_CURRENT"
+echo "WS_PORT_CURRENT: $WS_PORT_CURRENT"
+
+echo "New signer node environment variables:"
+echo "ETHERBASE_NEW: $ETHERBASE_NEW"
 
 # Check if environment variables were retrieved successfully
 if [ -z "$ETHERBASE_CURRENT" ] || [ -z "$IP_CURRENT" ] || [ -z "$WS_PORT_CURRENT" ] || [ -z "$ETHERBASE_NEW" ]; then
