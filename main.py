@@ -1164,18 +1164,27 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
                     bid_index = int(event['args']['max_bid_index'])
                     bidderArrived = True 
 
+                     # Received bids
+                    lowest_price = None
+                    best_bid = None
+
                     # Received bids
                     if int(bid_index) >= 2:
                         # Loop through all bid indices and print their information
                         for i in range(bid_index):
                             bid_info = GetBidInfo(i)
+                            bid_price = bid_info[1] 
+                            if lowest_price is None or bid_price < lowest_price:
+                                lowest_price = bid_price
+                                best_bid_index = bid_info[2]
                             print(f"Bid {i}: {bid_info}")
-                    
+
+
                         # Winner choosen 
                         t_winner_choosen = time.time() - process_start_time
                         data.append(['winner_choosen', t_winner_choosen])
                         
-                        ChooseProvider(int(bid_index)-1)
+                        ChooseProvider(best_bid_index)
                         logger.info(f"Provider Choosen - Bid Index: {bid_index-1}")
 
                         # Service closed (state 1)
@@ -1299,6 +1308,10 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False, price
                     t_deployment_start = time.time() - process_start_time
                     data.append(['deployment_start', t_deployment_start])
                     break
+                else:
+                    # If not the winner, log and return the message
+                    logger.info(f"I am not the winner for {service_id}")
+                    return {"message": f"I am not the winner for {service_id}"}
 
             # Service deployed info
             federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
