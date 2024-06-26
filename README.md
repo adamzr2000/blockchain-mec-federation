@@ -123,3 +123,16 @@ curl -X POST http://<vm1-ip>:8000/register_domain
 curl -X POST http://<vm2-ip>:8000/register_domain
 ```
 
+```bash
+# VM1 
+curl -X POST http://192.168.56.104:8000/start_experiments_consumer_v2
+
+# VM2 
+curl -X POST "http://192.168.56.105:8000/start_experiments_provider_v2" -H "Content-Type: application/json" -d '{"export_to_csv": false, "price": 30}'
+
+# VM3
+curl -X POST "http://192.168.56.106:8000/start_experiments_provider_v2" -H "Content-Type: application/json" -d '{"export_to_csv": false, "price": 10}'
+```
+
+
+

@@ -592,7 +592,7 @@ def deploy_docker_containers_endpoint(image: str, name: str, network: str, repli
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/delete_docker_service/{name}", tags=["Docker Functions"], summary="Delete docker service")
+@app.delete("/delete_docker_service/{name}", tags=["Docker Functions"], summary="Delete docker service")
 def delete_docker_containers_endpoint(name: str):
     try:
         delete_docker_containers(name)
