@@ -33,4 +33,4 @@ DOCKER_CMD="docker run -d --name $NODE_SELECTION --hostname $NODE_SELECTION --ne
 echo "Starting $NODE_SELECTION with command $START_CMD..."
 eval "$DOCKER_CMD"
 
-echo "$NODE_SELECTION started successfully with command $START_CMD."
+echo "$NODE_SELECTION started successfully."

@@ -23,17 +23,13 @@ fi
 CURRENT_SIGNER_NODE=$1
 NEW_SIGNER_NODE=$2
 
-# Debug: Print current and new signer node selections
-echo "Current signer node: $CURRENT_SIGNER_NODE"
-echo "New signer node: $NEW_SIGNER_NODE"
-
 # Handle selections
 handle_selection "$CURRENT_SIGNER_NODE"
 handle_selection "$NEW_SIGNER_NODE"
 
-# Source the environment variables from the corresponding .env files
-source "./../config/dlt/${CURRENT_SIGNER_NODE}.env"
-source "./../config/dlt/${NEW_SIGNER_NODE}.env"
+# Source the environment variables from the corresponding .env files, suppressing errors
+source "${CURRENT_SIGNER_NODE}.env" 2>/dev/null
+source "${NEW_SIGNER_NODE}.env" 2>/dev/null
 
 # Extract the ID from the node names
 CURRENT_SIGNER_ID=${CURRENT_SIGNER_NODE: -1}
@@ -44,21 +40,21 @@ ETHERBASE_CURRENT_VAR="ETHERBASE_NODE_${CURRENT_SIGNER_ID}"
 IP_CURRENT_VAR="IP_NODE_${CURRENT_SIGNER_ID}"
 WS_PORT_CURRENT_VAR="WS_PORT_NODE_${CURRENT_SIGNER_ID}"
 
-ETHERBASE_CURRENT=${!ETHERBASE_CURRENT_VAR}
-IP_CURRENT=${!IP_CURRENT_VAR}
-WS_PORT_CURRENT=${!WS_PORT_CURRENT_VAR}
+ETHERBASE_CURRENT=$(eval echo \$$ETHERBASE_CURRENT_VAR)
+IP_CURRENT=$(eval echo \$$IP_CURRENT_VAR)
+WS_PORT_CURRENT=$(eval echo \$$WS_PORT_CURRENT_VAR)
 
 # Extract the etherbase of the new signer node
 ETHERBASE_NEW_VAR="ETHERBASE_NODE_${NEW_SIGNER_ID}"
-ETHERBASE_NEW=${!ETHERBASE_NEW_VAR}
+ETHERBASE_NEW=$(eval echo \$$ETHERBASE_NEW_VAR)
 
 # Debug: Print the retrieved environment variables
-echo "Current signer node environment variables:"
+echo "Current signer node: $CURRENT_SIGNER_NODE"
 echo "ETHERBASE_CURRENT: $ETHERBASE_CURRENT"
-echo "IP_CURRENT: $IP_CURRENT"
-echo "WS_PORT_CURRENT: $WS_PORT_CURRENT"
+# echo "IP_CURRENT: $IP_CURRENT"
+# echo "WS_PORT_CURRENT: $WS_PORT_CURRENT"
 
-echo "New signer node environment variables:"
+echo "New signer node: $NEW_SIGNER_NODE"
 echo "ETHERBASE_NEW: $ETHERBASE_NEW"
 
 # Check if environment variables were retrieved successfully
@@ -67,14 +63,24 @@ if [ -z "$ETHERBASE_CURRENT" ] || [ -z "$IP_CURRENT" ] || [ -z "$WS_PORT_CURRENT
     exit 1
 fi
 
-# Construct the Geth command
-GETH_CMD="geth --exec \"clique.propose('${ETHERBASE_NEW}',true)\" attach ws://${IP_CURRENT}:${WS_PORT_CURRENT}"
+# Construct the Geth command to add the new signer
+GETH_CMD_ADD_SIGNER="geth --exec \"clique.propose('${ETHERBASE_NEW}',true)\" attach ws://${IP_CURRENT}:${WS_PORT_CURRENT}"
 
-# Construct the Docker command
-DOCKER_CMD="docker exec -it ${CURRENT_SIGNER_NODE} $GETH_CMD"
+# Construct the Docker command to add the new signer
+DOCKER_CMD_ADD_SIGNER="docker exec -it ${CURRENT_SIGNER_NODE} $GETH_CMD_ADD_SIGNER"
 
-# Execute the Docker command
-echo "Executing command: $DOCKER_CMD"
-eval "$DOCKER_CMD"
+# Execute the Docker command to add the new signer
+echo "Executing command to add new signer: $DOCKER_CMD_ADD_SIGNER"
+eval "$DOCKER_CMD_ADD_SIGNER"
 
-echo "Signer ${ETHERBASE_NEW} added to the network using ${CURRENT_SIGNER_NODE}."
+# Construct the Geth command to get the list of signers
+GETH_CMD_GET_SIGNERS="geth --exec \"clique.getSigners()\" attach ws://${IP_CURRENT}:${WS_PORT_CURRENT}"
+
+# Construct the Docker command to get the list of signers
+DOCKER_CMD_GET_SIGNERS="docker exec -it ${CURRENT_SIGNER_NODE} $GETH_CMD_GET_SIGNERS"
+
+# Execute the Docker command to get the list of signers
+echo "Executing command to get list of signers: $DOCKER_CMD_GET_SIGNERS"
+eval "$DOCKER_CMD_GET_SIGNERS"
+
+echo "Signer ${ETHERBASE_NEW} added to the DLT network."
