@@ -995,7 +995,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
 
-@app.post("/start_experiments_provider_v1", tags=["Test 1"])
+@app.post("/start_experiments_provider_v1", tags=["Test 1: Select the first provider offer"])
 def start_experiments_provider_entire_service(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
@@ -1118,5 +1118,232 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             error_message = "You must be provider to run this code"
             raise HTTPException(status_code=500, detail=error_message)
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))   
+
+# ------------------------------------------------------------------------------------------------------------------------------#
+
+@app.post("/start_experiments_consumer_v2", tags=["Test 2: Wait for bids from 2 providers and choose the one with the lowest price"])
+def start_experiments_consumer_entire_service(export_to_csv: bool = False):
+    try:
+        header = ['step', 'timestamp']
+        data = []
+        
+        if domain == 'consumer':
+            
+            # Start time of the process
+            process_start_time = time.time()
+            
+            global bids_event
+            
+            # Service Announcement Sent
+            t_service_announced = time.time() - process_start_time
+            data.append(['service_announced', t_service_announced])
+            bids_event = AnnounceService()
+
+            logger.info(f"Service Announcement sent to the SC - Service ID: {service_id}")
+
+            # Consumer AD wait for provider bids
+            bidderArrived = False
+
+            logger.info("Waiting for bids...")
+            while bidderArrived == False:
+                new_events = bids_event.get_all_entries()
+                for event in new_events:
+                    
+                    # Bid Offer Received
+                    t_bid_offer_received = time.time() - process_start_time
+                    data.append(['bid_offer_received', t_bid_offer_received])
+
+                    event_id = str(web3.toText(event['args']['_id']))
+                    
+                    # Choosing provider
+
+                    # service id, service id, index of the bid
+                    # print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
+                    logger.info("Entered bids format: [provider_address, service_price, bid_index]")
+                    bid_index = int(event['args']['max_bid_index'])
+                    bidderArrived = True 
+
+                    # Received bids
+                    if int(bid_index) >= 2:
+                        # Loop through all bid indices and print their information
+                        for i in range(bid_index):
+                            bid_info = GetBidInfo(i)
+                            print(f"Bid {i}: {bid_info}")
+                    
+                        # Winner choosen 
+                        t_winner_choosen = time.time() - process_start_time
+                        data.append(['winner_choosen', t_winner_choosen])
+                        
+                        ChooseProvider(int(bid_index)-1)
+                        logger.info(f"Provider Choosen - Bid Index: {bid_index-1}")
+
+                        # Service closed (state 1)
+                        #DisplayServiceState(service_id)
+                        break
+
+            # Consumer AD wait for provider confirmation
+            serviceDeployed = False 
+            while serviceDeployed == False:
+                serviceDeployed = True if GetServiceState(service_id) == 2 else False
+            
+            # Confirmation received
+            t_confirm_deployment_received = time.time() - process_start_time
+            data.append(['confirm_deployment_received', t_confirm_deployment_received])
+            
+            # Service deployed info
+            federated_host, service_endpoint_provider = GetDeployedInfo(service_id, domain)
+            
+            t_check_connectivity_federated_service_start = time.time() - process_start_time
+            data.append(['check_connectivity_federated_service_start', t_check_connectivity_federated_service_start])
+
+            federated_host = federated_host.decode('utf-8')
+            service_endpoint_provider = service_endpoint_provider.decode('utf-8')
+
+            logger.info(f"Federated Service Info - Service Endpoint Provider: {service_endpoint_provider}, Federated Host: {federated_host}")
+
+            # Sets up the federation docker network and the VXLAN network interface
+            configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+
+            total_duration = time.time() - process_start_time
+
+            logger.info(f"Federation process completed in {total_duration:.2f} seconds")
+
+            if export_to_csv:
+                # Export the data to a csv file only if export_to_csv is True
+                create_csv_file(domain, header, data)
+                logger.info(f"Data exported to CSV for {domain}.")
+            else:
+                logger.warning("CSV export not requested.")
+
+            return {"message": f"Federation process completed in {total_duration:.2f} seconds"}
+        else:
+            error_message = "You must be consumer to run this code"
+            raise HTTPException(status_code=500, detail=error_message)
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
+
+@app.post("/start_experiments_provider_v2", tags=["Test 2: Wait for bids from 2 providers and choose the one with the lowest price"])
+def start_experiments_provider_entire_service(export_to_csv: bool = False, price: int = 10):
+    try:
+        header = ['step', 'timestamp']
+        data = []
+        
+        if domain == 'provider':
+            
+            # Start time of the process
+            process_start_time = time.time()
+
+            global winnerChosen_event 
+            service_id = ''
+            newService_event = ServiceAnnouncementEvent()
+            newService = False
+            open_services = []
+
+            # Provider AD wait for service announcements
+            logger.info("Subscribed to federation events...")
+            while newService == False:
+                new_events = newService_event.get_all_entries()
+                for event in new_events:
+                    service_id = web3.toText(event['args']['id'])
+                    
+                    requirements = web3.toText(event['args']['requirements'])
+
+                    requested_service, requested_replicas = extract_service_requirements(requirements.rstrip('\x00'))
+                    
+                    if GetServiceState(service_id) == 0:
+                        open_services.append(service_id)
+                # print("OPEN =", len(open_services)) 
+                if len(open_services) > 0:
+                    
+                    # Announcement received
+                    t_announce_received = time.time() - process_start_time
+                    data.append(['announce_received', t_announce_received])
+                    
+                    logger.info(f"Announcement Received - Service ID: {service_id}, Requested Service: {repr(requested_service)}, Requested Replicas: {repr(requested_replicas)}")
+                    print(new_events)
+                    newService = True
+                
+            service_id = open_services[-1]
+
+            # Place a bid offer to the Federation SC
+            t_bid_offer_sent = time.time() - process_start_time
+            data.append(['bid_offer_sent', t_bid_offer_sent])
+            winnerChosen_event = PlaceBid(service_id, price)
+
+            logger.info(f"Bid Offer sent to the SC - Service ID: {service_id}, Price: {price} €")
+            
+            # Ask to the Federation SC if there is a winner (wait...)
+        
+            winnerChosen = False
+            while winnerChosen == False:
+                new_events = winnerChosen_event.get_all_entries()
+                for event in new_events:
+                    event_serviceid = web3.toText(event['args']['_id'])
+                    if event_serviceid == service_id:
+                        
+                        # Winner choosen received
+                        t_winner_received = time.time() - process_start_time
+                        data.append(['winner_received', t_winner_received])
+                        winnerChosen = True
+                        break
+            
+            am_i_winner = False
+            while am_i_winner == False:
+                # Provider AD ask if he is the winner
+                am_i_winner = CheckWinner(service_id)
+                if am_i_winner == True:
+                    logger.info(f"I am the winner for {service_id}")
+                    # Start deployment of the requested federated service
+                    logger.info("Start deployment of the requested federated service...")
+                    t_deployment_start = time.time() - process_start_time
+                    data.append(['deployment_start', t_deployment_start])
+                    break
+
+            # Service deployed info
+            federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
+
+            service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
+
+            logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
+
+            # Sets up the federation docker network and the VXLAN network interface
+            configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+
+            # Deploy docker service and wait to be ready and get an IP address
+            deploy_docker_containers(requested_service, requested_service, "federation-net", int(requested_replicas))
+            
+            container_ips = get_container_ips(requested_service)
+            if container_ips:
+                first_container_name = next(iter(container_ips))
+                federated_host = container_ips[first_container_name]
+                        
+            # Deployment finished
+            t_deployment_finished = time.time() - process_start_time
+            data.append(['deployment_finished', t_deployment_finished])
+                
+            # Deployment confirmation sent
+            t_confirm_deployment_sent = time.time() - process_start_time
+            data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
+            ServiceDeployed(service_id, federated_host)
+
+            total_duration = time.time() - process_start_time
+
+            logger.info(f"Service Deployed - Federated Host: {federated_host}")
+ 
+            DisplayServiceState(service_id)
+                
+            if export_to_csv:
+                # Export the data to a csv file only if export_to_csv is True
+                create_csv_file(domain, header, data)
+                logger.info(f"Data exported to CSV for {domain}.")
+            else:
+                logger.warning("CSV export not requested.")
+
+            return {"message": f"Federation process completed in {total_duration:.2f} seconds"}
+        else:
+            error_message = "You must be provider to run this code"
+            raise HTTPException(status_code=500, detail=error_message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))  
 # ------------------------------------------------------------------------------------------------------------------------------#

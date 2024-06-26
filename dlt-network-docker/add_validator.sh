@@ -73,14 +73,14 @@ DOCKER_CMD_ADD_SIGNER="docker exec -it ${CURRENT_SIGNER_NODE} $GETH_CMD_ADD_SIGN
 echo "Executing command to add new signer: $DOCKER_CMD_ADD_SIGNER"
 eval "$DOCKER_CMD_ADD_SIGNER"
 
-# Construct the Geth command to get the list of signers
-GETH_CMD_GET_SIGNERS="geth --exec 'clique.getSigners()' attach ws://${IP_CURRENT}:${WS_PORT_CURRENT}"
+# # Construct the Geth command to get the list of signers
+# GETH_CMD_GET_SIGNERS="geth --exec 'clique.getSigners()' attach ws://${IP_CURRENT}:${WS_PORT_CURRENT}"
 
-# Construct the Docker command to get the list of signers
-DOCKER_CMD_GET_SIGNERS="docker exec -it ${CURRENT_SIGNER_NODE} $GETH_CMD_GET_SIGNERS"
+# # Construct the Docker command to get the list of signers
+# DOCKER_CMD_GET_SIGNERS="docker exec -it ${CURRENT_SIGNER_NODE} $GETH_CMD_GET_SIGNERS"
 
-# Execute the Docker command to get the list of signers
-echo "Executing command to get list of signers: $DOCKER_CMD_GET_SIGNERS"
-eval "$DOCKER_CMD_GET_SIGNERS"
+# # Execute the Docker command to get the list of signers
+# echo "Executing command to get list of signers: $DOCKER_CMD_GET_SIGNERS"
+# eval "$DOCKER_CMD_GET_SIGNERS"
 
 echo "Signer ${ETHERBASE_NEW} added to the DLT network."

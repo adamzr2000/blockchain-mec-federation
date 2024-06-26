@@ -77,10 +77,10 @@ cd dlt-network-docker
 After starting the blockchain network, you can verify that the nodes have associated correctly by executing the following commands:
 ```bash
 # VM1
-docker exec -it node1 geth --exec "net.peerCount" attach ws://<vm1-ip>:3334
+ ./get_peers.sh node1
 
 # VM2  
-docker exec -it node2 geth --exec "net.peerCount" attach ws://<vm2-ip>:3335
+ ./get_peers.sh node2
 ```
 
 Each command should report `1 peer`, indicating that the nodes have successfully connected to each other.
@@ -96,8 +96,6 @@ Access the `eth-netsats` web interface for additional information at `http://<vm
 ```
 
 ## Usage
-
-> Note: Before starting, ensure to export the Kubernetes cluster configuration file for each VM. Navigate to the `k8s-cluster-config` directory and execute `./export_k8s_cluster_config`
 
 1. Deploy the Federation Smart Contract to the blockchain Network:
 
@@ -125,91 +123,3 @@ curl -X POST http://<vm1-ip>:8000/register_domain
 curl -X POST http://<vm2-ip>:8000/register_domain
 ```
 
-## Scenario 1: migration of the entire object detection service
-
-The consumer AD initiates the service deployment:
-```bash
-curl -X POST http://<vm1-ip>:8000/deploy_object_detection_service
-```
-
-The provider AD listens for federation events and the consumer AD trigger federation process:
-```bash
-# VM2
-curl -X POST http://<vm2-ip>:8000/start_experiments_provider_v1
-
-# VM1
-curl -X POST http://<vm1-ip>:8000/start_experiments_consumer_v1
-```
-
-> Note: These commands will automate all interactions during the federation, including *announcement*, *negotiation*, *acceptance*, and *deployment*.
-
-Upon successful completion of the federation procedures, the entire service should be deployed in the provider AD, and the consumer AD can access it through the `external_ip` endpoint (shared via the smart contract)
-
-To delete the service, execute:
-```bash
-# VM1
-curl -X DELETE http://<vm1-ip>:8000/delete_object_detection_service
-
-# VM2
-curl -X DELETE http://<vm2-ip>:8000/delete_object_detection_service
-```
-
-## Scenario 2: migration of the object detection component
-
-The consumer AD initiates the service deployment:
-```bash
-curl -X POST http://<vm1-ip>:8000/deploy_object_detection_service
-```
-
-The provider AD listens for federation events and the consumer AD trigger federation process:
-```bash
-# VM2
-curl -X POST http://<vm2-ip>:8000/start_experiments_provider_v2
-
-# VM1
-curl -X POST http://<vm1-ip>:8000/start_experiments_consumer_v2
-```
-
-> Note: These commands will automate all interactions during the federation, including *announcement*, *negotiation*, *acceptance*, and *deployment*.
-
-Upon successful completion of the federation procedures, the object detection component should be deployed in the provider AD. The consumer AD then terminates its object detection component and updates the configmap of the `sampler-sender` to direct the video stream to the `external IP address` endpoint of the object detection component (shared via the smart contract).
-
-To verify, execute `kubectl get configmap sampler-sender-config-map -o yaml` in the consumer AD. The `destination_ip` value should match the `external IP address` of the object detection component deployed in the provider AD.
-
-To delete the service, execute:
-```bash
-# VM1
-curl -X DELETE http://<vm1-ip>:8000/delete_object_detection_service
-
-# VM2
-curl -X DELETE "http://<vm2-ip>:8000/delete_object_detection_federation_component" -H "Content-Type: application/json" -d '{"domain": "provider", "pod_prefixes": ["object-detector-"]}'
-```
-
-## Scenario 3: scaling of the object detection component
-
-The consumer AD initiates the service deployment with N replicas (e.g., 6) of the object detector component:
-```bash
-curl -X POST http://<vm1-ip>:8000/deploy_object_detection_service?replicas=6
-```
-
-The provider AD listens for federation events and the consumer AD trigger the federation process, announcing its intention to scale M replicas (e.g., 4):
-```bash
-# VM2
-curl -X POST http://<vm2-ip>:8000/start_experiments_provider_v3
-
-# VM1
-curl -X POST http://<vm1-ip>:8000/start_experiments_consumer_v3?replicas=4
-```
-
-> Note: These commands will automate all interactions during the federation, including *announcement*, *negotiation*, *acceptance*, and *deployment*.
-
-Upon successful completion of the federation procedures, the object detection component should be deployed in the provider AD with M replicas, while the consumer AD should have N-M replicas deployed.
-
-To delete the service, execute:
-```bash
-# VM1
-curl -X DELETE http://<vm1-ip>:8000/delete_object_detection_service
-
-# VM2
-curl -X DELETE "http://<vm2-ip>:8000/delete_object_detection_federation_component" -H "Content-Type: application/json" -d '{"domain": "provider", "pod_prefixes": ["object-detector-"]}'
-```
