@@ -28,8 +28,8 @@ handle_selection "$CURRENT_SIGNER_NODE"
 handle_selection "$NEW_SIGNER_NODE"
 
 # Source the environment variables from the corresponding .env files, suppressing errors
-source "${CURRENT_SIGNER_NODE}.env" 2>/dev/null
-source "${NEW_SIGNER_NODE}.env" 2>/dev/null
+source "./../config/dlt/${CURRENT_SIGNER_NODE}.env" 2>/dev/null
+source "./../config/dlt/${NEW_SIGNER_NODE}.env" 2>/dev/null
 
 # Extract the ID from the node names
 CURRENT_SIGNER_ID=${CURRENT_SIGNER_NODE: -1}
