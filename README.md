@@ -16,9 +16,9 @@ Here is a diagram that represents visually the experimental setup:
 
 ![Experimental Setup](images/experimental-setup.svg)
 
-- 2 VMs, each acting as a separate AD, containing [Docker](https://docs.docker.com/engine/install/ubuntu)
-- Both interconnected in bridge mode within [KVM](https://help.ubuntu.com/community/KVM/Networking)
-- Both VMs have access to a blockchain node
+- >= 2 VMs, each acting as a separate AD, containing [Docker](https://docs.docker.com/engine/install/ubuntu)
+- All interconnected in bridge mode within [KVM](https://help.ubuntu.com/community/KVM/Networking)
+- All VMs have access to a blockchain node
 
 **Author:** Adam Zahir Rodriguez
 
@@ -117,10 +117,10 @@ For detailed information about the federation functions, refer to the REST API d
 
 ```bash
 # VM1 
-curl -X POST http://<vm1-ip>:8000/register_domain
+curl -X POST http://192.168.56.104:8000/register_domain
 
 # VM2 
-curl -X POST http://<vm2-ip>:8000/register_domain
+curl -X POST http://192.168.56.105:8000/register_domain
 ```
 
 ```bash
@@ -128,10 +128,10 @@ curl -X POST http://<vm2-ip>:8000/register_domain
 curl -X POST http://192.168.56.104:8000/start_experiments_consumer_v2
 
 # VM2 
-curl -X POST "http://192.168.56.105:8000/start_experiments_provider_v2" -H "Content-Type: application/json" -d '{"export_to_csv": false, "price": 30}'
+curl -X 'POST' 'http://192.168.56.105/start_experiments_provider_v2?export_to_csv=false&price=20'
 
 # VM3
-curl -X POST "http://192.168.56.106:8000/start_experiments_provider_v2" -H "Content-Type: application/json" -d '{"export_to_csv": false, "price": 10}'
+curl -X 'POST' 'http://192.168.56.106/start_experiments_provider_v2?export_to_csv=false&price=15'
 ```
 
 

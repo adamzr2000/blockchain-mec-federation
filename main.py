@@ -896,7 +896,10 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
 
-@app.post("/start_experiments_consumer_v1", tags=["Test 1: Select the first provider offer"])
+
+# ------------------------------------------------------------------------------------------------------------------------------#
+# Test 1: Select the first provider offer
+@app.post("/start_experiments_consumer_v1/")
 def start_experiments_consumer_entire_service(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
@@ -995,7 +998,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
 
-@app.post("/start_experiments_provider_v1", tags=["Test 1: Select the first provider offer"])
+@app.post("/start_experiments_provider_v1/")
 def start_experiments_provider_entire_service(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
@@ -1121,8 +1124,9 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
         raise HTTPException(status_code=500, detail=str(e))   
 
 # ------------------------------------------------------------------------------------------------------------------------------#
+# Test 2: Wait for bids from 2 providers and choose the one with the lowest price
 
-@app.post("/start_experiments_consumer_v2", tags=["Test 2: Wait for bids from 2 providers and choose the one with the lowest price"])
+@app.post("/start_experiments_consumer_v2/")
 def start_experiments_consumer_entire_service(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
@@ -1232,7 +1236,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
 
-@app.post("/start_experiments_provider_v2", tags=["Test 2: Wait for bids from 2 providers and choose the one with the lowest price"])
+@app.post("/start_experiments_provider_v2")
 def start_experiments_provider_entire_service(export_to_csv: bool = False, price: int = 10):
     try:
         header = ['step', 'timestamp']
