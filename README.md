@@ -16,8 +16,8 @@ Here is a diagram that represents visually the experimental setup:
 
 ![Experimental Setup](images/experimental-setup.svg)
 
-- >= 2 VMs, each acting as a separate AD, containing [Docker](https://docs.docker.com/engine/install/ubuntu)
-- All interconnected in bridge mode within [KVM](https://help.ubuntu.com/community/KVM/Networking)
+- Two or more VMs, each acting as a separate AD, containing [Docker](https://docs.docker.com/engine/install/ubuntu)
+- All VMs are interconnected in bridge mode
 - All VMs have access to a blockchain node
 
 **Author:** Adam Zahir Rodriguez
@@ -30,7 +30,7 @@ git clone git@github.com:adamzr2000/blockchain-mec-federation.git
 ```
 
 2. Build Docker Images:
-Navigate to the `docker-images` directory and proceed to build the required Docker images for the project by executing their respective `build.sh` scripts:
+Navigate to the [docker-images](./docker-images) directory and proceed to build the required Docker images for the project by executing their respective `build.sh` scripts:
 
 ```bash
 cd docker-images
@@ -50,13 +50,13 @@ pip3 install -r requirements.txt
 
 ## Blockchain Network Setup
 
-Firstly, we will create a blockchain network using `dlt-node` container images. The network will consist of two nodes, corresponding to VM1 and VM2, respectively. **VM1** will act as the bootnode, facilitating the association of both nodes with each other.
+Firstly, we will create a blockchain network using `dlt-node` container images.  Initially, the network will comprise two nodes, corresponding to VM1 and VM2, respectively. **VM1** will act as the bootnode, facilitating the association of both nodes with each other.
 
 1. Initialize the network:
 
-**(VM1)** Navigate to the `dlt-network-docker` directory and start the network setup:
+**(VM1)** Navigate to the [dlt-network-docker](./dlt-network-docker) directory and start the network setup:
 
-> Note: Please make sure to modify the IP addresses in the `.env` file according to your setup before executing the script. Replace `IP_NODE_1` with the IP address of your **VM1** and `IP_NODE_2` with the IP address of your **VM2**.
+> Note: Please make sure to modify the IP addresses in the [node1.env](./config/dlt/node1.env) and [node2.env](./config/dlt/node2.env) files according to your setup before executing the script. Replace `IP_NODE_1` with the IP address of your **VM1** and `IP_NODE_2` with the IP address of your **VM2**.
 
 ```bash
 cd dlt-network-docker
@@ -65,7 +65,7 @@ cd dlt-network-docker
 
 2. Join the network from a second node
 
-**(VM2)** Navigate to the `dlt-network-docker` directory and execute:
+**(VM2)** Navigate to the [dlt-network-docker](./dlt-network-docker) directory and join the blockchain network from the second node:
 
 ```bash
 cd dlt-network-docker
@@ -75,6 +75,7 @@ cd dlt-network-docker
 3. Verify node association
 
 After starting the blockchain network, you can verify that the nodes have associated correctly by executing the following commands:
+
 ```bash
 # VM1
  ./get_peers.sh node1
@@ -117,21 +118,21 @@ For detailed information about the federation functions, refer to the REST API d
 
 ```bash
 # VM1 
-curl -X POST http://192.168.56.104:8000/register_domain
+curl -X POST 'http://192.168.56.104:8000/register_domain'
 
 # VM2 
-curl -X POST http://192.168.56.105:8000/register_domain
+curl -X POST 'http://192.168.56.105:8000/register_domain'
 ```
 
 ```bash
 # VM1 
-curl -X POST http://192.168.56.104:8000/start_experiments_consumer_v2
+curl -X POST 'http://192.168.56.104:8000/start_experiments_consumer_v2'
 
 # VM2 
-curl -X 'POST' 'http://192.168.56.105/start_experiments_provider_v2?export_to_csv=false&price=20'
+curl -X POST 'http://192.168.56.105/start_experiments_provider_v2?export_to_csv=false&price=20'
 
 # VM3
-curl -X 'POST' 'http://192.168.56.106/start_experiments_provider_v2?export_to_csv=false&price=15'
+curl -X POST 'http://192.168.56.106/start_experiments_provider_v2?export_to_csv=false&price=15'
 ```
 
 

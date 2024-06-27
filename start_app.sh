@@ -17,3 +17,4 @@ screen -dmS $SCREEN_SESSION_NAME bash -c "python3 -m uvicorn main:app --reload -
 
 echo "Server started in screen session: $SCREEN_SESSION_NAME"
 echo "You can attach to it using: screen -r $SCREEN_SESSION_NAME"
+echo "You can kill it using: screen -XS $SCREEN_SESSION_NAME quit"

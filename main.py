@@ -604,7 +604,7 @@ def delete_docker_containers_endpoint(name: str):
 
 
 # -------------------------------------------- DLT API FUNCTIONS --------------------------------------------#
-@app.get("/",
+@app.get("/web3_info",
          summary="Get Web3 and Ethereum node info",
          tags=["Default DLT Functions"],
          description="Endpoint to get Web3 and Ethereum node info")
@@ -616,8 +616,8 @@ async def web3_info_endpoint():
         logger.info(f"Federation contract address: {contract_address}")
         message = {
             "ip-address": ip_address,
+            "ethereum-node-url": eth_node_url,
             "ethereum-address": block_address,
-            "ethereum-node": eth_node_url,
             "contract-address": contract_address,
             "domain-name": domain_name,
             "service-id": service_id
@@ -646,7 +646,7 @@ def register_domain_endpoint():
 
             domain_registered = True
             logger.info(f"Domain {domain_name} has been registered")
-            return {"message": f"Domain {domain_name} has been registered"}
+            return {"tx-hash": tx_hash}
         else:
             error_message = f"Domain {domain_name} is already registered in the SC"
             raise HTTPException(status_code=500, detail=error_message)
@@ -662,7 +662,7 @@ def create_service_announcement_endpoint():
     try:
         bids_event = AnnounceService()
         logger.info("Service announcement sent to the SC")
-        return {"message": "Service announcement sent to the SC"}
+        return {"tx-hash": tx_hash}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -899,7 +899,7 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
 
 # ------------------------------------------------------------------------------------------------------------------------------#
 # Test 1: Select the first provider offer
-@app.post("/start_experiments_consumer_v1/")
+@app.post("/start_experiments_consumer_v1")
 def start_experiments_consumer_entire_service(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
@@ -998,7 +998,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
 
-@app.post("/start_experiments_provider_v1/")
+@app.post("/start_experiments_provider_v1")
 def start_experiments_provider_entire_service(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
@@ -1126,7 +1126,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
 # ------------------------------------------------------------------------------------------------------------------------------#
 # Test 2: Wait for bids from 2 providers and choose the one with the lowest price
 
-@app.post("/start_experiments_consumer_v2/")
+@app.post("/start_experiments_consumer_v2")
 def start_experiments_consumer_entire_service(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
@@ -1164,32 +1164,33 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
 
                     # service id, service id, index of the bid
                     # print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
-                    logger.info("Entered bids format: [provider_address, service_price, bid_index]")
+                    logger.info("Bid offer received")
                     bid_index = int(event['args']['max_bid_index'])
                     bidderArrived = True 
 
-                     # Received bids
+                    # Received bids
                     lowest_price = None
-                    best_bid = None
+                    best_bid_index = 0
 
                     # Received bids
-                    if int(bid_index) >= 2:
+                    if int(bid_index) == 2:
                         # Loop through all bid indices and print their information
                         for i in range(bid_index):
                             bid_info = GetBidInfo(i)
-                            bid_price = bid_info[1] 
+                            logger.info(f"Bid {i}: {bid_info}")
+                            bid_price = int(bid_info[1]) 
                             if lowest_price is None or bid_price < lowest_price:
                                 lowest_price = bid_price
-                                best_bid_index = bid_info[2]
-                            print(f"Bid {i}: {bid_info}")
+                                best_bid_index = int(bid_info[2])
+                                # logger.info(f"New lowest price: {lowest_price} with bid index: {best_bid_index}")
 
-
+                            
                         # Winner choosen 
                         t_winner_choosen = time.time() - process_start_time
                         data.append(['winner_choosen', t_winner_choosen])
                         
                         ChooseProvider(best_bid_index)
-                        logger.info(f"Provider Choosen - Bid Index: {bid_index-1}")
+                        logger.info(f"Provider Choosen - Bid Index: {best_bid_index}")
 
                         # Service closed (state 1)
                         #DisplayServiceState(service_id)
