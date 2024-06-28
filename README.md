@@ -1,4 +1,4 @@
-# DLT Service Federation using Kubernetes
+# DLT Service Federation using Docker
 
 <div align="center">
 
@@ -95,14 +95,37 @@ After starting the blockchain network, you can verify that the nodes have associ
 # VM2  
  ./get_peers.sh node2
 ```
-
-> Note: More nodes can be added using the [./join_dlt_network.sh](./dlt-network-docker/join_dlt_network.sh) file and then >= 51% of validators node adding the new node as validator with [./add_validator.sh](./dlt-network-docker/add_validator.sh)
-
 Each command should report `1 peer`, indicating that the nodes have successfully connected to each other.
 
 Access the `eth-netsats` web interface for additional information at `http://<vm1-ip>:3000`
 
-4. Stop the network:
+4. Adding more nodes:
+
+More nodes can be added using the [./join_dlt_network.sh](./dlt-network-docker/join_dlt_network.sh) file. The private network uses the [Clique (Proof-of-authority)](https://github.com/ethereum/EIPs/issues/225) consensus mechanism, which maintains the block structure as in PoW Ethereum, but instead of mining nodes competing to solve a difficult puzzle. There are pre-elected authorized signer nodes that can generate new blocks at any time. Each new block is endorsed by the list of signers, and the last signer node is responsible for populating the new block with transactions. The transaction reward for each new block created is shared between all the signers.
+
+To join the consensus, new nodes must be accepted as "sealers" by at least (NUMBER_OF_TOTAL_SIGNERS / 2) + 1 nodes. To propose new signer nodes, execute the [./add_validator.sh](./dlt-network-docker/add_validator.sh) script.
+
+For example, to add a third node to the current blockchain network and participate as a sealer node, run the following commands:
+
+```bash
+# VM3
+ ./join_dlt_network.sh node3
+
+# VM1
+./add_validator.sh node1 node3
+
+# VM2 
+./add_validator.sh node2 node3
+```
+
+Finally, check if the new node has been accepted as a sealer node with:
+
+```bash
+# VM3
+./get_validators node3 
+```
+
+5. Stop the network:
 
 `VM1` When needed, use the following command to stop the network:
 
