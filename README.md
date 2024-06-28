@@ -2,8 +2,6 @@
 
 <div align="center">
 
-[![Static Badge](https://img.shields.io/badge/MicroK8s-v1.28.7-orange)](https://github.com/canonical/microk8s/tree/1.28)
-
 [![Static Badge](https://img.shields.io/badge/Docker-v25.0.3-blue)](https://github.com/docker)
 
 </div>
@@ -11,6 +9,10 @@
 ## Overview
 
 Federation of services aims to provide orchestration of services across multiple administrative domains (ADs). This project showcases how different ADs can establish federation efficiently using distributed ledger technologies (DLT) as a mediatior in the process. More specifically, the federation procedures are stored and deployed on a Federation Smart Contract, which is running on top of a permissioned blockchain. Each AD sets up a blockchain node to gain access to the blockchain network and they interact with the Federation Smart Contract by sending transactions.
+
+**Author:** Adam Zahir Rodriguez
+
+## Experimental Setup
 
 Here is a diagram that represents visually the experimental setup:
 
@@ -20,7 +22,17 @@ Here is a diagram that represents visually the experimental setup:
 - All VMs are interconnected in bridge mode
 - All VMs have access to a blockchain node
 
-**Author:** Adam Zahir Rodriguez
+## Workflow
+
+- VM1 and VM2 are instantiated
+- VM1 registers as a consumer domain, and VM2 registers as a provider domain in the Federation Smart Contract.
+- VM1 decides it needs service extension and requests federation through the DLT.
+- The DLT broadcasts the request. VM2 accepts, bids, and reveals its endpoint.
+- VM1 receives the bid offer, accepts it, and reveals its own endpoint.
+- VM2 initializes a VXLAN interface to the provided VM1 endpoint and deploys dummy containers based on the Alpine Linux image. Once the containers are deployed in the overlay network, VM2 notifies VM1 confirming the successful deployment and the IP address of the deployed federated service.
+- VM1 establishes a VXLAN connection with VM2, enabling inter-service communication.
+
+![Workflow](images/workflow.svg)
 
 ## Installation
 
@@ -50,13 +62,13 @@ pip3 install -r requirements.txt
 
 ## Blockchain Network Setup
 
-Firstly, we will create a blockchain network using `dlt-node` container images.  Initially, the network will comprise two nodes, corresponding to VM1 and VM2, respectively. **VM1** will act as the bootnode, facilitating the association of both nodes with each other.
+Firstly, we will create a blockchain network using `dlt-node` container images.  Initially, the network will comprise two nodes, corresponding to VM1 and VM2, respectively. `VM1` will act as the bootnode, facilitating the association of both nodes with each other.
 
 1. Initialize the network:
 
-**(VM1)** Navigate to the [dlt-network-docker](./dlt-network-docker) directory and start the network setup:
+`VM1` Navigate to the [dlt-network-docker](./dlt-network-docker) directory and start the network setup:
 
-> Note: Please make sure to modify the IP addresses in the [node1.env](./config/dlt/node1.env) and [node2.env](./config/dlt/node2.env) files according to your setup before executing the script. Replace `IP_NODE_1` with the IP address of your **VM1** and `IP_NODE_2` with the IP address of your **VM2**.
+> Note: Please make sure to modify the IP addresses in the [node1.env](./config/dlt/node1.env) and [node2.env](./config/dlt/node2.env) files according to your setup before executing the script. Replace `IP_NODE_1` with the IP address of your `VM1` and `IP_NODE_2` with the IP address of your `VM2`.
 
 ```bash
 cd dlt-network-docker
@@ -65,7 +77,7 @@ cd dlt-network-docker
 
 2. Join the network from a second node
 
-**(VM2)** Navigate to the [dlt-network-docker](./dlt-network-docker) directory and join the blockchain network from the second node:
+`VM2` Navigate to the [dlt-network-docker](./dlt-network-docker) directory and join the blockchain network from the second node:
 
 ```bash
 cd dlt-network-docker
@@ -84,13 +96,15 @@ After starting the blockchain network, you can verify that the nodes have associ
  ./get_peers.sh node2
 ```
 
+> Note: More nodes can be added using the [./join_dlt_network.sh](./dlt-network-docker/join_dlt_network.sh) file and then >= 51% of validators node adding the new node as validator with [./add_validator.sh](./dlt-network-docker/add_validator.sh)
+
 Each command should report `1 peer`, indicating that the nodes have successfully connected to each other.
 
 Access the `eth-netsats` web interface for additional information at `http://<vm1-ip>:3000`
 
 4. Stop the network:
 
-**(VM1)** When needed, use the following command to stop the network:
+`VM1` When needed, use the following command to stop the network:
 
 ```bash
 ./stop_dlt_network.sh
@@ -100,7 +114,7 @@ Access the `eth-netsats` web interface for additional information at `http://<vm
 
 1. Deploy the Federation Smart Contract to the blockchain Network:
 
-**(VM1 or VM2)** Execute the following commands:
+`VM1` or `VM2` Execute the following commands:
 ```bash
 cd smart-contracts
 ./deploy.sh 
@@ -136,4 +150,100 @@ curl -X POST 'http://192.168.56.106/start_experiments_provider_v2?export_to_csv=
 ```
 
 
+## API Endpoints
+
+### Register Domain
+Returns the `transaction-hash`, otherwise returns an error message.
+
+```sh
+curl -X POST 'http://localhost:8000/register_domain?name=<domain-name>'
+```
+
+### Create Service Announcement
+Returns the `transaction-hash` and `service-id` for federation, otherwise returns an error message.
+
+```sh
+curl -X POST 'http://localhost:8000/create_service_announcement?requirements=<service-requirements>&service_endpoint_consumer=<service-endpoint-consumer>'
+```
+
+Example:
+```sh
+curl -X POST 'http://localhost:8000/create_service_announcement?requirements=service=alpine;replicas=1&service_endpoint_consumer=192.168.56.104'
+```
+
+### Check Service State
+Returns the `state` of the federated service, which can be `open`,`closed`, or `deployed`; otherwise, returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/check_service_state'
+```
+
+### Check Deployed Info
+Returns the `service-endpoint` of the provider and `federated-host` (IP of the deployed service); otherwise, returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/check_deployed_info?service_id=<service-id>'
+```
+
+### Check Service Announcements
+Returns `announcements` details, otherwise, returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/check_service_announcements'
+```
+
+### Place Bid
+Returns the `transaction-hash`, otherwise returns an error message.
+
+```sh
+curl -X POST 'http://localhost:8000/place_bid?service_id=<service-id>&service_price=<service-price>'
+```
+
+### Check Bids
+Returns the `bids` details, otherwise returns an error message.
+
+```sh
+curl -X POST 'http://localhost:8000/check_bids?service_id=<service-id>'
+```
+
+### Choose Provider
+Returns the `transaction-hash`, otherwise returns an error message.
+
+```sh
+curl -X POST 'http://localhost:8000/choose_provider?bid_index=<bid-index>&service_id=<service-id>'
+```
+
+### Check if I am Winner
+Returns the `winner-chosen`, which can be `yes`, or `no`; otherwise, returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/check_if_i_am_winner?service_id=<service-id>'
+```
+
+### Check Winner
+Returns the `am-i-winner`, which can be `yes`, or `no`; otherwise, returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/check_winner?service_id=<service-id>'
+```
+
+### Deploy Docker Service
+Returns the `service-name`, otherwise returns an error message.
+
+```sh
+curl -X POST 'http://localhost:8000/deploy_docker_service?image=alpine&name=<service-name>&network=<docker-network>&replicas=<number-of-replicas>'
+```
+
+### Deploy Service
+Returns the `service-name`, otherwise returns an error message.
+
+```sh
+curl -X POST 'http://localhost:8000/deploy_service?service_id=<service-id>'
+```
+
+### Delete Docker Service
+Returns successful deleted debug message, otherwise returns an error message.
+```sh
+curl -X POST 'http://localhost:8000/delete_docker_service?name=<service-name>'
+```
 

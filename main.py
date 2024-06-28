@@ -582,12 +582,12 @@ def get_container_ips(name):
 
 
 # -------------------------------------------- Docker API FUNCTIONS --------------------------------------------#
-@app.post("/deploy_docker_service/{image}-{name}-{network}-{replicas}", tags=["Docker Functions"], summary="Deploy docker service")
+@app.post("/deploy_docker_service", tags=["Docker Functions"], summary="Deploy docker service")
 def deploy_docker_containers_endpoint(image: str, name: str, network: str, replicas: int):
     try:
         containers = deploy_docker_containers(image, name, network, replicas)
         ips = get_container_ips(name)
-        return {"message": f"Deployed {len(containers)} containers successfully.", "ips": ips}
+        return {"service-name": name}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -871,7 +871,7 @@ async def check_winner_endpoint(service_id: str):
         if winnerChosen:
             return {"winner-chosen": "yes"}
         else:
-            return {"error": f"No winner yet for the service {service_id}"}
+            return {"winner-chosen": "no"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -883,11 +883,11 @@ async def check_if_I_am_Winner_endpoint(service_id: str):
     try:
         am_i_winner = CheckWinner(service_id)
         if am_i_winner == True:
-            logger.info("I am a Winner")
+            logger.info(f"I am the winner for the service {service_id}")
             return {"am-i-winner": "yes"}
         else:
-            logger.warning("I am not a Winner")
-            return {"error": f"I am not the winner for the service {service_id}"}
+            logger.warning(f"I am not the winner for the service {service_id}")
+            return {"am-i-winner": "no"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
