@@ -31,10 +31,6 @@ function start_experiments {
     # Timestamp for file naming
     local timestamp=$1
 
-    # Deploy containers in the consumer domain
-    curl -X POST "$CREATE_RESOURCES_ENDPOINT_CONSUMER"
-    sleep 2
-
     # Start the provider experiment in the background and save the log
     curl -X POST "${PROVIDER_ENDPOINT}" -d "export_to_csv=true" -o "${LOGS_DIR}/provider_output_${timestamp}.txt" &
 
@@ -45,13 +41,13 @@ function start_experiments {
     wait
 
     # Once experiments are done, delete all resources
-    curl -X DELETE "$DELETE_CONTAINERS_ENDPOINT_PROVIDER" 
+    curl -X DELETE "$DELETE_CONTAINERS_ENDPOINT_PROVIDER" | jq
     sleep 2
 
-    curl -X DELETE "$DELETE_RESOURCES_ENDPOINT_PROVIDER" 
+    curl -X DELETE "$DELETE_RESOURCES_ENDPOINT_PROVIDER" | jq
     sleep 2
 
-    curl -X DELETE "$DELETE_RESOURCES_ENDPOINT_CONSUMER" 
+    curl -X DELETE "$DELETE_RESOURCES_ENDPOINT_CONSUMER" | jq
     sleep 2
 }
 

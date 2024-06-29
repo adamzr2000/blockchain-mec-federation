@@ -240,42 +240,42 @@ curl -X GET 'http://localhost:8000/check_bids?service_id=<service-id>' | jq
 Returns the `tx-hash`, otherwise returns an error message.
 
 ```sh
-curl -X POST 'http://localhost:8000/choose_provider?bid_index=<bid-index>&service_id=<service-id>'
+curl -X POST 'http://localhost:8000/choose_provider?bid_index=<bid-index>&service_id=<service-id>' | jq
+``` 
+
+### Check Winner
+Returns the `am-i-winner`, which can be `yes`, or `no`; otherwise, returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/check_winner?service_id=<service-id>' | jq
 ```
 
 ### Check if I am Winner
 Returns the `winner-chosen`, which can be `yes`, or `no`; otherwise, returns an error message.
 
 ```sh
-curl -X GET 'http://localhost:8000/check_if_i_am_winner?service_id=<service-id>'
-```
-
-### Check Winner
-Returns the `am-i-winner`, which can be `yes`, or `no`; otherwise, returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/check_winner?service_id=<service-id>'
+curl -X GET 'http://localhost:8000/check_if_i_am_winner?service_id=<service-id>' | jq
 ```
 
 ### Deploy Service
 Returns the `service-name`, otherwise returns an error message.
 
 ```sh
-curl -X POST 'http://localhost:8000/deploy_service?service_id=<service-id>'
+curl -X POST 'http://localhost:8000/deploy_service?service_id=<service-id>' | jq
 ```
 
 ### Deploy Docker Service
 Returns the `service-name`, otherwise returns an error message.
 
 ```sh
-curl -X POST 'http://localhost:8000/deploy_docker_service?image=alpine&name=<service-name>&network=<docker-network>&replicas=<number-of-replicas>'
+curl -X POST 'http://localhost:8000/deploy_docker_service?image=alpine&name=<service-name>&network=<docker-network>&replicas=<number-of-replicas>' | jq
 ```
 
 ### Check Service State
 Returns the `state` of the federated service, which can be `open`,`closed`, or `deployed`; otherwise, returns an error message.
 
 ```sh
-curl -X GET 'http://localhost:8000/check_service_state' | jq
+curl -X GET 'http://localhost:8000/check_service_state?service_id=<service-id>' | jq
 ```
 
 ### Check Deployed Info
@@ -289,7 +289,7 @@ curl -X GET 'http://localhost:8000/check_deployed_info?service_id=<service-id>' 
 ### Delete Docker Service
 Returns successful deleted debug message, otherwise returns an error message.
 ```sh
-curl -X DELETE 'http://localhost:8000/delete_docker_service?name=<service-name>'
+curl -X DELETE 'http://localhost:8000/delete_docker_service?name=<service-name>' 
 ```
 
 ### Delete Resources (VXLAN configuration and federated Docker network)
