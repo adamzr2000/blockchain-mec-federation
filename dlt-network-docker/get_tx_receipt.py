@@ -1,6 +1,7 @@
 import argparse
 from web3 import Web3, WebsocketProvider
 from web3.middleware import geth_poa_middleware
+from pprint import pprint
 
 def get_tx_info(eth_node_url, tx_hash):
     try:
@@ -17,7 +18,8 @@ def get_tx_info(eth_node_url, tx_hash):
 
             if receipt:
                 print(f"Transaction Receipt for {tx_hash}:")
-                print(receipt)
+                pprint(dict(receipt))
+
             else:
                 print(f"Transaction receipt not found for hash {tx_hash}")
 

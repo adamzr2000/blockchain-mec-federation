@@ -182,15 +182,29 @@ curl -X POST 'http://192.168.56.106/start_experiments_provider_v2?export_to_csv=
 
 ## API Endpoints
 
+### Web3 Info
+Returns `web3-info` details, otherwise returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/web3_info'
+```
+
+### Transaction Receipt
+Returns `tx-receipt` details for a specified `tx-hash`, otherwise returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/tx_receipt?tx_hash=<tx-hash>'
+```
+
 ### Register Domain
-Returns the `transaction-hash`, otherwise returns an error message.
+Returns the `tx-hash`, otherwise returns an error message.
 
 ```sh
 curl -X POST 'http://localhost:8000/register_domain?name=<domain-name>'
 ```
 
 ### Create Service Announcement
-Returns the `transaction-hash` and `service-id` for federation, otherwise returns an error message.
+Returns the `tx-hash` and `service-id` for federation, otherwise returns an error message.
 
 ```sh
 curl -X POST 'http://localhost:8000/create_service_announcement?requirements=<service-requirements>&service_endpoint_consumer=<service-endpoint-consumer>'
@@ -223,7 +237,7 @@ curl -X GET 'http://localhost:8000/check_service_announcements'
 ```
 
 ### Place Bid
-Returns the `transaction-hash`, otherwise returns an error message.
+Returns the `tx-hash`, otherwise returns an error message.
 
 ```sh
 curl -X POST 'http://localhost:8000/place_bid?service_id=<service-id>&service_price=<service-price>'
@@ -237,7 +251,7 @@ curl -X POST 'http://localhost:8000/check_bids?service_id=<service-id>'
 ```
 
 ### Choose Provider
-Returns the `transaction-hash`, otherwise returns an error message.
+Returns the `tx-hash`, otherwise returns an error message.
 
 ```sh
 curl -X POST 'http://localhost:8000/choose_provider?bid_index=<bid-index>&service_id=<service-id>'
@@ -257,13 +271,6 @@ Returns the `am-i-winner`, which can be `yes`, or `no`; otherwise, returns an er
 curl -X GET 'http://localhost:8000/check_winner?service_id=<service-id>'
 ```
 
-### Deploy Docker Service
-Returns the `service-name`, otherwise returns an error message.
-
-```sh
-curl -X POST 'http://localhost:8000/deploy_docker_service?image=alpine&name=<service-name>&network=<docker-network>&replicas=<number-of-replicas>'
-```
-
 ### Deploy Service
 Returns the `service-name`, otherwise returns an error message.
 
@@ -271,9 +278,22 @@ Returns the `service-name`, otherwise returns an error message.
 curl -X POST 'http://localhost:8000/deploy_service?service_id=<service-id>'
 ```
 
+### Deploy Docker Service
+Returns the `service-name`, otherwise returns an error message.
+
+```sh
+curl -X POST 'http://localhost:8000/deploy_docker_service?image=alpine&name=<service-name>&network=<docker-network>&replicas=<number-of-replicas>'
+```
+
 ### Delete Docker Service
 Returns successful deleted debug message, otherwise returns an error message.
 ```sh
-curl -X POST 'http://localhost:8000/delete_docker_service?name=<service-name>'
+curl -X DELETE 'http://localhost:8000/delete_docker_service?name=<service-name>'
+```
+
+### Delete Resources (VXLAN configuration and federated Docker network)
+
+```sh
+curl -X DELETE 'http://localhost:8000/delete_vxlan'
 ```
 

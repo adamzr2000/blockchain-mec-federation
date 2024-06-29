@@ -15,6 +15,7 @@ from dotenv import load_dotenv, find_dotenv
 from web3 import Web3, HTTPProvider, WebsocketProvider
 from web3.middleware import geth_poa_middleware
 from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel
 
 # Define your tags
 tags_metadata = [
@@ -68,6 +69,7 @@ Once the provider deploys the federated service, it notifies the consumer AD wit
 
 """
 )
+
 
 # Function to check if an environment variable is set
 def check_env_var(var_name):
@@ -592,13 +594,31 @@ def deploy_docker_containers_endpoint(image: str, name: str, network: str, repli
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.delete("/delete_docker_service/{name}", tags=["Docker Functions"], summary="Delete docker service")
+@app.delete("/delete_docker_service", tags=["Docker Functions"], summary="Delete docker service")
 def delete_docker_containers_endpoint(name: str):
     try:
         delete_docker_containers(name)
         return {"message": f"Deleted containers with name {name} successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/configure_vxlan", tags=["Docker Functions"], summary="Configure Docker network and VXLAN")
+def configure_docker_network_and_vxlan_endpoint(local_ip: str, remote_ip: str, interface_name: str, vxlan_id: str, dst_port: str, subnet: str, ip_range: str):
+    try:
+        configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range)
+        return {"message": f"created federated docker network and vxlan connection successfully"}
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {str(e)}")
+
+@app.delete("/delete_vxlan", tags=["Docker Functions"], summary="Delete Docker network and VXLAN")
+def delete_docker_network_and_vxlan_endpoint():
+    try:
+        delete_docker_network_and_vxlan()
+        return {"message": f"deleted federated docker network and vxlan configuration successfully"}
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {str(e)}")
+
 # ------------------------------------------------------------------------------------------------------------------------------#
 
 
@@ -625,6 +645,32 @@ async def web3_info_endpoint():
         return {"web3-info": message}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/tx_receipt",
+         summary="Get transaction receipt for a specified transaction hash",
+         tags=["Default DLT Functions"],
+         description="Endpoint to get transaction receipt for a specified transaction hash")
+async def tx_receipt_endpoint(tx_hash: str):
+    try:
+        # Get the transaction receipt
+        receipt = web3.eth.get_transaction_receipt(tx_hash)
+
+        if receipt:
+            # Convert HexBytes to strings for JSON serialization
+            receipt_dict = dict(receipt)
+            receipt_dict['blockHash'] = receipt_dict['blockHash'].hex()
+            receipt_dict['transactionHash'] = receipt_dict['transactionHash'].hex()
+            receipt_dict['logsBloom'] = receipt_dict['logsBloom'].hex()
+            receipt_dict['logs'] = [dict(log) for log in receipt_dict['logs']]
+            for log in receipt_dict['logs']:
+                log['blockHash'] = log['blockHash'].hex()
+                log['transactionHash'] = log['transactionHash'].hex()
+                log['topics'] = [topic.hex() for topic in log['topics']]
+
+            return receipt_dict
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/register_domain", 
           summary="Register a domain",
@@ -919,7 +965,7 @@ def deploy_service_endpoint(service_id: str, federated_host: str = "0.0.0.0"):
         raise HTTPException(status_code=500, detail=str(e))    
 
 
-def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, sudo_password = 'adamimdea;'):
+def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, sudo_password = 'netcom;'):
     script_path = './utils/docker_host_setup_vxlan.sh'
     
     # Construct the command with arguments
@@ -932,6 +978,26 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
         '-p', dst_port,
         '-s', subnet,
         '-d', ip_range
+    ]
+    
+    try:
+        # Run the command with sudo and password
+        result = subprocess.run(command, input=sudo_password.encode() + b'\n', check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        # Print the output of the script
+        print(result.stdout.decode())
+        
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Error occurred while running the script: {e.stderr.decode()}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {str(e)}")
+
+def delete_docker_network_and_vxlan(sudo_password = 'netcom;'):
+    script_path = './utils/clean_all.sh'
+    
+    # Construct the command with arguments
+    command = [
+        'sudo', '-S', 'bash', script_path
     ]
     
     try:
@@ -987,7 +1053,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
 
                     # service id, service id, index of the bid
                     # print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
-                    logger.info("Entered bids format: [provider_address, service_price, bid_index]")
+                    logger.info("Bid offer received")
                     bid_index = int(event['args']['max_bid_index'])
                     bidderArrived = True 
 
@@ -1015,13 +1081,14 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             # Confirmation received
             t_confirm_deployment_received = time.time() - process_start_time
             data.append(['confirm_deployment_received', t_confirm_deployment_received])
+
+
+            t_establish_vxlan_connection_with_provider_start = time.time() - process_start_time
+            data.append(['establish_vxlan_connection_with_provider_start', t_establish_vxlan_connection_with_provider_start])
             
             # Service deployed info
             federated_host, service_endpoint_provider = GetDeployedInfo(service_id, domain)
-            
-            t_check_connectivity_federated_service_start = time.time() - process_start_time
-            data.append(['check_connectivity_federated_service_start', t_check_connectivity_federated_service_start])
-
+           
             federated_host = federated_host.decode('utf-8')
             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
 
@@ -1029,6 +1096,9 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
 
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+
+            t_establish_vxlan_connection_with_provider_end = time.time() - process_start_time
+            data.append(['establish_vxlan_connection_with_provider_end', t_establish_vxlan_connection_with_provider_end])
 
             total_duration = time.time() - process_start_time
 
@@ -1255,12 +1325,12 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             t_confirm_deployment_received = time.time() - process_start_time
             data.append(['confirm_deployment_received', t_confirm_deployment_received])
             
+            t_establish_vxlan_connection_with_provider_start = time.time() - process_start_time
+            data.append(['establish_vxlan_connection_with_provider_start', t_establish_vxlan_connection_with_provider_start])
+
             # Service deployed info
             federated_host, service_endpoint_provider = GetDeployedInfo(service_id, domain)
-            
-            t_check_connectivity_federated_service_start = time.time() - process_start_time
-            data.append(['check_connectivity_federated_service_start', t_check_connectivity_federated_service_start])
-
+        
             federated_host = federated_host.decode('utf-8')
             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
 
@@ -1269,6 +1339,9 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
+            t_establish_vxlan_connection_with_provider_end = time.time() - process_start_time
+            data.append(['establish_vxlan_connection_with_provider_end', t_establish_vxlan_connection_with_provider_end])
+           
             total_duration = time.time() - process_start_time
 
             logger.info(f"Federation process completed in {total_duration:.2f} seconds")
