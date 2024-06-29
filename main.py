@@ -220,7 +220,7 @@ def send_signed_transaction(build_transaction):
     # Increment the nonce
     nonce += 1
 
-    return tx_hash
+    return tx_hash.hex()
 
 def AnnounceService():
     """

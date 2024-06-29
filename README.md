@@ -101,9 +101,9 @@ Access the `eth-netsats` web interface for additional information at `http://<vm
 
 4. Adding more nodes:
 
-More nodes can be added using the [./join_dlt_network.sh](./dlt-network-docker/join_dlt_network.sh) file. The private network uses the [Clique (Proof-of-authority)](https://github.com/ethereum/EIPs/issues/225) consensus mechanism, which maintains the block structure as in PoW Ethereum, but instead of mining nodes competing to solve a difficult puzzle. There are pre-elected authorized signer nodes that can generate new blocks at any time. Each new block is endorsed by the list of signers, and the last signer node is responsible for populating the new block with transactions. The transaction reward for each new block created is shared between all the signers.
+More nodes can be added using the [join_dlt_network.sh](./dlt-network-docker/join_dlt_network.sh) file. The private network uses the [Clique (Proof-of-authority)](https://github.com/ethereum/EIPs/issues/225) consensus mechanism, which maintains the block structure as in PoW Ethereum, but instead of mining nodes competing to solve a difficult puzzle. There are pre-elected authorized signer nodes that can generate new blocks at any time. Each new block is endorsed by the list of signers, and the last signer node is responsible for populating the new block with transactions. The transaction reward for each new block created is shared between all the signers.
 
-To join the consensus, new nodes must be accepted as "sealers" by at least (NUMBER_OF_TOTAL_SIGNERS / 2) + 1 nodes. To propose new signer nodes, execute the [./add_validator.sh](./dlt-network-docker/add_validator.sh) script.
+To join the consensus, new nodes must be accepted as "sealers" by at least (NUMBER_OF_TOTAL_SIGNERS / 2) + 1 nodes. To propose new signer nodes, execute the [add_validator.sh](./dlt-network-docker/add_validator.sh) script.
 
 For example, to add a third node to the current blockchain network and participate as a sealer node, run the following commands:
 
@@ -143,10 +143,17 @@ cd smart-contracts
 ./deploy.sh 
 ```
 
-2. Start the orchestrator's web server on each VM and specify the domain role for the federation (e.g., VM1 as consumer and VM2 as provider)
+2. Launch the orchestrator's web server on every VM and define the federation's domain parameters in the [federation](./dlt-network-docker/) directory using (at least) [consumer1.env](./config/federation/consumer1.env) and [provider1.env](./config/federation/provider1.env)files. Ensure to modify `DOMAIN_FUNCTION` according to the role within the federation (`consumer` or `provider`), and adjust `INTERFACE_NAME` to match your VM's network interface name for VXLAN tunnel setup.
 
 ```bash
+# VM1
 ./start_app.sh config/federation/consumer1.env
+
+# VM2
+./start_app.sh config/federation/provider1.env
+
+# VM3
+./start_app.sh config/federation/provider2.env
 ```
 
 For detailed information about the federation functions, refer to the REST API documentation, which is based on Swagger UI, at: `http://<vm-ip>:8000/docs`
