@@ -186,68 +186,54 @@ curl -X POST 'http://192.168.56.106/start_experiments_provider_v2?export_to_csv=
 Returns `web3-info` details, otherwise returns an error message.
 
 ```sh
-curl -X GET 'http://localhost:8000/web3_info'
+curl -X GET 'http://localhost:8000/web3_info' | jq
 ```
 
 ### Transaction Receipt
 Returns `tx-receipt` details for a specified `tx-hash`, otherwise returns an error message.
 
 ```sh
-curl -X GET 'http://localhost:8000/tx_receipt?tx_hash=<tx-hash>'
+curl -X GET 'http://localhost:8000/tx_receipt?tx_hash=<tx-hash>' | jq
 ```
 
 ### Register Domain
 Returns the `tx-hash`, otherwise returns an error message.
 
 ```sh
-curl -X POST 'http://localhost:8000/register_domain?name=<domain-name>'
+curl -X POST 'http://localhost:8000/register_domain?name=<domain-name>' | jq
 ```
 
 ### Create Service Announcement
 Returns the `tx-hash` and `service-id` for federation, otherwise returns an error message.
 
 ```sh
-curl -X POST 'http://localhost:8000/create_service_announcement?requirements=<service-requirements>&service_endpoint_consumer=<service-endpoint-consumer>'
+curl -X POST 'http://localhost:8000/create_service_announcement?requirements=<service-requirements>&service_endpoint_consumer=<service-endpoint-consumer>' | jq
 ```
 
 Example:
 ```sh
-curl -X POST 'http://localhost:8000/create_service_announcement?requirements=service=alpine;replicas=1&service_endpoint_consumer=192.168.56.104'
-```
-
-### Check Service State
-Returns the `state` of the federated service, which can be `open`,`closed`, or `deployed`; otherwise, returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/check_service_state'
-```
-
-### Check Deployed Info
-Returns the `service-endpoint` of the provider and `federated-host` (IP of the deployed service); otherwise, returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/check_deployed_info?service_id=<service-id>'
+curl -X POST 'http://localhost:8000/create_service_announcement?requirements=service=alpine;replicas=1&service_endpoint_consumer=192.168.56.104' | jq
 ```
 
 ### Check Service Announcements
 Returns `announcements` details, otherwise, returns an error message.
 
 ```sh
-curl -X GET 'http://localhost:8000/check_service_announcements'
+curl -X GET 'http://localhost:8000/check_service_announcements' | jq
 ```
 
 ### Place Bid
 Returns the `tx-hash`, otherwise returns an error message.
 
 ```sh
-curl -X POST 'http://localhost:8000/place_bid?service_id=<service-id>&service_price=<service-price>'
+curl -X POST 'http://localhost:8000/place_bid?service_id=<service-id>&service_price=<service-price>' | jq
 ```
 
 ### Check Bids
 Returns the `bids` details, otherwise returns an error message.
 
 ```sh
-curl -X POST 'http://localhost:8000/check_bids?service_id=<service-id>'
+curl -X GET 'http://localhost:8000/check_bids?service_id=<service-id>' | jq
 ```
 
 ### Choose Provider
@@ -284,6 +270,21 @@ Returns the `service-name`, otherwise returns an error message.
 ```sh
 curl -X POST 'http://localhost:8000/deploy_docker_service?image=alpine&name=<service-name>&network=<docker-network>&replicas=<number-of-replicas>'
 ```
+
+### Check Service State
+Returns the `state` of the federated service, which can be `open`,`closed`, or `deployed`; otherwise, returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/check_service_state' | jq
+```
+
+### Check Deployed Info
+Returns the `service-endpoint` of the provider and `federated-host` (IP of the deployed service); otherwise, returns an error message.
+
+```sh
+curl -X GET 'http://localhost:8000/check_deployed_info?service_id=<service-id>' | jq
+```
+
 
 ### Delete Docker Service
 Returns successful deleted debug message, otherwise returns an error message.
