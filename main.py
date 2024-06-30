@@ -489,7 +489,7 @@ def deploy_docker_containers(image, name, network, replicas, env_vars=None, cont
         for i in range(replicas):
             container_name = f"{name}_{i+1}"
             ports = {}
-            if container_port is not None and host_port is not None:
+            if container_port is not None and start_host_port is not None:
                 host_port = start_host_port + i
                 ports[f'{container_port}/tcp'] = host_port
 
