@@ -15,21 +15,20 @@ from dotenv import load_dotenv, find_dotenv
 from web3 import Web3, HTTPProvider, WebsocketProvider
 from web3.middleware import geth_poa_middleware
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
 
 # Define your tags
 tags_metadata = [
     {
-        "name": "Default DLT Functions",
-        "description": "General DLT functions for both consumer and provider domains.",
+        "name": "Default DLT federation functions",
+        "description": "General DLT federation functions for both consumer and provider domains.",
     },
     {
-        "name": "Consumer Functions",
-        "description": "Functions specifically designed for consumers in the DLT network.",
+        "name": "Consumer DLT federation functions",
+        "description": "DLT federation functions for consumer domains.",
     },
     {
-        "name": "Provider Functions",
-        "description": "Functions specifically designed for providers in the DLT network.",
+        "name": "Provider DLT federation functions",
+        "description": "DLT federation functions for provider domains",
     },
 ]
 
@@ -37,9 +36,9 @@ app = FastAPI(
     title="DLT Service Federation API Documentation",
     openapi_tags=tags_metadata,
     description="""
-- This API provides endpoints for interacting with the DLT network and a custom-built Docker orchestrator.
+- This API provides endpoints for interacting with the DLT and a custom-built Docker orchestrator.
 
-- The federation procedures are stored and deployed on a Federation Smart Contract, which is running on top of a permissioned blockchain network (private Ethereum).
+- The federation procedures are stored and deployed on a Federation Smart Contract, which is running on top of a permissioned blockchain network (private PoA Ethereum).
 
 - ADs communicate with the Federation Smart Contract through transactions.
 
@@ -53,9 +52,9 @@ ADs register to the Federation SC with a single-transaction registration, using 
 
 **2) ANNOUNCEMENT & NEGOTIATION**
 
-Consumer AD announces that it needs service federation (service extension or new service)
+Consumer AD announces that it needs service federation (service extension or new service).
 
-Provider AD(s) listen for federation events. If they receive an offer, they analyze if they can satisfy the requirements and send back an answer with the price of the service
+Provider AD(s) listen for federation events. If they receive an offer, they analyze if they can satisfy the requirements and send back a positive answer with the service price.
 
 **3) ACCEPTANCE & DEPLOYMENT**
 
@@ -65,7 +64,7 @@ Provider AD starts the deployment of the requested federated service.
 
 **4) USAGE & CHARGING**
 
-Once the provider deploys the federated service, it notifies the consumer AD with connection details, and both domains establish data plane connectivity using VxLAN
+Once the provider deploys the federated service, it notifies the consumer AD with connection details, and both domains establish data plane connectivity.
 
 """
 )
@@ -174,7 +173,7 @@ if domain == "consumer":
     # service_endpoint_consumer = f"ip_address={ip};vxlan_id=200;vxlan_port=4789"
     service_endpoint_consumer = ip_address
     service_consumer_address = block_address
-    service_requirements = 'service=alpine;replicas=1'
+    service_requirements = 'service=mec-app;replicas=1'
     bids_event = None  # Placeholder for event listener setup
 
 else:  # Provider
@@ -484,19 +483,23 @@ def create_csv_file(role, header, data):
 
     logger.info(f"Data saved to {file_name}")
 
-
-def deploy_docker_containers(image, name, network, replicas):
+def deploy_docker_containers(image, name, network, replicas, env_vars=None, container_port=5000, start_host_port=5000):
     containers = []
     try:
         for i in range(replicas):
             container_name = f"{name}_{i+1}"
+            ports = {}
+            if container_port is not None and host_port is not None:
+                host_port = start_host_port + i
+                ports[f'{container_port}/tcp'] = host_port
+
             container = client.containers.run(
                 image=image,
                 name=container_name,
                 network=network,
                 detach=True,
                 auto_remove=True,
-                command="sh -c 'while true; do sleep 3600; done'"
+                ports=ports
             )
             containers.append(container)
         
@@ -626,7 +629,7 @@ def delete_docker_network_and_vxlan_endpoint():
 # -------------------------------------------- DLT API FUNCTIONS --------------------------------------------#
 @app.get("/web3_info",
          summary="Get Web3 and Ethereum node info",
-         tags=["Default DLT Functions"],
+         tags=["Default DLT federation functions"],
          description="Endpoint to get Web3 and Ethereum node info")
 async def web3_info_endpoint():
     try:
@@ -648,7 +651,7 @@ async def web3_info_endpoint():
 
 @app.get("/tx_receipt",
          summary="Get transaction receipt for a specified transaction hash",
-         tags=["Default DLT Functions"],
+         tags=["Default DLT federation functions"],
          description="""
          This endpoint retrieves and provides detailed information about a specific transaction on the Ethereum blockchain. 
          The transaction receipt includes:
@@ -687,7 +690,7 @@ async def tx_receipt_endpoint(tx_hash: str):
 
 @app.post("/register_domain", 
           summary="Register a domain",
-          tags=["Default DLT Functions"],
+          tags=["Default DLT federation functions"],
           description="Endpoint to register a domain in the smart contract")  
 def register_domain_endpoint(name: str = domain_name):
     global domain_registered  
@@ -714,7 +717,7 @@ def register_domain_endpoint(name: str = domain_name):
 
 @app.post("/create_service_announcement",
           summary="Create a service announcement", 
-          tags=["Consumer Functions"],
+          tags=["Consumer DLT federation functions"],
           description="Endpoint to create a service announcement")
 def create_service_announcement_endpoint(requirements: str = service_requirements, endpoint: str = service_endpoint_consumer):
     global bids_event
@@ -744,7 +747,7 @@ def create_service_announcement_endpoint(requirements: str = service_requirement
 
 @app.get("/check_service_state",
          summary="Get service state",
-         tags=["Default DLT Functions"],
+         tags=["Default DLT federation functions"],
          description="Endpoint to get the state of a service (specified by its ID)")
 async def check_service_state_endpoint(service_id: str):
     try:
@@ -762,7 +765,7 @@ async def check_service_state_endpoint(service_id: str):
 
 @app.get("/check_deployed_info",
          summary="Get deployed info",
-         tags=["Default DLT Functions"],
+         tags=["Default DLT federation functions"],
          description="Endpoint to get deployed info for a service.") 
 async def check_deployed_info_endpoint(service_id: str):
     try:
@@ -775,7 +778,7 @@ async def check_deployed_info_endpoint(service_id: str):
 
 @app.get("/check_service_announcements",
          summary="Check announcements",
-         tags=["Provider Functions"], 
+         tags=["Provider DLT federation functions"], 
          description="Endpoint to check for new announcements")
 async def check_service_announcements_endpoint():
     try:
@@ -821,7 +824,7 @@ async def check_service_announcements_endpoint():
 
 @app.post("/place_bid",
           summary="Place a bid",
-          tags=["Provider Functions"],
+          tags=["Provider DLT federation functions"],
           description="Endpoint to place a bid for a service")
 def place_bid_endpoint(service_id: str, service_price: int):
     global winnerChosen_event 
@@ -851,7 +854,7 @@ def place_bid_endpoint(service_id: str, service_price: int):
 
 @app.get('/check_bids',
          summary="Check bids",
-         tags=["Consumer Functions"],
+         tags=["Consumer DLT federation functions"],
          description="Endpoint to check bids for a service")  
 async def check_bids_endpoint(service_id: str):
     global bids_event
@@ -885,7 +888,7 @@ async def check_bids_endpoint(service_id: str):
 
 @app.post('/choose_provider',
           summary="Choose provider",
-          tags=["Consumer Functions"],
+          tags=["Consumer DLT federation functions"],
           description="Endpoint to choose a provider")
 def choose_provider_endpoint(bid_index: int, service_id: str):
     global bids_event
@@ -913,7 +916,7 @@ def choose_provider_endpoint(bid_index: int, service_id: str):
 
 @app.get("/check_winner", 
          summary="Check for winner",
-         tags=["Provider Functions"],
+         tags=["Provider DLT federation functions"],
          description="Endpoint to check if there is a winner for a service")
 async def check_winner_endpoint(service_id: str):
     global winnerChosen_event 
@@ -936,7 +939,7 @@ async def check_winner_endpoint(service_id: str):
 
 @app.get("/check_if_i_am_winner",
          summary="Check if I am winner",
-         tags=["Provider Functions"],
+         tags=["Provider DLT federation functions"],
          description="Endpoint to check if provider is the winner")
 async def check_if_I_am_Winner_endpoint(service_id: str):
     try:
@@ -952,7 +955,7 @@ async def check_if_I_am_Winner_endpoint(service_id: str):
 
 @app.post("/deploy_service",
           summary="Deploy service",
-          tags=["Provider Functions"],
+          tags=["Provider DLT federation functions"],
           description="Endpoint for provider to deploy service")
 def deploy_service_endpoint(service_id: str, federated_host: str = "0.0.0.0"):
     try:
@@ -1029,7 +1032,7 @@ def delete_docker_network_and_vxlan(sudo_password = 'netcom;'):
 # ------------------------------------------------------------------------------------------------------------------------------#
 # Test 1: Select the first provider offer
 @app.post("/start_experiments_consumer_v1")
-def start_experiments_consumer_entire_service(export_to_csv: bool = False):
+def start_experiments_consumer_v1(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
         data = []
@@ -1110,8 +1113,8 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
-            t_establish_vxlan_connection_with_provider_end = time.time() - process_start_time
-            data.append(['establish_vxlan_connection_with_provider_end', t_establish_vxlan_connection_with_provider_end])
+            t_establish_vxlan_connection_with_provider_finished = time.time() - process_start_time
+            data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
 
             total_duration = time.time() - process_start_time
 
@@ -1132,7 +1135,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
         raise HTTPException(status_code=500, detail=str(e))    
 
 @app.post("/start_experiments_provider_v1")
-def start_experiments_provider_entire_service(export_to_csv: bool = False):
+def start_experiments_provider_v1(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
         data = []
@@ -1219,9 +1222,17 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
-            # Deploy docker service and wait to be ready and get an IP address
-            deploy_docker_containers(requested_service, requested_service, "federation-net", int(requested_replicas))
             
+            # Deploy docker service and wait to be ready and get an IP address
+            deploy_docker_containers(
+                image=requested_service,
+                name=f"federated-{requested_service}",
+                network="federation-net",
+                replicas=int(requested_replicas),
+                env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
+                container_port=5000,
+                start_host_port=5000
+            )            
             container_ips = get_container_ips(requested_service)
             if container_ips:
                 first_container_name = next(iter(container_ips))
@@ -1234,6 +1245,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
             # Deployment confirmation sent
             t_confirm_deployment_sent = time.time() - process_start_time
             data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
+            federated_host=f"http://{federated_host}:5000"
             ServiceDeployed(service_id, federated_host)
 
             total_duration = time.time() - process_start_time
@@ -1260,7 +1272,7 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False):
 # Test 2: Wait for bids from 2 providers and choose the one with the lowest price
 
 @app.post("/start_experiments_consumer_v2")
-def start_experiments_consumer_entire_service(export_to_csv: bool = False):
+def start_experiments_consumer_v2(export_to_csv: bool = False):
     try:
         header = ['step', 'timestamp']
         data = []
@@ -1352,8 +1364,8 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
-            t_establish_vxlan_connection_with_provider_end = time.time() - process_start_time
-            data.append(['establish_vxlan_connection_with_provider_end', t_establish_vxlan_connection_with_provider_end])
+            t_establish_vxlan_connection_with_provider_finished = time.time() - process_start_time
+            data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
            
             total_duration = time.time() - process_start_time
 
@@ -1374,7 +1386,7 @@ def start_experiments_consumer_entire_service(export_to_csv: bool = False):
         raise HTTPException(status_code=500, detail=str(e))    
 
 @app.post("/start_experiments_provider_v2")
-def start_experiments_provider_entire_service(export_to_csv: bool = False, price: int = 10):
+def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10):
     try:
         header = ['step', 'timestamp']
         data = []
@@ -1465,8 +1477,16 @@ def start_experiments_provider_entire_service(export_to_csv: bool = False, price
             configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
             # Deploy docker service and wait to be ready and get an IP address
-            deploy_docker_containers(requested_service, requested_service, "federation-net", int(requested_replicas))
-            
+            deploy_docker_containers(
+                image=requested_service,
+                name=f"federated-{requested_service}",
+                network="federation-net",
+                replicas=int(requested_replicas),
+                env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
+                container_port=5000,
+                start_host_port=5000
+            )          
+
             container_ips = get_container_ips(requested_service)
             if container_ips:
                 first_container_name = next(iter(container_ips))

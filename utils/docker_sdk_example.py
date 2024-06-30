@@ -8,17 +8,26 @@ try:
 except Exception as e:
     print(f"Failed to connect to Docker daemon: {e}")
 
-def deploy_docker_containers(image, name, network, replicas):
+
+def deploy_docker_containers(image, name, network, replicas, env_vars=None, inbound_port=None, start_outbound_port=None):
     containers = []
     try:
         for i in range(replicas):
             container_name = f"{name}_{i+1}"
+            ports = {}
+            if inbound_port is not None and start_outbound_port is not None:
+                host_port = start_outbound_port + i
+                ports[f'{inbound_port}/tcp'] = host_port
+
+            print(f"Debug: Creating container {container_name}")
+            
             container = client.containers.run(
                 image=image,
                 name=container_name,
                 network=network,
                 detach=True,
-                command="sh -c 'while true; do sleep 3600; done'"
+                environment=env_vars,
+                ports=ports
             )
             containers.append(container)
             print(f"Container {container_name} deployed successfully.")
@@ -36,11 +45,37 @@ def deploy_docker_containers(image, name, network, replicas):
                 print(f"Container {container.name} is ready.")
             else:
                 print(f"Container {container.name} failed to start within the expected time.")
-        
-        return containers
     except Exception as e:
-        print(f"Failed to deploy containers: {e}")
-        return []
+        print(f"An error occurred: {e}")
+
+# def deploy_docker_containers(image, name, network, replicas):
+#     containers = []
+#     try:
+#         for i in range(replicas):
+#             container_name = f"{name}_{i+1}"
+#             container = client.containers.run(
+#                 image=image,
+#                 name=container_name,
+#                 network=network,
+#                 detach=True,
+#                 auto_remove=True,
+#                 command="sh -c 'while true; do sleep 3600; done'"
+#             )
+#             containers.append(container)
+        
+#         # Wait for containers to be ready
+#         for container in containers:
+#             while True:
+#                 container.reload()
+#                 if container.status == "running":
+#                     logger.info(f"Container {container_name} deployed successfully.")
+#                     break
+#                 time.sleep(1)  # Brief pause to avoid tight loop
+
+#         return containers
+#     except Exception as e:
+#         logger.error(f"Failed to deploy containers: {e}")
+#         return []
 
 def delete_docker_containers(name):
     try:
@@ -151,7 +186,15 @@ def interactive_menu():
             name = input("Enter the service name: ")
             network = input("Enter the network name: ")
             replicas = int(input("Enter the number of replicas: "))
-            deploy_docker_containers(image, name, network, replicas)
+            deploy_docker_containers(
+                image=image,
+                name=name,
+                network=network,
+                replicas=replicas,
+                env_vars={"MY_VAR": "value"},
+                inbound_port=5000,
+                start_outbound_port=5000
+            )
         elif choice == '2':
             name = input("Enter the service name to delete: ")
             delete_docker_containers(name)

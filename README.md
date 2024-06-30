@@ -143,7 +143,7 @@ cd smart-contracts
 ./deploy.sh 
 ```
 
-2. Launch the orchestrator's web server on every VM and define the federation's domain parameters in the [federation](./dlt-network-docker/) directory using (at least) [consumer1.env](./config/federation/consumer1.env) and [provider1.env](./config/federation/provider1.env)files. Ensure to modify `DOMAIN_FUNCTION` according to the role within the federation (`consumer` or `provider`), and adjust `INTERFACE_NAME` to match your VM's network interface name for VXLAN tunnel setup.
+2. Launch the orchestrator's web server on every VM and define the federation's domain parameters in the [federation](./dlt-network-docker/) directory using (at least) [consumer1.env](./config/federation/consumer1.env) and [provider1.env](./config/federation/provider1.env) files. Ensure to modify `DOMAIN_FUNCTION` according to the role within the federation (`consumer` or `provider`), and adjust `INTERFACE_NAME` to match your VM's network interface name for VXLAN tunnel setup.
 
 ```bash
 # VM1
@@ -156,7 +156,7 @@ cd smart-contracts
 ./start_app.sh config/federation/provider2.env
 ```
 
-For detailed information about the federation functions, refer to the REST API documentation, which is based on Swagger UI, at: `http://<vm-ip>:8000/docs`
+For detailed information about the federation functions, refer to the FastAPI documentation, which is based on Swagger UI, at: `http://<vm-ip>:8000/docs`
 
 3. Register each AD in the Smart Contract to enable their participation in the federation:
 
