@@ -162,21 +162,21 @@ For detailed information about the federation functions, refer to the FastAPI do
 
 ```bash
 # VM1 
-curl -X POST 'http://192.168.56.104:8000/register_domain'
+curl -X POST 'http://192.168.56.101:8000/register_domain'
 
 # VM2 
-curl -X POST 'http://192.168.56.105:8000/register_domain'
+curl -X POST 'http://192.168.56.102:8000/register_domain'
 ```
 
 ```bash
 # VM1 
-curl -X POST 'http://192.168.56.104:8000/start_experiments_consumer_v2'
+curl -X POST 'http://192.168.56.101:8000/start_experiments_consumer_v2'
 
 # VM2 
-curl -X POST 'http://192.168.56.105/start_experiments_provider_v2?export_to_csv=false&price=20'
+curl -X POST 'http://192.168.56.102:8000/start_experiments_provider_v2?export_to_csv=false&price=20'
 
 # VM3
-curl -X POST 'http://192.168.56.106/start_experiments_provider_v2?export_to_csv=false&price=15'
+curl -X POST 'http://192.168.56.103:8000/start_experiments_provider_v2?export_to_csv=false&price=15'
 ```
 
 
