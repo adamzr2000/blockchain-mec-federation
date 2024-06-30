@@ -9,6 +9,7 @@ RUN apk add --no-cache --update \
     build-base \
     python3-dev \
     py-pip \
+    curl \
     && pip install --upgrade pip
 
 # Copy the requirements file into the container
