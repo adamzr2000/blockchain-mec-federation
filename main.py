@@ -585,6 +585,49 @@ def get_container_ips(name):
         print(f"Failed to get IP addresses for containers: {e}")
         return container_ips
 
+def attach_container_to_network(container_name, network_name):
+    try:
+        # Retrieve the container
+        container = client.containers.get(container_name)
+    except NotFound:
+        logger.error(f"Container '{container_name}' not found.")
+
+    try:
+        # Retrieve the network
+        network = client.networks.get(network_name)
+    except NotFound:
+        logger.error(f"Network '{network_name}' not found.")
+
+    try:
+        # Attach the container to the network
+        network.connect(container)
+        logger.info(f"Container '{container_name}' successfully attached to network '{network_name}'.")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+
+def execute_command_in_container(container_name, command):
+
+    try:
+        # Retrieve the container
+        container = client.containers.get(container_name)
+    except NotFound:
+        logger.error(f"Container '{container_name}' not found.")
+        return
+    except APIError as e:
+        logger.error(f"Error retrieving container '{container_name}': {str(e)}")
+        return
+
+    try:
+        # Execute the command in the container
+        result = container.exec_run(command, tty=True)
+        if result.exit_code == 0:
+            # logger.info(f"Successfully executed command '{command}' in container '{container_name}'.")
+            print(result.output.decode('utf-8'))
+        else:
+            logger.error(f"Failed to execute command '{command}' in container '{container_name}'.")
+            print(result.output.decode('utf-8'))
+    except APIError as e:
+        print(f"Error executing command '{command}' in container '{container_name}': {str(e)}")
 
 # -------------------------------------------- Docker API FUNCTIONS --------------------------------------------#
 @app.post("/deploy_docker_service", tags=["Docker Functions"], summary="Deploy docker service")
@@ -1029,6 +1072,16 @@ def delete_docker_network_and_vxlan(sudo_password = 'netcom;'):
         logger.error(f"An unexpected error occurred: {str(e)}")
 
 
+def extract_ip_from_url(url):
+    # Regular expression pattern to match an IP address in a URL
+    pattern = r'http://(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):\d+'
+    match = re.match(pattern, url)
+    
+    if match:
+        return match.group(1)
+    else:
+        return None
+
 # ------------------------------------------------------------------------------------------------------------------------------#
 # Test 1: Select the first provider offer
 @app.post("/start_experiments_consumer_v1")
@@ -1113,12 +1166,23 @@ def start_experiments_consumer_v1(export_to_csv: bool = False):
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
+            attach_container_to_network("mec-app_1", "federation-net")
+
             t_establish_vxlan_connection_with_provider_finished = time.time() - process_start_time
             data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
 
             total_duration = time.time() - process_start_time
 
             logger.info(f"Federation process completed in {total_duration:.2f} seconds")
+
+            federated_host_ip = extract_ip_from_url(federated_host) 
+            if federated_host_ip: 
+                # logger.info(f"Extracted IP from '{federated_host}': {federated_host_ip}") 
+            else: 
+                logger.error(f"Could not extract IP from '{federated_host}'")
+            
+            monitor_connection_command = f"ping -c 4 {federated_host_ip}"
+            execute_command_in_container("mec-app_1", monitor_connection_command)
 
             if export_to_csv:
                 # Export the data to a csv file only if export_to_csv is True
