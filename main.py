@@ -1320,7 +1320,7 @@ def start_experiments_consumer_v2(export_to_csv: bool = False):
                     best_bid_index = 0
 
                     # Received bids
-                    if int(bid_index) == 2:
+                    if int(bid_index) >= 2:
                         # Loop through all bid indices and print their information
                         for i in range(bid_index):
                             bid_info = GetBidInfo(i)

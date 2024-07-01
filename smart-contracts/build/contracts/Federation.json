@@ -18912,11 +18912,11 @@
       "events": {},
       "links": {},
       "address": "0x19e42d35Ae32187929ffdC8aCe2CAC5D5a75b275",
-      "transactionHash": "0xefae67dd2fd047f02c573347c60fc185683c4b6bbba70fe817dfe6c3b2d1683c"
+      "transactionHash": "0x916d118a78242cfd3d28d1c59f3c71e5abbb5ec74cf5ab5342a3c45d77788195"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2024-06-30T19:54:10.501Z",
+  "updatedAt": "2024-07-01T10:33:00.782Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {}
