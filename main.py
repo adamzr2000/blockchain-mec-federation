@@ -1222,7 +1222,9 @@ def start_experiments_provider_v1(export_to_csv: bool = False):
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
-            
+            container_port=5000
+            exposed_ports=5000
+
             # Deploy docker service and wait to be ready and get an IP address
             deploy_docker_containers(
                 image=requested_service,
@@ -1230,8 +1232,8 @@ def start_experiments_provider_v1(export_to_csv: bool = False):
                 network="federation-net",
                 replicas=int(requested_replicas),
                 env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
-                container_port=5000,
-                start_host_port=5000
+                container_port=container_port,
+                start_host_port=exposed_ports
             )            
             container_ips = get_container_ips(requested_service)
             if container_ips:
@@ -1245,7 +1247,7 @@ def start_experiments_provider_v1(export_to_csv: bool = False):
             # Deployment confirmation sent
             t_confirm_deployment_sent = time.time() - process_start_time
             data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
-            federated_host=f"http://{federated_host}:5000"
+            federated_host=f"http://{federated_host}:{exposed_ports}"
             ServiceDeployed(service_id, federated_host)
 
             total_duration = time.time() - process_start_time
@@ -1476,6 +1478,10 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10):
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
+
+            container_port=5000
+            exposed_ports=5000
+
             # Deploy docker service and wait to be ready and get an IP address
             deploy_docker_containers(
                 image=requested_service,
@@ -1483,8 +1489,8 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10):
                 network="federation-net",
                 replicas=int(requested_replicas),
                 env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
-                container_port=5000,
-                start_host_port=5000
+                container_port=container_port,
+                start_host_port=exposed_ports
             )          
 
             container_ips = get_container_ips(requested_service)
@@ -1499,6 +1505,7 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10):
             # Deployment confirmation sent
             t_confirm_deployment_sent = time.time() - process_start_time
             data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
+            federated_host=f"http://{federated_host}:{exposed_ports}"
             ServiceDeployed(service_id, federated_host)
 
             total_duration = time.time() - process_start_time
