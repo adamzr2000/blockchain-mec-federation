@@ -37,10 +37,9 @@ WORKDIR /dlt-network
 
 # Copy the entire directories and their contents into the container
 COPY bootnode ./bootnode
-COPY node1 ./node1
-COPY node2 ./node2
-COPY node3 ./node3
-COPY node4 ./node4
+
+# Copy all nodeX directories
+COPY node* ./ 
 
 # Copy the shell scripts and other files
 COPY scripts/*_start.sh ./

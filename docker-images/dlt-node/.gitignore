@@ -1,4 +1,2 @@
-node1/geth
-node2/geth
-node3/geth
-node4/geth
+# Ignore all directories with the pattern nodeX/geth
+node*/geth/
