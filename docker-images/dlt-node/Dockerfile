@@ -31,11 +31,10 @@ RUN apt-get update
 # Install Ethereum package (bootnode)
 RUN apt-get install -y bootnode
 
-
 # Set the working directory inside the container
 WORKDIR /dlt-network
 
-# Copy the entire directories and their contents into the container
+# # Copy the entire directories and their contents into the container
 COPY bootnode ./bootnode
 
 COPY node1 ./node1
@@ -49,13 +48,13 @@ COPY node8 ./node8
 COPY node9 ./node9
 COPY node10 ./node10
 
-# Copy the shell scripts and other files
-COPY scripts/*_start.sh ./
-COPY scripts/password.txt ./ 
-COPY scripts/genesis.json ./
+# # Copy the shell scripts and other files
+# COPY scripts/*_start.sh ./
+# COPY scripts/password.txt ./ 
+# COPY scripts/genesis.json ./
 
-# Make bash scripts executable
-RUN chmod +x *_start.sh
+# # Make bash scripts executable
+# RUN chmod +x scripts/*_start.sh
 
 # Keep container running
 #CMD tail -f /dev/null

@@ -6,6 +6,9 @@ services:
     hostname: bootnode
     volumes:
       - ./../config/dlt/bootnode.env:/dlt-network/bootnode.env
+      - ./../docker-images/dlt-node/scripts/genesis.json:/dlt-network/genesis.json
+      - ./../docker-images/dlt-node/scripts/password.txt:/dlt-network/password.txt
+      - ./../docker-images/dlt-node/scripts/bootnode_start.sh:/dlt-network/bootnode_start.sh
     command: ./bootnode_start.sh
     network_mode: "host"
 
@@ -17,6 +20,9 @@ services:
       - bootnode
     volumes:
       - ./../config/dlt/node1.env:/dlt-network/node1.env
+      - ./../docker-images/dlt-node/scripts/genesis.json:/dlt-network/genesis.json
+      - ./../docker-images/dlt-node/scripts/password.txt:/dlt-network/password.txt
+      - ./../docker-images/dlt-node/scripts/node1_start.sh:/dlt-network/node1_start.sh      
     command: ./node1_start.sh
     network_mode: "host"
 
