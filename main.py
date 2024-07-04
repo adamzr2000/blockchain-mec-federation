@@ -1176,12 +1176,22 @@ def start_experiments_consumer_v2(export_to_csv: bool = False, providers: int = 
             # Sets up the federation docker network and the VXLAN network interface
             configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
+            attach_container_to_network("mec-app_1", "federation-net")
+
+
             t_establish_vxlan_connection_with_provider_finished = time.time() - process_start_time
             data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
            
             total_duration = time.time() - process_start_time
 
             logger.info(f"Federation process completed in {total_duration:.2f} seconds")
+
+            federated_host_ip = extract_ip_from_url(federated_host)
+            if federated_host_ip is None:
+                logger.error(f"Could not extract IP from '{federated_host}'")
+
+            monitor_connection_command = f"ping -c 4 {federated_host_ip}"
+            execute_command_in_container("mec-app_1", monitor_connection_command)
 
             if export_to_csv:
                 # Export the data to a csv file only if export_to_csv is True

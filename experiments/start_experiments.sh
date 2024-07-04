@@ -2,17 +2,21 @@
 
 # Script for experiments of migrating the entire object detection service
 
+EXPORT_RESULTS="false"
+
 # Base URL for consumer and provider
-BASE_URL_CONSUMER="http://192.168.56.104:8000"
-BASE_URL_PROVIDER="http://192.168.56.105:8000"
+BASE_URL_CONSUMER="http://10.5.99.1:8000"
+BASE_URL_PROVIDER="http://10.5.99.2:8000"
 
 # Endpoints
-CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/start_experiments_consumer_v1?export_to_csv=true"
-PROVIDER_ENDPOINT="${BASE_URL_PROVIDER}/start_experiments_provider_v1?export_to_csv=true"
+CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/start_experiments_consumer?export_to_csv=${EXPORT_RESULTS}&providers=1"
+PROVIDER_ENDPOINT="${BASE_URL_PROVIDER}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=20"
 
 DELETE_RESOURCES_ENDPOINT_CONSUMER="${BASE_URL_CONSUMER}/delete_vxlan"
+DELETE_CONTAINERS_ENDPOINT_CONSUMER="${BASE_URL_CONSUMER}/delete_docker_service?name=mec-app"
+
 DELETE_RESOURCES_ENDPOINT_PROVIDER="${BASE_URL_PROVIDER}/delete_vxlan"
-DELETE_CONTAINERS_ENDPOINT_PROVIDER="${BASE_URL_PROVIDER}/delete_docker_service?name=alpine"
+DELETE_CONTAINERS_ENDPOINT_PROVIDER="${BASE_URL_PROVIDER}/delete_docker_service?name=federated-mec-app"
 
 # Directory to store logs
 LOGS_DIR="logs"
@@ -32,10 +36,10 @@ function start_experiments {
     local timestamp=$1
 
     # Start the provider experiment in the background and save the log
-    curl -X POST "${PROVIDER_ENDPOINT}" -d "export_to_csv=true" -o "${LOGS_DIR}/provider_output_${timestamp}.txt" &
+    curl -X POST "${PROVIDER_ENDPOINT}" -d "export_to_csv=${EXPORT_RESULTS}" -o "${LOGS_DIR}/provider_output_${timestamp}.txt" &
 
     # Start the consumer experiment, wait for it to finish, and save the log
-    curl -X POST "${CONSUMER_ENDPOINT}" -d "export_to_csv=true" -o "${LOGS_DIR}/consumer_output_${timestamp}.txt"
+    curl -X POST "${CONSUMER_ENDPOINT}" -d "export_to_csv=${EXPORT_RESULTS}" -o "${LOGS_DIR}/consumer_output_${timestamp}.txt"
 
     # Ensure background processes have finished
     wait
