@@ -19,11 +19,14 @@ fi
 
 # Proceed with the operation
 START_CMD="./${NODE_SELECTION}_start.sh"
+
 DOCKER_CMD="docker run -d --name $NODE_SELECTION --hostname $NODE_SELECTION --network host --rm \
 -v $(pwd)/../config/dlt/$NODE_SELECTION.env:/dlt-network/$NODE_SELECTION.env \
 -v $(pwd)/../docker-images/dlt-node/scripts/genesis.json:/dlt-network/genesis.json \
 -v $(pwd)/../docker-images/dlt-node/scripts/password.txt:/dlt-network/password.txt \
 -v $(pwd)/../docker-images/dlt-node/scripts/${NODE_SELECTION}_start.sh:/dlt-network/${NODE_SELECTION}_start.sh \
+dlt-node $START_CMD"
+
 echo "Starting $NODE_SELECTION with command $START_CMD..."
 eval "$DOCKER_CMD"
 
