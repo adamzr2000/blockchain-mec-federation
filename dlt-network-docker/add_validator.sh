@@ -2,16 +2,14 @@
 
 # Function to handle the selection
 handle_selection() {
-    case $1 in
-        node1|node2|node3|node4)
-            NODE_SELECTION="$1"
-            ;;
-        *)
-            echo "Invalid selection: $1. Please select node1, node2, node3, or node4."
-            exit 1 # Indicates invalid selection
-            ;;
-    esac
+    if [[ $1 =~ ^node[0-9]+$ ]]; then
+        NODE_SELECTION="$1"
+    else
+        echo "Invalid selection: $1. Please select a valid node in the format nodeX, where X is a number."
+        exit 1 # Indicates invalid selection
+    fi
 }
+
 
 # Check if the correct number of arguments are provided
 if [ $# -ne 2 ]; then

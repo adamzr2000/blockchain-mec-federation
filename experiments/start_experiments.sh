@@ -1,30 +1,63 @@
 #!/bin/bash
 
-# Script for experiments of migrating the entire object detection service
-
 # Constants
+LOGS_DIR="logs"
 EXPORT_RESULTS="false"
+NUMBER_OF_PROVIDERS=3  
+
 BASE_URL_CONSUMER="http://10.5.99.1:8000"
 BASE_URL_PROVIDER1="http://10.5.99.2:8000"
 BASE_URL_PROVIDER2="http://10.5.99.3:8000"
-LOGS_DIR="logs"
+BASE_URL_PROVIDER3="http://10.5.99.4:8000"
+BASE_URL_PROVIDER4="http://10.5.99.5:8000"
+BASE_URL_PROVIDER5="http://10.5.99.6:8000"
+BASE_URL_PROVIDER6="http://10.5.99.7:8000"
+BASE_URL_PROVIDER7="http://10.5.99.8:8000"
+BASE_URL_PROVIDER8="http://10.5.99.9:8000"
+BASE_URL_PROVIDER9="http://10.5.99.10:8000"
 
 # Consumer Endpoints
-EXPERIMENTS_CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/start_experiments_consumer?export_to_csv=${EXPORT_RESULTS}&providers=1"
+EXPERIMENTS_CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/start_experiments_consumer?export_to_csv=${EXPORT_RESULTS}&providers=${NUMBER_OF_PROVIDERS}"
 DEPLOY_CONTAINERS_CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/deploy_docker_service?image=mec-app&name=mec-app&network=bridge&replicas=1"
 DELETE_VXLAN_RESOURCES_CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/delete_vxlan"
 DELETE_CONTAINERS_CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/delete_docker_service?name=mec-app"
 
 # Provider Endpoints
-## Provider 1
-EXPERIMENTS_PROVIDER1_ENDPOINT="${BASE_URL_PROVIDER1}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=20"
-DELETE_VXLAN_RESOURCES_PROVIDER1_ENDPOINT="${BASE_URL_PROVIDER1}/delete_vxlan"
-DELETE_CONTAINERS_PROVIDER1_ENDPOINT="${BASE_URL_PROVIDER1}/delete_docker_service?name=federated-mec-app"
+EXPERIMENTS_PROVIDER_ENDPOINTS=(
+    "${BASE_URL_PROVIDER1}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=12"
+    "${BASE_URL_PROVIDER2}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=18"
+    "${BASE_URL_PROVIDER3}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=30"
+    "${BASE_URL_PROVIDER4}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=50"
+    "${BASE_URL_PROVIDER5}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=40"
+    "${BASE_URL_PROVIDER6}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=45"
+    "${BASE_URL_PROVIDER7}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=25"
+    "${BASE_URL_PROVIDER8}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=35"
+    "${BASE_URL_PROVIDER9}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=70"
+)
 
-## Provider 2
-EXPERIMENTS_PROVIDER2_ENDPOINT="${BASE_URL_PROVIDER2}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=20"
-DELETE_VXLAN_RESOURCES_PROVIDER2_ENDPOINT="${BASE_URL_PROVIDER2}/delete_vxlan"
-DELETE_CONTAINERS_PROVIDER2_ENDPOINT="${BASE_URL_PROVIDER2}/delete_docker_service?name=federated-mec-app"
+DELETE_CONTAINERS_PROVIDER_ENDPOINTS=(
+    "${BASE_URL_PROVIDER1}/delete_docker_service?name=federated-mec-app"
+    "${BASE_URL_PROVIDER2}/delete_docker_service?name=federated-mec-app"
+    "${BASE_URL_PROVIDER3}/delete_docker_service?name=federated-mec-app"
+    "${BASE_URL_PROVIDER4}/delete_docker_service?name=federated-mec-app"
+    "${BASE_URL_PROVIDER5}/delete_docker_service?name=federated-mec-app"
+    "${BASE_URL_PROVIDER6}/delete_docker_service?name=federated-mec-app"
+    "${BASE_URL_PROVIDER7}/delete_docker_service?name=federated-mec-app"
+    "${BASE_URL_PROVIDER8}/delete_docker_service?name=federated-mec-app"
+    "${BASE_URL_PROVIDER9}/delete_docker_service?name=federated-mec-app"
+)
+
+DELETE_VXLAN_RESOURCES_PROVIDER_ENDPOINTS=(
+    "${BASE_URL_PROVIDER1}/delete_vxlan"
+    "${BASE_URL_PROVIDER2}/delete_vxlan"
+    "${BASE_URL_PROVIDER3}/delete_vxlan"
+    "${BASE_URL_PROVIDER4}/delete_vxlan"
+    "${BASE_URL_PROVIDER5}/delete_vxlan"
+    "${BASE_URL_PROVIDER6}/delete_vxlan"
+    "${BASE_URL_PROVIDER7}/delete_vxlan"
+    "${BASE_URL_PROVIDER8}/delete_vxlan"
+    "${BASE_URL_PROVIDER9}/delete_vxlan"
+)
 
 # Function to validate input
 validate_input() {
@@ -48,8 +81,10 @@ start_experiments() {
     # Deploy consumer container
     deploy_consumer_container
 
-    # Start the provider1 experiment in the background and save the log
-    curl -X POST "${EXPERIMENTS_PROVIDER1_ENDPOINT}" -o "${LOGS_DIR}/provider1_output_test${test_number}.txt" &
+    # Start the provider experiments in the background and save the logs
+    for ((i=1; i<=NUMBER_OF_PROVIDERS; i++)); do
+        curl -X POST "${EXPERIMENTS_PROVIDER_ENDPOINTS[$i-1]}" -o "${LOGS_DIR}/provider${i}_output_test${test_number}.txt" &
+    done
 
     # Start the consumer experiment, wait for it to finish, and save the log
     curl -X POST "${EXPERIMENTS_CONSUMER_ENDPOINT}" -o "${LOGS_DIR}/consumer_output_test${test_number}.txt"
@@ -63,11 +98,12 @@ start_experiments() {
 
 # Function to cleanup resources
 cleanup_resources() {
-    curl -X DELETE "$DELETE_CONTAINERS_PROVIDER1_ENDPOINT" | jq
-    sleep 2
-
-    curl -X DELETE "$DELETE_VXLAN_RESOURCES_PROVIDER1_ENDPOINT" | jq
-    sleep 2
+    for ((i=1; i<=NUMBER_OF_PROVIDERS; i++)); do
+        curl -X DELETE "${DELETE_CONTAINERS_PROVIDER_ENDPOINTS[$i-1]}" | jq
+        sleep 2
+        curl -X DELETE "${DELETE_VXLAN_RESOURCES_PROVIDER_ENDPOINTS[$i-1]}" | jq
+        sleep 2
+    done
 
     curl -X DELETE "$DELETE_CONTAINERS_CONSUMER_ENDPOINT" | jq
     sleep 2
@@ -80,8 +116,7 @@ cleanup_resources() {
 run_experiments() {
     local num_tests=$1
 
-    for ((i=1; i<=num_tests; i++))
-    do
+    for ((i=1; i<=num_tests; i++)); do
         echo "Starting experiment $i of $num_tests..."
         start_experiments $i
         echo "Experiment $i completed."
