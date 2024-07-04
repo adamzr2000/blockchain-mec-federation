@@ -2,7 +2,7 @@
 
 # Constants
 LOGS_DIR="logs"
-EXPORT_RESULTS="false"
+EXPORT_RESULTS="true"
 
 BASE_URL_CONSUMER="http://10.5.99.1:8000"
 BASE_URL_PROVIDER1="http://10.5.99.2:8000"

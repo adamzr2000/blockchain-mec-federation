@@ -1286,6 +1286,8 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10):
                 else:
                     # If not the winner, log and return the message
                     logger.info(f"I am not the winner for {service_id}")
+                    t_other_provider_choosen = time.time() - process_start_time
+                    data.append(['other_provider_choosen', t_other_provider_choosen])
                     return {"message": f"I am not the winner for {service_id}"}
 
             # Service deployed info
