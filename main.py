@@ -1178,7 +1178,6 @@ def start_experiments_consumer_v2(export_to_csv: bool = False, providers: int = 
 
             attach_container_to_network("mec-app_1", "federation-net")
 
-
             t_establish_vxlan_connection_with_provider_finished = time.time() - process_start_time
             data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
            
@@ -1190,7 +1189,8 @@ def start_experiments_consumer_v2(export_to_csv: bool = False, providers: int = 
             if federated_host_ip is None:
                 logger.error(f"Could not extract IP from '{federated_host}'")
 
-            monitor_connection_command = f"ping -c 4 {federated_host_ip}"
+            logger.info(f"Monitoring connection with federated host ({federated_host_ip})")
+            monitor_connection_command = f"ping -c 10 {federated_host_ip}"
             execute_command_in_container("mec-app_1", monitor_connection_command)
 
             if export_to_csv:
