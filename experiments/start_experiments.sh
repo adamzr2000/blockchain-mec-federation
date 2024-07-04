@@ -3,7 +3,7 @@
 # Constants
 LOGS_DIR="logs"
 EXPORT_RESULTS="false"
-NUMBER_OF_PROVIDERS=3  
+NUMBER_OF_PROVIDERS=1  # Set the number of providers here
 
 BASE_URL_CONSUMER="http://10.5.99.1:8000"
 BASE_URL_PROVIDER1="http://10.5.99.2:8000"
@@ -70,7 +70,8 @@ validate_input() {
 
 # Function to deploy consumer container
 deploy_consumer_container() {
-    curl -X POST "${DEPLOY_CONTAINERS_CONSUMER_ENDPOINT}" | jq
+    echo "Deploying consumer container..."
+    curl -X POST "${DEPLOY_CONTAINERS_CONSUMER_ENDPOINT}" | tee -a "${LOGS_DIR}/deploy_consumer_container.log"
     sleep 2
 }
 
@@ -78,37 +79,52 @@ deploy_consumer_container() {
 start_experiments() {
     local test_number=$1
 
+    echo "Starting experiment $test_number..."
+    echo "Starting experiment $test_number..." >> "${LOGS_DIR}/experiment_${test_number}.log"
+
     # Deploy consumer container
-    deploy_consumer_container
+    deploy_consumer_container >> "${LOGS_DIR}/experiment_${test_number}.log" 2>&1
 
     # Start the provider experiments in the background and save the logs
     for ((i=1; i<=NUMBER_OF_PROVIDERS; i++)); do
+        echo "Starting provider $i experiment for test $test_number..."
         curl -X POST "${EXPERIMENTS_PROVIDER_ENDPOINTS[$i-1]}" -o "${LOGS_DIR}/provider${i}_output_test${test_number}.txt" &
     done
 
     # Start the consumer experiment, wait for it to finish, and save the log
+    echo "Starting consumer experiment for test $test_number..."
     curl -X POST "${EXPERIMENTS_CONSUMER_ENDPOINT}" -o "${LOGS_DIR}/consumer_output_test${test_number}.txt"
 
     # Ensure background processes have finished
+    echo "Waiting for background processes to complete for test $test_number..."
     wait
 
     # Cleanup resources
-    cleanup_resources
+    echo "Cleaning up resources for test $test_number..."
+    cleanup_resources $test_number >> "${LOGS_DIR}/experiment_${test_number}.log" 2>&1
+
+    echo "Experiment $test_number completed."
+    echo "Experiment $test_number completed." >> "${LOGS_DIR}/experiment_${test_number}.log"
 }
 
 # Function to cleanup resources
 cleanup_resources() {
+    local test_number=$1
     for ((i=1; i<=NUMBER_OF_PROVIDERS; i++)); do
-        curl -X DELETE "${DELETE_CONTAINERS_PROVIDER_ENDPOINTS[$i-1]}" | jq
+        echo "Deleting containers for provider $i for test $test_number..."
+        curl -X DELETE "${DELETE_CONTAINERS_PROVIDER_ENDPOINTS[$i-1]}" | tee -a "${LOGS_DIR}/cleanup_provider${i}_test${test_number}.log"
         sleep 2
-        curl -X DELETE "${DELETE_VXLAN_RESOURCES_PROVIDER_ENDPOINTS[$i-1]}" | jq
+        echo "Deleting VXLAN resources for provider $i for test $test_number..."
+        curl -X DELETE "${DELETE_VXLAN_RESOURCES_PROVIDER_ENDPOINTS[$i-1]}" | tee -a "${LOGS_DIR}/cleanup_provider${i}_test${test_number}.log"
         sleep 2
     done
 
-    curl -X DELETE "$DELETE_CONTAINERS_CONSUMER_ENDPOINT" | jq
+    echo "Deleting consumer containers for test $test_number..."
+    curl -X DELETE "$DELETE_CONTAINERS_CONSUMER_ENDPOINT" | tee -a "${LOGS_DIR}/cleanup_consumer_test${test_number}.log"
     sleep 2
 
-    curl -X DELETE "$DELETE_VXLAN_RESOURCES_CONSUMER_ENDPOINT" | jq
+    echo "Deleting VXLAN resources for consumer for test $test_number..."
+    curl -X DELETE "$DELETE_VXLAN_RESOURCES_CONSUMER_ENDPOINT" | tee -a "${LOGS_DIR}/cleanup_consumer_test${test_number}.log"
     sleep 2
 }
 
@@ -119,7 +135,7 @@ run_experiments() {
     for ((i=1; i<=num_tests; i++)); do
         echo "Starting experiment $i of $num_tests..."
         start_experiments $i
-        echo "Experiment $i completed."
+        echo "Experiment $i of $num_tests completed."
     done
 
     echo "All experiments completed."
