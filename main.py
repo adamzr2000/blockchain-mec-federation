@@ -1354,7 +1354,7 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10):
             else:
                 logger.warning("CSV export not requested.")
 
-            return {"message": f"Federation process completed successfully - {domain_name}"}
+            return {"message": f"Federation process completed successfully - {domain}"}
         else:
             error_message = "You must be provider to run this code"
             raise HTTPException(status_code=500, detail=error_message)
