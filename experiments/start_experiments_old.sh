@@ -81,17 +81,17 @@ start_experiments() {
     # Start the provider1 experiment in the background and save the log
     curl -X POST "${EXPERIMENTS_PROVIDER1_ENDPOINT}" -o "${LOGS_DIR}/provider1_output_test${test_number}.txt" &
 
-    # # Start the provider2 experiment in the background and save the log
-    # curl -X POST "${EXPERIMENTS_PROVIDER2_ENDPOINT}" -o "${LOGS_DIR}/provider2_output_test${test_number}.txt" &
+    # Start the provider2 experiment in the background and save the log
+    curl -X POST "${EXPERIMENTS_PROVIDER2_ENDPOINT}" -o "${LOGS_DIR}/provider2_output_test${test_number}.txt" &
 
-    # # Start the provider3 experiment in the background and save the log
-    # curl -X POST "${EXPERIMENTS_PROVIDER3_ENDPOINT}" -o "${LOGS_DIR}/provider3_output_test${test_number}.txt" &
+    # Start the provider3 experiment in the background and save the log
+    curl -X POST "${EXPERIMENTS_PROVIDER3_ENDPOINT}" -o "${LOGS_DIR}/provider3_output_test${test_number}.txt" &
 
-    # # Start the provider4 experiment in the background and save the log
-    # curl -X POST "${EXPERIMENTS_PROVIDER4_ENDPOINT}" -o "${LOGS_DIR}/provider4_output_test${test_number}.txt" &
+    # Start the provider4 experiment in the background and save the log
+    curl -X POST "${EXPERIMENTS_PROVIDER4_ENDPOINT}" -o "${LOGS_DIR}/provider4_output_test${test_number}.txt" &
 
-    # # Start the provider5 experiment in the background and save the log
-    # curl -X POST "${EXPERIMENTS_PROVIDER5_ENDPOINT}" -o "${LOGS_DIR}/provider5_output_test${test_number}.txt" &
+    # Start the provider5 experiment in the background and save the log
+    curl -X POST "${EXPERIMENTS_PROVIDER5_ENDPOINT}" -o "${LOGS_DIR}/provider5_output_test${test_number}.txt" &
 
     # Start the consumer experiment, wait for it to finish, and save the log
     curl -X POST "${EXPERIMENTS_CONSUMER_ENDPOINT}" -o "${LOGS_DIR}/consumer_output_test${test_number}.txt"
