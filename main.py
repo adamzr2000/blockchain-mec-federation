@@ -1111,9 +1111,9 @@ def start_experiments_consumer_v2(export_to_csv: bool = False, providers: int = 
                 new_events = bids_event.get_all_entries()
                 for event in new_events:
                     
-                    # Bid Offer Received
-                    t_bid_offer_received = time.time() - process_start_time
-                    data.append(['bid_offer_received', t_bid_offer_received])
+                    # # Bid Offer Received
+                    # t_bid_offer_received = time.time() - process_start_time
+                    # data.append(['bid_offer_received', t_bid_offer_received])
 
                     event_id = str(web3.toText(event['args']['_id']))
                     
@@ -1131,6 +1131,10 @@ def start_experiments_consumer_v2(export_to_csv: bool = False, providers: int = 
 
                     # Received bids
                     if int(bid_index) == providers:
+                        # ------ #
+                        t_bid_offer_received = time.time() - process_start_time
+                        data.append(['bid_offer_received', t_bid_offer_received])
+                        # ------ #
                         # Loop through all bid indices and print their information
                         for i in range(bid_index):
                             bid_info = GetBidInfo(i)
@@ -1288,7 +1292,14 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10):
                     logger.info(f"I am not the winner for {service_id}")
                     t_other_provider_choosen = time.time() - process_start_time
                     data.append(['other_provider_choosen', t_other_provider_choosen])
-                    return {"message": f"I am not the winner for {service_id}"}
+                    if export_to_csv:
+                        # Export the data to a csv file only if export_to_csv is True
+                        create_csv_file(domain, header, data)
+                        logger.info(f"Data exported to CSV for {domain}.")
+                        return {"message": f"I am not the winner for {service_id}"}
+                    else:
+                        logger.warning("CSV export not requested.")
+                        return {"message": f"I am not the winner for {service_id}"}
 
             # Service deployed info
             federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
@@ -1343,7 +1354,7 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10):
             else:
                 logger.warning("CSV export not requested.")
 
-            return {"message": f"Federation process completed successfully - {domain}"}
+            return {"message": f"Federation process completed successfully - {domain_name}"}
         else:
             error_message = "You must be provider to run this code"
             raise HTTPException(status_code=500, detail=error_message)
