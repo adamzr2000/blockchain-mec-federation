@@ -48,6 +48,8 @@ COPY node8 ./node8
 COPY node9 ./node9
 COPY node10 ./node10
 
+RUN mkdir logs
+
 # # Copy the shell scripts and other files
 # COPY scripts/*_start.sh ./
 # COPY scripts/password.txt ./ 
