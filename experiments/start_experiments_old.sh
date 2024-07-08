@@ -15,7 +15,7 @@ BASE_URL_PROVIDER7="http://10.5.99.8:8000"
 BASE_URL_PROVIDER8="http://10.5.99.9:8000"
 BASE_URL_PROVIDER9="http://10.5.99.10:8000"
 
-NUMBER_OF_PROVIDERS=5  # Set the number of providers here
+NUMBER_OF_PROVIDERS=7  # Set the number of providers here
 
 
 # Consumer Endpoints
@@ -92,6 +92,12 @@ start_experiments() {
 
     # Start the provider5 experiment in the background and save the log
     curl -X POST "${EXPERIMENTS_PROVIDER5_ENDPOINT}" -o "${LOGS_DIR}/provider5_output_test${test_number}.txt" &
+
+    # Start the provider6 experiment in the background and save the log
+    curl -X POST "${EXPERIMENTS_PROVIDER6_ENDPOINT}" -o "${LOGS_DIR}/provider6_output_test${test_number}.txt" &
+
+    # Start the provider7 experiment in the background and save the log
+    curl -X POST "${EXPERIMENTS_PROVIDER7_ENDPOINT}" -o "${LOGS_DIR}/provider7_output_test${test_number}.txt" &
 
     # Start the consumer experiment, wait for it to finish, and save the log
     curl -X POST "${EXPERIMENTS_CONSUMER_ENDPOINT}" -o "${LOGS_DIR}/consumer_output_test${test_number}.txt"
