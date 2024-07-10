@@ -17,6 +17,12 @@ darker_red = '#B85450'
 lighter_yellow = '#FFF2CC' 
 darker_yellow = '#D6B656'
 
+lighter_purple = '#E1D5E7' 
+darker_purple = '#9673A6'
+
+lighter_orange = '#FFE6CC' 
+darker_orange = '#D79B00'
+
 # Function to calculate mean accumulated time
 def calculate_mean_accumulated_time(directory):
     accumulated_times = []
@@ -30,39 +36,39 @@ def calculate_mean_accumulated_time(directory):
 # Set the seaborn style for aesthetics
 sns.set_style("whitegrid")
 
-mec_systems = 6
+mec_systems = 10
 merged_dir = f'../{mec_systems}-mec-systems/merged'
 
 # --- Plot 1: Mean start and end times of each federation step ---
 # Directory containing merged test results
 
-# times_data = []
+times_data = []
 
-# # Process each merged file
-# for filename in os.listdir(merged_dir):
-#     filepath = os.path.join(merged_dir, filename)
-#     df = pd.read_csv(filepath)
+# Process each merged file
+for filename in os.listdir(merged_dir):
+    filepath = os.path.join(merged_dir, filename)
+    df = pd.read_csv(filepath)
 
-#     # Capture start and end times for each step
-#     steps_definitions = {
-#         'Service Announced': ('service_announced', 'announce_received'),
-#         'Bid Offered': ('bid_offer_sent', 'bid_offer_received'),
-#         'Winner Choosen': ('winner_choosen', 'winner_received'),
-#         'Service Deployment': ('deployment_start', 'deployment_finished'),
-#         'Confirm Service Deployment': ('confirm_deployment_sent', 'confirm_deployment_received'),
-#         'Establish VXLAN Connection': ('establish_vxlan_connection_with_provider_start', 'establish_vxlan_connection_with_provider_finished')
-#     }
-#     for step, (start, end) in steps_definitions.items():
-#         if start in df.step.values and end in df.step.values:
-#             start_time = df.loc[df['step'] == start, 'timestamp'].values[0]
-#             end_time = df.loc[df['step'] == end, 'timestamp'].values[0]
-#             times_data.append({'Step': step, 'Start Time': start_time, 'End Time': end_time})
+    # Capture start and end times for each step
+    steps_definitions = {
+        'Service Announced': ('service_announced', 'announce_received'),
+        'Bid Offered': ('bid_offer_sent', 'bid_offer_received'),
+        'Winner Choosen': ('winner_choosen', 'winner_received'),
+        'Service Deployment': ('deployment_start', 'deployment_finished'),
+        'Confirm Service Deployment': ('confirm_deployment_sent', 'confirm_deployment_received'),
+        'Federated Service Running': ('establish_vxlan_connection_with_provider_start', 'establish_vxlan_connection_with_provider_finished')
+    }
+    for step, (start, end) in steps_definitions.items():
+        if start in df.step.values and end in df.step.values:
+            start_time = df.loc[df['step'] == start, 'timestamp'].values[0]
+            end_time = df.loc[df['step'] == end, 'timestamp'].values[0]
+            times_data.append({'Step': step, 'Start Time': start_time, 'End Time': end_time})
 
-# times_df = pd.DataFrame(times_data)
-# times_df = times_df.groupby('Step').agg({'Start Time': 'mean', 'End Time': 'mean'}).reset_index()
-# ordered_steps = ['Service Announced', 'Bid Offered', 'Winner Choosen', 'Service Deployment', 'Confirm Service Deployment', 'Establish VXLAN Connection']
-# times_df['Order'] = times_df['Step'].apply(lambda x: ordered_steps.index(x))
-# times_df = times_df.sort_values('Order', ascending=True)
+times_df = pd.DataFrame(times_data)
+times_df = times_df.groupby('Step').agg({'Start Time': 'mean', 'End Time': 'mean'}).reset_index()
+ordered_steps = ['Service Announced', 'Bid Offered', 'Winner Choosen', 'Service Deployment', 'Confirm Service Deployment', 'Federated Service Running']
+times_df['Order'] = times_df['Step'].apply(lambda x: ordered_steps.index(x))
+times_df = times_df.sort_values('Order', ascending=True)
 
 # plt.figure(figsize=(10, 6))
 # for i, step in enumerate(ordered_steps):
@@ -103,28 +109,28 @@ merged_dir = f'../{mec_systems}-mec-systems/merged'
 
 # plt.xlabel('Time (s)')
 # plt.ylabel('MEC System')
-# # plt.title('Mean accumulated time')
+# plt.title('Mean accumulated time')
 # plt.tight_layout()
 # plt.gca().invert_yaxis()
-# # plt.savefig(f'total_accumulated_time_{mec_systems}_mec_systems.pdf')
+# plt.savefig(f'total_accumulated_time_{mec_systems}_mec_systems.pdf')
 # plt.show()
 
 # --- Plot 3: Mean time for each step with standard deviation ---
 # Calculate mean and standard deviation for each step
-# mean_times = []
-# std_times = []
+mean_times = []
+std_times = []
 
-# for step, (start, end) in steps_definitions.items():
-#     step_times = []
-#     for filename in os.listdir(merged_dir):
-#         filepath = os.path.join(merged_dir, filename)
-#         df = pd.read_csv(filepath)
-#         if start in df.step.values and end in df.step.values:
-#             start_time = df.loc[df['step'] == start, 'timestamp'].values[0]
-#             end_time = df.loc[df['step'] == end, 'timestamp'].values[0]
-#             step_times.append(end_time - start_time)
-#     mean_times.append(np.mean(step_times))
-#     std_times.append(np.std(step_times))
+for step, (start, end) in steps_definitions.items():
+    step_times = []
+    for filename in os.listdir(merged_dir):
+        filepath = os.path.join(merged_dir, filename)
+        df = pd.read_csv(filepath)
+        if start in df.step.values and end in df.step.values:
+            start_time = df.loc[df['step'] == start, 'timestamp'].values[0]
+            end_time = df.loc[df['step'] == end, 'timestamp'].values[0]
+            step_times.append(end_time - start_time)
+    mean_times.append(np.mean(step_times))
+    std_times.append(np.std(step_times))
 
 # plt.figure(figsize=(10, 6))
 # plt.bar(ordered_steps, mean_times, yerr=std_times, color=lighter_blue, edgecolor=darker_blue, capsize=5)
@@ -133,9 +139,9 @@ merged_dir = f'../{mec_systems}-mec-systems/merged'
 # plt.xticks(rotation=45, ha='right')  # Rotate x-axis labels for better readability
 # plt.xlabel('Steps')
 # plt.ylabel('Time (s)')
-# # plt.title('Mean time for each step with standard deviation')
+# plt.title('Mean time for each step with standard deviation')
 # plt.tight_layout()
-# # plt.savefig(f'federation_steps_{mec_systems}_mec_systems.pdf')
+# plt.savefig(f'federation_steps_{mec_systems}_mec_systems.pdf')
 # plt.show()
 
 # --- Plot 4: --- #
@@ -153,9 +159,9 @@ def calculate_total_federation_time(directory):
 sns.set_style("whitegrid")
 
 # List of MEC systems to compare
-participants_to_compare = ["2", "3", "4", "6"]
-colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow]
-edge_colors = [darker_blue, darker_green, darker_red, darker_yellow]
+participants_to_compare = ["2", "3", "4", "6", "8", "10"]
+colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow, lighter_purple, lighter_orange]
+edge_colors = [darker_blue, darker_green, darker_red, darker_yellow, darker_purple, darker_orange]
 mean_times = []
 std_times = []
 
@@ -175,17 +181,13 @@ plt.savefig('comparison_total_federation_time.pdf')
 plt.show()
 
 # --- Plot 5: --- 
-participants_to_compare = ["2", "3", "4", "6"]
-colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow]
-edge_colors = [darker_blue, darker_green, darker_red, darker_yellow]
-
 steps_definitions = {
     'Service Announced': ('service_announced', 'announce_received'),
     'Bid Offered': ('bid_offer_sent', 'bid_offer_received'),
     'Winner Choosen': ('winner_choosen', 'winner_received'),
     'Service Deployment': ('deployment_start', 'deployment_finished'),
     'Confirm Service Deployment': ('confirm_deployment_sent', 'confirm_deployment_received'),
-    'Establish VXLAN Connection': ('establish_vxlan_connection_with_provider_start', 'establish_vxlan_connection_with_provider_finished')
+    'Federated Service Running': ('establish_vxlan_connection_with_provider_start', 'establish_vxlan_connection_with_provider_finished')
 }
 
 # Function to calculate the total federation time for each file
@@ -205,6 +207,9 @@ def calculate_step_times(directory, steps_definitions):
 sns.set_style("whitegrid")
 
 # List of MEC systems to compare
+participants_to_compare = ["2", "3", "4", "6", "8", "10"]
+colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow, lighter_purple, lighter_orange]
+edge_colors = [darker_blue, darker_green, darker_red, darker_yellow, darker_purple, darker_orange]
 
 # Initialize data storage
 mean_times = {step: [] for step in steps_definitions.keys()}
@@ -220,25 +225,108 @@ for mec_systems, color, edge_color in zip(participants_to_compare, colors, edge_
         std_times[step].append(np.std(step_times[step]))
 
 # Plot the mean time for each step with standard deviation for multiple MEC systems
-plt.figure(figsize=(14, 8))
+plt.figure(figsize=(22, 12))
 
 x = np.arange(len(steps_definitions))  # the label locations
-width = 0.2  # the width of the bars
-spacing = 0.02  # space between bars
+width = 0.12  # the width of the bars
 
 # Create bar plots for each MEC system
-for i, (mec_systems, color, edge_color) in enumerate(zip(participants_to_compare, colors, edge_colors)):
+for i, (mec_systems, lighter_color, darker_color) in enumerate(zip(participants_to_compare, colors, edge_colors)):
     means = [mean_times[step][i] for step in steps_definitions.keys()]
     stds = [std_times[step][i] for step in steps_definitions.keys()]
-    plt.bar(x + i * (width + spacing), means, width, yerr=stds, label=f'{mec_systems} MEC Systems', color=color, edgecolor=edge_color, capsize=5)
+    plt.bar(x + i * width, means, width, yerr=stds, label=f'{mec_systems}', color=lighter_color, edgecolor=darker_color, capsize=5)
 
 # Add labels, title, and legend
-plt.xlabel('Steps')
+plt.xlabel('Federation Steps')
 plt.ylabel('Time (s)')
-plt.title('Mean Time for Each Step with Standard Deviation')
-plt.xticks(x + (width + spacing) * len(participants_to_compare) / 2 - (width + spacing) / 2, steps_definitions.keys(), rotation=45, ha='right')
-plt.legend(title='Number of Providers')
+# plt.title('Mean Time for Each Step with Standard Deviation')
+plt.xticks(x + width * (len(participants_to_compare) - 1) / 2, steps_definitions.keys(), rotation=45, ha='right')
+plt.legend(title='Number of MEC Systems')
 plt.tight_layout()
 plt.savefig('comparison_federation_steps.pdf')
+
 # Show the plot
 plt.show()
+# --- Plot 6: --- 
+# Function to calculate start and end times for each step
+# def calculate_times(directory, steps_definitions):
+#     times_data = []
+#     for filename in os.listdir(directory):
+#         if filename.endswith(".csv"):
+#             df = pd.read_csv(os.path.join(directory, filename))
+#             for step, (start, end) in steps_definitions.items():
+#                 if start in df.step.values and end in df.step.values:
+#                     start_time = df.loc[df['step'] == start, 'timestamp'].values[0]
+#                     end_time = df.loc[df['step'] == end, 'timestamp'].values[0]
+#                     times_data.append({'Step': step, 'Start Time': start_time, 'End Time': end_time})
+#     return times_data
+
+# # Set the seaborn style for aesthetics
+# sns.set_style("whitegrid")
+
+# # List of MEC systems to compare
+# participants_to_compare = ["2", "3", "4", "6"]
+# colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow]
+# edge_colors = [darker_blue, darker_green, darker_red, darker_yellow]
+# # Function to calculate start and end times for each step
+# def calculate_times(directory, steps_definitions):
+#     times_data = []
+#     for filename in os.listdir(directory):
+#         if filename.endswith(".csv"):
+#             df = pd.read_csv(os.path.join(directory, filename))
+#             for step, (start, end) in steps_definitions.items():
+#                 if start in df.step.values and end in df.step.values:
+#                     start_time = df.loc[df['step'] == start, 'timestamp'].values[0]
+#                     end_time = df.loc[df['step'] == end, 'timestamp'].values[0]
+#                     times_data.append({'Step': step, 'Start Time': start_time, 'End Time': end_time})
+#     return times_data
+
+# # Set the seaborn style for aesthetics
+# sns.set_style("whitegrid")
+
+
+
+# # Initialize data storage
+# all_times_data = []
+
+# # Calculate start and end times for each step across multiple MEC systems
+# for mec_systems in participants_to_compare:
+#     merged_dir = f'../{mec_systems}-mec-systems/merged'
+#     times_data = calculate_times(merged_dir, steps_definitions)
+#     times_df = pd.DataFrame(times_data)
+#     times_df = times_df.groupby('Step').agg({'Start Time': 'mean', 'End Time': 'mean'}).reset_index()
+#     times_df['MEC Systems'] = mec_systems
+#     all_times_data.append(times_df)
+
+# # Concatenate all data into a single DataFrame
+# all_times_df = pd.concat(all_times_data)
+
+# # Order the steps
+# ordered_steps = ['Service Announced', 'Bid Offered', 'Winner Choosen', 'Service Deployment', 'Confirm Service Deployment', 'Federated Service Running']
+# all_times_df['Order'] = all_times_df['Step'].apply(lambda x: ordered_steps.index(x))
+# all_times_df = all_times_df.sort_values('Order', ascending=True)
+
+# # Plot the mean start and end times for each step for multiple MEC systems
+# plt.figure(figsize=(16, 10))
+
+# bar_width = 0.2  # the width of the bars
+# x = np.arange(len(ordered_steps))  # the label locations
+
+# # Create bar plots for each MEC system
+# for i, (mec_systems, color, edge_color) in enumerate(zip(participants_to_compare, colors, edge_colors)):
+#     mec_df = all_times_df[all_times_df['MEC Systems'] == mec_systems]
+#     start_times = mec_df['Start Time'].values
+#     end_times = mec_df['End Time'].values
+#     plt.bar(x + i * bar_width, start_times, bar_width, label=f'{mec_systems} MEC Systems Start', color=color, edgecolor=edge_color)
+#     plt.bar(x + i * bar_width + bar_width / 2, end_times, bar_width, label=f'{mec_systems} MEC Systems End', color=color, edgecolor=edge_color, hatch='//')
+
+# # Add labels, title, and legend
+# plt.xticks(x + bar_width * (len(participants_to_compare) - 1) / 2, ordered_steps, rotation=45, ha='right')
+# plt.xlabel('Steps')
+# plt.ylabel('Time (s)')
+# plt.title('Mean Start and End Times of Each Federation Step')
+# plt.legend(title='Number of Providers', loc='upper left')
+# plt.tight_layout()
+
+# # Show the plot
+# plt.show()
