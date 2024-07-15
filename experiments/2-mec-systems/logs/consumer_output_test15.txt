@@ -1,1 +1,1 @@
-{"message":"Federation process completed in 11.81 seconds"}
+{"message":"Federation process completed in 18.87 seconds"}
