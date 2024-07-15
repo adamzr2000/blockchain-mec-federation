@@ -30,7 +30,7 @@ EXPERIMENTS_PROVIDER1_ENDPOINT="${BASE_URL_PROVIDER1}/start_experiments_provider
 DELETE_VXLAN_RESOURCES_PROVIDER1_ENDPOINT="${BASE_URL_PROVIDER1}/delete_vxlan"
 DELETE_CONTAINERS_PROVIDER1_ENDPOINT="${BASE_URL_PROVIDER1}/delete_docker_service?name=federated-mec-app"
 
-## Provider 2
+## Provider 2 (winner with lowest offer)
 EXPERIMENTS_PROVIDER2_ENDPOINT="${BASE_URL_PROVIDER2}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=18"
 DELETE_VXLAN_RESOURCES_PROVIDER2_ENDPOINT="${BASE_URL_PROVIDER2}/delete_vxlan"
 DELETE_CONTAINERS_PROVIDER2_ENDPOINT="${BASE_URL_PROVIDER2}/delete_docker_service?name=federated-mec-app"
