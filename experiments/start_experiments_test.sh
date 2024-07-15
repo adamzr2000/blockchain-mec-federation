@@ -2,7 +2,7 @@
 
 # Constants
 LOGS_DIR="logs"
-EXPORT_RESULTS="true"
+EXPORT_RESULTS="false"
 
 # Set the number of providers here
 NUMBER_OF_PROVIDERS=2  
@@ -45,26 +45,31 @@ deploy_consumer_container() {
     sleep 2
 }
 
-# Function to start experiments
-start_experiments() {
-    local test_number=$1
-
-    # Deploy consumer container
-    deploy_consumer_container
-
-    for ((i=0; i<${NUMBER_OF_PROVIDERS}; i++)); do
-        EXPERIMENTS_PROVIDER_ENDPOINT="${BASE_URLS_PROVIDER[$i]}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=${PRICES[$i]}"
-        curl -X POST "${EXPERIMENTS_PROVIDER_ENDPOINT}" -o "${LOGS_DIR}/provider${i+1}_output_test${test_number}.txt" &
+# Function to generate start experiments function based on the number of providers
+generate_start_experiments_function() {
+    local num_providers=$1
+    echo "# Function to start experiments"
+    echo "start_experiments() {"
+    echo "    local test_number=\$1"
+    echo ""
+    echo "    # Deploy consumer container"
+    echo "    deploy_consumer_container"
+    echo ""
+    for ((i=0; i<num_providers; i++)); do
+        echo "    # Start the provider$((i+1)) experiment in the background and save the log"
+        echo "    EXPERIMENTS_PROVIDER_ENDPOINT=\"\${BASE_URLS_PROVIDER[$i]}/start_experiments_provider?export_to_csv=\${EXPORT_RESULTS}&price=\${PRICES[$i]}\""
+        echo "    curl -X POST \"\${EXPERIMENTS_PROVIDER_ENDPOINT}\" -o \"\${LOGS_DIR}/provider$((i+1))_output_test\${test_number}.txt\" &"
+        echo ""
     done
-
-    # Start the consumer experiment, wait for it to finish, and save the log
-    curl -X POST "${EXPERIMENTS_CONSUMER_ENDPOINT}" -o "${LOGS_DIR}/consumer_output_test${test_number}.txt"
-
-    # Ensure background processes have finished
-    wait
-
-    # Cleanup resources
-    cleanup_resources
+    echo "    # Start the consumer experiment, wait for it to finish, and save the log"
+    echo "    curl -X POST \"\${EXPERIMENTS_CONSUMER_ENDPOINT}\" -o \"\${LOGS_DIR}/consumer_output_test\${test_number}.txt\""
+    echo ""
+    echo "    # Ensure background processes have finished"
+    echo "    wait"
+    echo ""
+    echo "    # Cleanup resources"
+    echo "    cleanup_resources"
+    echo "}"
 }
 
 # Function to cleanup resources (only for consumer and provider1)
@@ -110,6 +115,9 @@ validate_input $num_tests
 
 # Generate random prices for providers
 generate_prices $NUMBER_OF_PROVIDERS
+
+# Generate the start_experiments function based on the number of providers
+eval "$(generate_start_experiments_function $NUMBER_OF_PROVIDERS)"
 
 # Run the experiments
 run_experiments $num_tests
