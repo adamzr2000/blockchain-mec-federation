@@ -38,11 +38,13 @@ echo "Save logs option: $saveLogs"
 mkdir -p logs
 
 # Node creation and account generation
+declare -a addresses
 for (( i=1; i<=$numNodes; i++ ))
 do
   mkdir "node$i"
   # Generate new account. Assumes password.txt is in the current directory.
   addr=$(geth --datadir node$i account new --password scripts/password.txt 2>&1 | grep "Public address of the key" | awk '{print $NF}')
+  addresses+=("$addr")
 
   # Create node specific .env file
   node_env="node${i}.env"
@@ -50,7 +52,7 @@ do
 
   echo "# node$i config" >> $node_env
   echo "ETHERBASE_NODE_$i=$addr" >> $node_env
-  echo "IP_NODE_$i=127.0.0.1" >> $node_env
+  echo "IP_NODE_$i=10.5.99.$i" >> $node_env
   echo "WS_PORT_NODE_$i=$((3333 + $i))" >> $node_env
   echo "RPC_PORT_NODE_$i=$((8550 + $i))" >> $node_env
   echo "ETH_PORT_NODE_$i=$((30302 + $i))" >> $node_env
@@ -59,7 +61,7 @@ do
   echo "SAVE_LOGS=$saveLogs" >> $node_env
   echo "" >> $node_env
   echo "# bootnode config" >> $node_env
-  echo "BOOTNODE_IP=127.0.0.1" >> $node_env
+  echo "BOOTNODE_IP=10.5.99.1" >> $node_env
   echo "BOOTNODE_PORT=30301" >> $node_env
   echo "BOOTNODE_KEY=\$(bootnode -writeaddress -nodekey ./bootnode/boot.key)" >> $node_env
   echo "BOOTNODE_URL=enode://\${BOOTNODE_KEY}@\${BOOTNODE_IP}:0?discport=\${BOOTNODE_PORT}" >> $node_env
@@ -107,8 +109,17 @@ done
 # Call the Python script to decrypt private keys and write to env files
 python3 scripts/private_key_decrypt.py
 
-# Prepare genesis.json (Clique PoA)
-cat << EOF > scripts/genesis.json
+# Create multiple genesis files with incremental validators
+for (( i=2; i<=$numNodes; i++ ))
+do
+  extraDataForGenesis="0x0000000000000000000000000000000000000000000000000000000000000000"
+  for (( j=0; j<$i; j++ ))
+  do
+    extraDataForGenesis+="${addresses[j]#'0x'}"
+  done
+  extraDataForGenesis+="0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
+  cat << EOF > "scripts/genesis_${i}_validators.json"
 {
   "config": {
     "chainId": $chainID,
@@ -132,14 +143,15 @@ cat << EOF > scripts/genesis.json
   },
   "difficulty": "1",
   "gasLimit": "6721975",
-  "extraData": "0x0000000000000000000000000000000000000000000000000000000000000000${extraData}0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  "extraData": "$extraDataForGenesis",
   "alloc": {
     ${alloc::-1}
   }
 }
 EOF
 
-echo "genesis.json created and configured."
+  echo "genesis_${i}_validators.json created and configured."
+done
 
 # Generate bootnode
 mkdir -p bootnode && bootnode -genkey bootnode/boot.key
@@ -149,7 +161,7 @@ bootnode_env="bootnode.env"
 touch $bootnode_env
 
 echo "# bootnode config" >> $bootnode_env
-echo "BOOTNODE_IP=127.0.0.1" >> $bootnode_env
+echo "BOOTNODE_IP=10.5.99.1" >> $bootnode_env
 echo "BOOTNODE_PORT=30301" >> $bootnode_env
 echo "BOOTNODE_KEY=\$(bootnode -writeaddress -nodekey ./bootnode/boot.key)" >> $bootnode_env
 echo "BOOTNODE_URL=enode://\${BOOTNODE_KEY}@\${BOOTNODE_IP}:0?discport=\${BOOTNODE_PORT}" >> $bootnode_env

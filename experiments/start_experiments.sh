@@ -2,8 +2,10 @@
 
 # Constants
 LOGS_DIR="logs"
-EXPORT_RESULTS="false"
-NUMBER_OF_PROVIDERS=1  # Set the number of providers here
+EXPORT_RESULTS="true"
+
+# Set the number of providers here
+NUMBER_OF_PROVIDERS=2  
 
 BASE_URL_CONSUMER="http://10.5.99.1:8000"
 BASE_URL_PROVIDER1="http://10.5.99.2:8000"
@@ -15,6 +17,17 @@ BASE_URL_PROVIDER6="http://10.5.99.7:8000"
 BASE_URL_PROVIDER7="http://10.5.99.8:8000"
 BASE_URL_PROVIDER8="http://10.5.99.9:8000"
 BASE_URL_PROVIDER9="http://10.5.99.10:8000"
+BASE_URL_PROVIDER10="http://10.5.99.11:8000"
+BASE_URL_PROVIDER11="http://10.5.99.12:8000"
+BASE_URL_PROVIDER12="http://10.5.99.13:8000"
+BASE_URL_PROVIDER13="http://10.5.99.14:8000"
+BASE_URL_PROVIDER14="http://10.5.99.15:8000"
+BASE_URL_PROVIDER15="http://10.5.99.16:8000"
+BASE_URL_PROVIDER16="http://10.5.99.17:8000"
+BASE_URL_PROVIDER17="http://10.5.99.18:8000"
+BASE_URL_PROVIDER18="http://10.5.99.19:8000"
+BASE_URL_PROVIDER19="http://10.5.99.20:8000"
+
 
 # Consumer Endpoints
 EXPERIMENTS_CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/start_experiments_consumer?export_to_csv=${EXPORT_RESULTS}&providers=${NUMBER_OF_PROVIDERS}"
@@ -23,41 +36,66 @@ DELETE_VXLAN_RESOURCES_CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/delete_vxlan"
 DELETE_CONTAINERS_CONSUMER_ENDPOINT="${BASE_URL_CONSUMER}/delete_docker_service?name=mec-app"
 
 # Provider Endpoints
-EXPERIMENTS_PROVIDER_ENDPOINTS=(
-    "${BASE_URL_PROVIDER1}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=12"
-    "${BASE_URL_PROVIDER2}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=18"
-    "${BASE_URL_PROVIDER3}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=30"
-    "${BASE_URL_PROVIDER4}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=50"
-    "${BASE_URL_PROVIDER5}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=40"
-    "${BASE_URL_PROVIDER6}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=45"
-    "${BASE_URL_PROVIDER7}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=25"
-    "${BASE_URL_PROVIDER8}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=35"
-    "${BASE_URL_PROVIDER9}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=70"
-)
+## Provider 1
+EXPERIMENTS_PROVIDER1_ENDPOINT="${BASE_URL_PROVIDER1}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=12"
+DELETE_VXLAN_RESOURCES_PROVIDER1_ENDPOINT="${BASE_URL_PROVIDER1}/delete_vxlan"
+DELETE_CONTAINERS_PROVIDER1_ENDPOINT="${BASE_URL_PROVIDER1}/delete_docker_service?name=federated-mec-app"
 
-DELETE_CONTAINERS_PROVIDER_ENDPOINTS=(
-    "${BASE_URL_PROVIDER1}/delete_docker_service?name=federated-mec-app"
-    "${BASE_URL_PROVIDER2}/delete_docker_service?name=federated-mec-app"
-    "${BASE_URL_PROVIDER3}/delete_docker_service?name=federated-mec-app"
-    "${BASE_URL_PROVIDER4}/delete_docker_service?name=federated-mec-app"
-    "${BASE_URL_PROVIDER5}/delete_docker_service?name=federated-mec-app"
-    "${BASE_URL_PROVIDER6}/delete_docker_service?name=federated-mec-app"
-    "${BASE_URL_PROVIDER7}/delete_docker_service?name=federated-mec-app"
-    "${BASE_URL_PROVIDER8}/delete_docker_service?name=federated-mec-app"
-    "${BASE_URL_PROVIDER9}/delete_docker_service?name=federated-mec-app"
-)
+## Provider 2 (winner with lowest offer)
+EXPERIMENTS_PROVIDER2_ENDPOINT="${BASE_URL_PROVIDER2}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=18"
+DELETE_VXLAN_RESOURCES_PROVIDER2_ENDPOINT="${BASE_URL_PROVIDER2}/delete_vxlan"
+DELETE_CONTAINERS_PROVIDER2_ENDPOINT="${BASE_URL_PROVIDER2}/delete_docker_service?name=federated-mec-app"
 
-DELETE_VXLAN_RESOURCES_PROVIDER_ENDPOINTS=(
-    "${BASE_URL_PROVIDER1}/delete_vxlan"
-    "${BASE_URL_PROVIDER2}/delete_vxlan"
-    "${BASE_URL_PROVIDER3}/delete_vxlan"
-    "${BASE_URL_PROVIDER4}/delete_vxlan"
-    "${BASE_URL_PROVIDER5}/delete_vxlan"
-    "${BASE_URL_PROVIDER6}/delete_vxlan"
-    "${BASE_URL_PROVIDER7}/delete_vxlan"
-    "${BASE_URL_PROVIDER8}/delete_vxlan"
-    "${BASE_URL_PROVIDER9}/delete_vxlan"
-)
+## Provider 3
+EXPERIMENTS_PROVIDER3_ENDPOINT="${BASE_URL_PROVIDER3}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=30"
+
+## Provider 4
+EXPERIMENTS_PROVIDER4_ENDPOINT="${BASE_URL_PROVIDER4}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=50"
+
+## Provider 5
+EXPERIMENTS_PROVIDER5_ENDPOINT="${BASE_URL_PROVIDER5}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=40"
+
+## Provider 6
+EXPERIMENTS_PROVIDER6_ENDPOINT="${BASE_URL_PROVIDER6}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=45"
+
+## Provider 7
+EXPERIMENTS_PROVIDER7_ENDPOINT="${BASE_URL_PROVIDER7}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=25"
+
+## Provider 8
+EXPERIMENTS_PROVIDER8_ENDPOINT="${BASE_URL_PROVIDER8}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=35"
+
+## Provider 9
+EXPERIMENTS_PROVIDER9_ENDPOINT="${BASE_URL_PROVIDER9}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=70"
+
+## Provider 10
+EXPERIMENTS_PROVIDER10_ENDPOINT="${BASE_URL_PROVIDER10}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=60"
+
+## Provider 11
+EXPERIMENTS_PROVIDER11_ENDPOINT="${BASE_URL_PROVIDER11}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=32"
+
+## Provider 12
+EXPERIMENTS_PROVIDER12_ENDPOINT="${BASE_URL_PROVIDER12}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=25"
+
+## Provider 13
+EXPERIMENTS_PROVIDER13_ENDPOINT="${BASE_URL_PROVIDER13}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=28"
+
+## Provider 14
+EXPERIMENTS_PROVIDER14_ENDPOINT="${BASE_URL_PROVIDER14}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=21"
+
+## Provider 15
+EXPERIMENTS_PROVIDER15_ENDPOINT="${BASE_URL_PROVIDER15}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=39"
+
+## Provider 16
+EXPERIMENTS_PROVIDER16_ENDPOINT="${BASE_URL_PROVIDER16}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=47"
+
+## Provider 17
+EXPERIMENTS_PROVIDER17_ENDPOINT="${BASE_URL_PROVIDER17}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=55"
+
+## Provider 18
+EXPERIMENTS_PROVIDER18_ENDPOINT="${BASE_URL_PROVIDER18}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=52"
+
+## Provider 19
+EXPERIMENTS_PROVIDER19_ENDPOINT="${BASE_URL_PROVIDER19}/start_experiments_provider?export_to_csv=${EXPORT_RESULTS}&price=15"
 
 # Function to validate input
 validate_input() {
@@ -70,8 +108,7 @@ validate_input() {
 
 # Function to deploy consumer container
 deploy_consumer_container() {
-    echo "Deploying consumer container..."
-    curl -X POST "${DEPLOY_CONTAINERS_CONSUMER_ENDPOINT}" | tee -a "${LOGS_DIR}/deploy_consumer_container.log"
+    curl -X POST "${DEPLOY_CONTAINERS_CONSUMER_ENDPOINT}" | jq
     sleep 2
 }
 
@@ -79,52 +116,58 @@ deploy_consumer_container() {
 start_experiments() {
     local test_number=$1
 
-    echo "Starting experiment $test_number..."
-    echo "Starting experiment $test_number..." >> "${LOGS_DIR}/experiment_${test_number}.log"
-
     # Deploy consumer container
-    deploy_consumer_container >> "${LOGS_DIR}/experiment_${test_number}.log" 2>&1
+    deploy_consumer_container
 
-    # Start the provider experiments in the background and save the logs
-    for ((i=1; i<=NUMBER_OF_PROVIDERS; i++)); do
-        echo "Starting provider $i experiment for test $test_number..."
-        curl -X POST "${EXPERIMENTS_PROVIDER_ENDPOINTS[$i-1]}" -o "${LOGS_DIR}/provider${i}_output_test${test_number}.txt" &
-    done
+    # Start the provider1 experiment in the background and save the log
+    curl -X POST "${EXPERIMENTS_PROVIDER1_ENDPOINT}" -o "${LOGS_DIR}/provider1_output_test${test_number}.txt" &
+
+    # Start the provider2 experiment in the background and save the log
+    curl -X POST "${EXPERIMENTS_PROVIDER2_ENDPOINT}" -o "${LOGS_DIR}/provider2_output_test${test_number}.txt" &
+
+    # # Start the provider3 experiment in the background and save the log
+    # curl -X POST "${EXPERIMENTS_PROVIDER3_ENDPOINT}" -o "${LOGS_DIR}/provider3_output_test${test_number}.txt" &
+
+    # # Start the provider4 experiment in the background and save the log
+    # curl -X POST "${EXPERIMENTS_PROVIDER4_ENDPOINT}" -o "${LOGS_DIR}/provider4_output_test${test_number}.txt" &
+
+    # # Start the provider5 experiment in the background and save the log
+    # curl -X POST "${EXPERIMENTS_PROVIDER5_ENDPOINT}" -o "${LOGS_DIR}/provider5_output_test${test_number}.txt" &
+
+    # # Start the provider6 experiment in the background and save the log
+    # curl -X POST "${EXPERIMENTS_PROVIDER6_ENDPOINT}" -o "${LOGS_DIR}/provider6_output_test${test_number}.txt" &
+
+    # # Start the provider7 experiment in the background and save the log
+    # curl -X POST "${EXPERIMENTS_PROVIDER7_ENDPOINT}" -o "${LOGS_DIR}/provider7_output_test${test_number}.txt" &
+
+    # # Start the provider8 experiment in the background and save the log
+    # curl -X POST "${EXPERIMENTS_PROVIDER8_ENDPOINT}" -o "${LOGS_DIR}/provider8_output_test${test_number}.txt" &
+
+    # # Start the provider9 experiment in the background and save the log
+    # curl -X POST "${EXPERIMENTS_PROVIDER9_ENDPOINT}" -o "${LOGS_DIR}/provider9_output_test${test_number}.txt" &
 
     # Start the consumer experiment, wait for it to finish, and save the log
-    echo "Starting consumer experiment for test $test_number..."
     curl -X POST "${EXPERIMENTS_CONSUMER_ENDPOINT}" -o "${LOGS_DIR}/consumer_output_test${test_number}.txt"
 
     # Ensure background processes have finished
-    echo "Waiting for background processes to complete for test $test_number..."
     wait
 
     # Cleanup resources
-    echo "Cleaning up resources for test $test_number..."
-    cleanup_resources $test_number >> "${LOGS_DIR}/experiment_${test_number}.log" 2>&1
-
-    echo "Experiment $test_number completed."
-    echo "Experiment $test_number completed." >> "${LOGS_DIR}/experiment_${test_number}.log"
+    cleanup_resources
 }
 
 # Function to cleanup resources
 cleanup_resources() {
-    local test_number=$1
-    for ((i=1; i<=NUMBER_OF_PROVIDERS; i++)); do
-        echo "Deleting containers for provider $i for test $test_number..."
-        curl -X DELETE "${DELETE_CONTAINERS_PROVIDER_ENDPOINTS[$i-1]}" | tee -a "${LOGS_DIR}/cleanup_provider${i}_test${test_number}.log"
-        sleep 2
-        echo "Deleting VXLAN resources for provider $i for test $test_number..."
-        curl -X DELETE "${DELETE_VXLAN_RESOURCES_PROVIDER_ENDPOINTS[$i-1]}" | tee -a "${LOGS_DIR}/cleanup_provider${i}_test${test_number}.log"
-        sleep 2
-    done
-
-    echo "Deleting consumer containers for test $test_number..."
-    curl -X DELETE "$DELETE_CONTAINERS_CONSUMER_ENDPOINT" | tee -a "${LOGS_DIR}/cleanup_consumer_test${test_number}.log"
+    curl -X DELETE "$DELETE_CONTAINERS_PROVIDER1_ENDPOINT" | jq
     sleep 2
 
-    echo "Deleting VXLAN resources for consumer for test $test_number..."
-    curl -X DELETE "$DELETE_VXLAN_RESOURCES_CONSUMER_ENDPOINT" | tee -a "${LOGS_DIR}/cleanup_consumer_test${test_number}.log"
+    curl -X DELETE "$DELETE_VXLAN_RESOURCES_PROVIDER1_ENDPOINT" | jq
+    sleep 2
+
+    curl -X DELETE "$DELETE_CONTAINERS_CONSUMER_ENDPOINT" | jq
+    sleep 2
+
+    curl -X DELETE "$DELETE_VXLAN_RESOURCES_CONSUMER_ENDPOINT" | jq
     sleep 2
 }
 
@@ -132,10 +175,11 @@ cleanup_resources() {
 run_experiments() {
     local num_tests=$1
 
-    for ((i=1; i<=num_tests; i++)); do
+    for ((i=1; i<=num_tests; i++))
+    do
         echo "Starting experiment $i of $num_tests..."
         start_experiments $i
-        echo "Experiment $i of $num_tests completed."
+        echo "Experiment $i completed."
     done
 
     echo "All experiments completed."

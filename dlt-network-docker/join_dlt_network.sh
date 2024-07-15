@@ -12,30 +12,26 @@ handle_selection() {
 
 # Function to handle validators parameter
 handle_validators() {
-    if [[ $1 =~ ^[0-9]+$ ]] && [ $1 -ge 3 ]; then
+    if [[ $1 =~ ^[0-9]+$ ]] && [ $1 -ge 2 ]; then
         VALIDATORS="$1"
     else
-        echo "Invalid validators value: $1. It must be a number greater than or equal to 3."
+        echo "Invalid validators value: $1. It must be a number greater than or equal to 2."
         exit 1 # Indicates invalid validators value
     fi
 }
 
-# Check if at least one argument is provided
-if [ $# -eq 0 ]; then
-    NODE_SELECTION="node2"
+# Check if at least two arguments are provided
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <node_selection> <validators>"
+    echo "Example: $0 node2 3"
+    exit 1
 else
     handle_selection "$1"
-    if [ $# -ge 2 ]; then
-        handle_validators "$2"
-    fi
+    handle_validators "$2"
 fi
 
 # Set the genesis file based on validators parameter
-if [ -z "$VALIDATORS" ]; then
-    GENESIS_FILE="genesis.json"
-else
-    GENESIS_FILE="genesis_${VALIDATORS}_validators.json"
-fi
+GENESIS_FILE="genesis_${VALIDATORS}_validators.json"
 
 # Proceed with the operation
 START_CMD="./${NODE_SELECTION}_start.sh"

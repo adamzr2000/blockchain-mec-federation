@@ -37,6 +37,7 @@ WORKDIR /dlt-network
 # # Copy the entire directories and their contents into the container
 COPY bootnode ./bootnode
 
+# Copy node directories individually
 COPY node1 ./node1
 COPY node2 ./node2
 COPY node3 ./node3
@@ -47,6 +48,46 @@ COPY node7 ./node7
 COPY node8 ./node8
 COPY node9 ./node9
 COPY node10 ./node10
+COPY node11 ./node11
+COPY node12 ./node12
+COPY node13 ./node13
+COPY node14 ./node14
+COPY node15 ./node15
+COPY node16 ./node16
+COPY node17 ./node17
+COPY node18 ./node18
+COPY node19 ./node19
+COPY node20 ./node20
+COPY node21 ./node21
+COPY node22 ./node22
+COPY node23 ./node23
+COPY node24 ./node24
+COPY node25 ./node25
+COPY node26 ./node26
+COPY node27 ./node27
+COPY node28 ./node28
+COPY node29 ./node29
+COPY node30 ./node30
+COPY node31 ./node31
+COPY node32 ./node32
+COPY node33 ./node33
+COPY node34 ./node34
+COPY node35 ./node35
+COPY node36 ./node36
+COPY node37 ./node37
+COPY node38 ./node38
+COPY node39 ./node39
+COPY node40 ./node40
+COPY node41 ./node41
+COPY node42 ./node42
+COPY node43 ./node43
+COPY node44 ./node44
+COPY node45 ./node45
+COPY node46 ./node46
+COPY node47 ./node47
+COPY node48 ./node48
+COPY node49 ./node49
+COPY node50 ./node50
 
 RUN mkdir logs
 
