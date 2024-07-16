@@ -36,7 +36,7 @@ def calculate_mean_accumulated_time(directory):
 # Set the seaborn style for aesthetics
 sns.set_style("whitegrid")
 
-mec_systems = 10
+mec_systems = 30
 merged_dir = f'../{mec_systems}-mec-systems/merged'
 
 # --- Plot 1: Mean start and end times of each federation step ---
@@ -159,7 +159,7 @@ def calculate_total_federation_time(directory):
 sns.set_style("whitegrid")
 
 # List of MEC systems to compare
-participants_to_compare = ["2", "3", "4", "6", "8", "10"]
+participants_to_compare = ["2", "6", "10", "15", "20", "30"]
 colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow, lighter_purple, lighter_orange]
 edge_colors = [darker_blue, darker_green, darker_red, darker_yellow, darker_purple, darker_orange]
 mean_times = []
@@ -207,7 +207,7 @@ def calculate_step_times(directory, steps_definitions):
 sns.set_style("whitegrid")
 
 # List of MEC systems to compare
-participants_to_compare = ["2", "3", "4", "6", "8", "10"]
+participants_to_compare = ["2", "6", "10", "15", "20", "30"]
 colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow, lighter_purple, lighter_orange]
 edge_colors = [darker_blue, darker_green, darker_red, darker_yellow, darker_purple, darker_orange]
 
