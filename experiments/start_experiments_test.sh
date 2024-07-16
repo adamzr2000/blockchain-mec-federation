@@ -2,7 +2,7 @@
 
 # Constants
 LOGS_DIR="logs"
-EXPORT_RESULTS="false"
+EXPORT_RESULTS="true"
 
 # Set the number of providers here
 NUMBER_OF_PROVIDERS=14  
