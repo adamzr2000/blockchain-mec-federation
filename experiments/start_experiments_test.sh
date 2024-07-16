@@ -5,7 +5,7 @@ LOGS_DIR="logs"
 EXPORT_RESULTS="false"
 
 # Set the number of providers here
-NUMBER_OF_PROVIDERS=2  
+NUMBER_OF_PROVIDERS=14  
 
 # Base URLs
 BASE_URL_CONSUMER="http://10.5.99.1:8000"
