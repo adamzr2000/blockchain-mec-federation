@@ -16,12 +16,12 @@ execute_ssh_command() {
   fi
 }
 
-# Stop the DLT network on the first node
-execute_ssh_command "10.5.99.1" "${BASE_COMMAND} ./stop_dlt_network.sh"
-
 # Loop to kill the docker containers from node 2 to node 30
 for i in {2..30}; do
   NODE_IP="10.5.99.${i}"
   NODE_NAME="node${i}"
   execute_ssh_command "${NODE_IP}" "docker kill ${NODE_NAME}"
 done
+
+# Stop the DLT network on the first node
+execute_ssh_command "10.5.99.1" "${BASE_COMMAND} ./stop_dlt_network.sh"
