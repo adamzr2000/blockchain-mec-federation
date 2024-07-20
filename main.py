@@ -1531,13 +1531,13 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10, 
 
                     # logger.info(f"Processing event - Service ID: {service_id}, Requirements: {requirements}, Requested Service: {requested_service}, Requested Replicas: {requested_replicas}, Offer Domain Owner: {offer_domain_owner}, Matching Domain Name: {matching_domain_name}")
 
-                    if GetServiceState(service_id) == 0
+                    if GetServiceState(service_id) == 0:
                         print(f"Open service: {service_id}")
 
-                    if offer_domain_owner == matching_domain_name
+                    if offer_domain_owner == matching_domain_name:
                         print(f"Matched domain: {offer_domain_owner}")
 
-                    if offer_domain_owner == matching_domain_name.rstrip('\x00')
+                    if offer_domain_owner == matching_domain_name.rstrip('\x00'):
                         print(f"Matched domainv2: {offer_domain_owner}")
 
                     if GetServiceState(service_id) == 0 and offer_domain_owner == matching_domain_name:
