@@ -45,6 +45,7 @@ generate_start_experiments_function() {
     local num_consumers=$1
     local num_providers=$2
     local total_participants=$((num_consumers + num_providers))
+    local providers_to_wait=$((num_providers / num_consumers))
 
     echo "# Function to start experiments"
     echo "start_experiments() {"
@@ -69,7 +70,7 @@ generate_start_experiments_function() {
     done
     echo "    # Start the consumer experiments and wait for them to finish"
     for ((i=0; i<num_consumers; i++)); do
-        echo "    EXPERIMENTS_CONSUMER_ENDPOINT=\"\${BASE_URLS[$i]}/start_experiments_consumer_v2?export_to_csv=\${EXPORT_RESULTS}&providers=$num_providers\""
+        echo "    EXPERIMENTS_CONSUMER_ENDPOINT=\"\${BASE_URLS[$i]}/start_experiments_consumer_v2?export_to_csv=\${EXPORT_RESULTS}&providers=$providers_to_wait\""
         echo "    curl -X POST \"\${EXPERIMENTS_CONSUMER_ENDPOINT}\" &"
         echo ""
     done
