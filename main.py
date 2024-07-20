@@ -1527,7 +1527,7 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10, 
 
                     requested_service, requested_replicas = extract_service_requirements(requirements.rstrip('\x00'))
 
-                    offer_domain_owner = extract_domain_name_from_service_id(service_id)
+                    offer_domain_owner = extract_domain_name_from_service_id(service_id.rstrip('\x00'))
                     
                     if GetServiceState(service_id) == 0 and offer_domain_owner == matching_domain_name:
                         open_services.append(service_id)

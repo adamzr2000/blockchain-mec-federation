@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Constants
-EXPORT_RESULTS="true"
+EXPORT_RESULTS="false"
 
 # Base URLs
 BASE_URLS=(
