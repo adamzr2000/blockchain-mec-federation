@@ -19,7 +19,7 @@ services:
       - bootnode
     volumes:
       - ./../config/dlt/node1.env:/dlt-network/node1.env
-      - ./../docker-images/dlt-node/scripts/genesis_4_validators.json:/dlt-network/genesis.json
+      - ./../docker-images/dlt-node/scripts/genesis_30_validators.json:/dlt-network/genesis.json
       - ./../docker-images/dlt-node/scripts/password.txt:/dlt-network/password.txt
       - ./../docker-images/dlt-node/scripts/node1_start.sh:/dlt-network/node1_start.sh      
     command: ./node1_start.sh
