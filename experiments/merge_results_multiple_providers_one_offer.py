@@ -90,7 +90,7 @@ def merge_and_save_files(base_dir, system_dir):
             print(f"Consumer file for test {test_num} does not exist.")
 
 def main():
-    base_dir = './'
+    base_dir = './1-offer'
     system_dirs = [d for d in os.listdir(base_dir) if re.match(r'\d+-mec-systems', d)]
 
     print("Available system directories:")
