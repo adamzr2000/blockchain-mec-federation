@@ -64,16 +64,22 @@ generate_start_experiments_function() {
         local consumer_domain="consumer-$((consumer_index + 1))"
         echo "    # Start the provider$((i-num_consumers+1)) experiment in the background"
         echo "    EXPERIMENTS_PROVIDER_ENDPOINT=\"\${BASE_URLS[$i]}/start_experiments_provider_v2?export_to_csv=\${EXPORT_RESULTS}&price=\${PRICES[$((i-num_consumers))]}&matching_domain_name=${consumer_domain}\""
+        echo "    echo Running: curl -X POST \"\${EXPERIMENTS_PROVIDER_ENDPOINT}\" &"
         echo "    curl -X POST \"\${EXPERIMENTS_PROVIDER_ENDPOINT}\" &"
         echo ""
         consumer_index=$(( (consumer_index + 1) % num_consumers ))
     done
     echo "    # Start the consumer experiments and wait for them to finish"
-    for ((i=0; i<num_consumers; i++)); do
+    for ((i=0; i<num_consumers-1; i++)); do
         echo "    EXPERIMENTS_CONSUMER_ENDPOINT=\"\${BASE_URLS[$i]}/start_experiments_consumer_v2?export_to_csv=\${EXPORT_RESULTS}&providers=$providers_to_wait\""
+        echo "    echo Running: curl -X POST \"\${EXPERIMENTS_CONSUMER_ENDPOINT}\" &"
         echo "    curl -X POST \"\${EXPERIMENTS_CONSUMER_ENDPOINT}\" &"
         echo ""
     done
+     # Start the last consumer experiment without running it in the background
+    echo "    EXPERIMENTS_CONSUMER_ENDPOINT=\"\${BASE_URLS[$((num_consumers-1))]}/start_experiments_consumer_v2??export_to_csv=\${EXPORT_RESULTS}&providers=$providers_to_wait\""
+    echo "    curl -X POST \"\${EXPERIMENTS_CONSUMER_ENDPOINT}\""
+    echo ""
     echo "    # Ensure background processes have finished"
     echo "    wait"
     echo ""
@@ -90,17 +96,23 @@ cleanup_resources() {
 
     for ((i=0; i<num_consumers; i++)); do
         local endpoint="${BASE_URLS[$i]}"
-        curl -X DELETE "${endpoint}/delete_docker_service?name=mec-app" | jq
-        curl -X DELETE "${endpoint}/delete_vxlan" | jq
+        echo "Cleaning up consumer $((i+1)) at $endpoint"
+        curl -X DELETE "${endpoint}/delete_docker_service?name=mec-app" | jq &
         sleep 2
+        curl -X DELETE "${endpoint}/delete_vxlan" | jq &
     done
 
     for ((i=num_consumers; i<total_participants; i++)); do
         local endpoint="${BASE_URLS[$i]}"
-        curl -X DELETE "${endpoint}/delete_docker_service?name=federated-mec-app" | jq
-        curl -X DELETE "${endpoint}/delete_vxlan" | jq
+        echo "Cleaning up provider $((i-num_consumers+1)) at $endpoint"
+        curl -X DELETE "${endpoint}/delete_docker_service?name=federated-mec-app" | jq &
         sleep 2
+        curl -X DELETE "${endpoint}/delete_vxlan" | jq &
     done
+
+    echo "Waiting for all cleanup processes to complete..."
+    wait
+    echo "Cleanup completed."
 }
 
 # Main function to run experiments
