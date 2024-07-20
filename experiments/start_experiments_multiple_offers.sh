@@ -62,7 +62,7 @@ generate_start_experiments_function() {
     for ((i=num_consumers; i<total_participants; i++)); do
         local consumer_domain="consumer-$((consumer_index + 1))"
         echo "    # Start the provider$((i-num_consumers+1)) experiment in the background"
-        echo "    EXPERIMENTS_PROVIDER_ENDPOINT=\"\${BASE_URLS[$i]}/start_experiments_provider_v2?export_to_csv=\${EXPORT_RESULTS}&price=\${PRICES[$((i-num_consumers))]}&matching_domain_name=\${consumer_domain}\""
+        echo "    EXPERIMENTS_PROVIDER_ENDPOINT=\"\${BASE_URLS[$i]}/start_experiments_provider_v2?export_to_csv=\${EXPORT_RESULTS}&price=\${PRICES[$((i-num_consumers))]}&matching_domain_name=${consumer_domain}\""
         echo "    curl -X POST \"\${EXPERIMENTS_PROVIDER_ENDPOINT}\" &"
         echo ""
         consumer_index=$(( (consumer_index + 1) % num_consumers ))

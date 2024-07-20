@@ -1529,9 +1529,11 @@ def start_experiments_provider_v2(export_to_csv: bool = False, price: int = 10, 
 
                     offer_domain_owner = extract_domain_name_from_service_id(service_id)
 
-                    logger.info(f"Processing event - Service ID: {service_id}, Requirements: {requirements}, Requested Service: {requested_service}, Requested Replicas: {requested_replicas}, Offer Domain Owner: {offer_domain_owner}, Matching Domain Name: {matching_domain_name}")
+                    # logger.info(f"Processing event - Service ID: {service_id}, Requirements: {requirements}, Requested Service: {requested_service}, Requested Replicas: {requested_replicas}, Offer Domain Owner: {offer_domain_owner}, Matching Domain Name: {matching_domain_name}")
                     
                     if GetServiceState(service_id) == 0 and offer_domain_owner == matching_domain_name:
+                        logger.info(f"Condition met - Service ID: {service_id}, Requirements: {requirements}, Requested Service: {requested_service}, Requested Replicas: {requested_replicas}, Offer Domain Owner: {offer_domain_owner}, Matching Domain Name: {matching_domain_name}")
+                        logger.info(f"Open services updated: {open_services}")
                         open_services.append(service_id)
 
                 # print("OPEN =", len(open_services)) 
