@@ -8,6 +8,7 @@ fi
 
 # Load environment variables from the specified file
 FEDERATION_ENV_FILE=$1
+source $FEDERATION_ENV_FILE
 
 # Define a screen session name
 SCREEN_SESSION_NAME="dlt-federation-api"
