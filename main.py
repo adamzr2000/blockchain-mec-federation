@@ -1053,7 +1053,7 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
         logger.error(f"An unexpected error occurred: {str(e)}")
 
 def delete_docker_network_and_vxlan(sudo_password = 'netcom;'):
-    script_path = './utils/clean_all.sh'
+    script_path = './utils/clean_vxlan_config.sh'
     
     # Construct the command with arguments
     command = [
