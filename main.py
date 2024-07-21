@@ -1418,7 +1418,7 @@ def start_experiments_consumer_v2(export_to_csv: bool = False, providers: int = 
                     best_bid_index = 0
 
                     # Received bids
-                    if int(bid_index) >= providers:
+                    if int(bid_index) == providers:
                         # ------ #
                         t_bid_offer_received = time.time() - process_start_time
                         data.append(['bid_offer_received', t_bid_offer_received])
