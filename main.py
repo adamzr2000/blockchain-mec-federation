@@ -1879,13 +1879,13 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
                         continue
                     try:
                         new_events = winnerChosen_event.get_all_entries()
-                        logger.info(f"New events for service ID {service_id}: {new_events}")
+                        # logger.info(f"New events for service ID {service_id}: {new_events}")
                         for event in new_events:
                             event_serviceid = web3.toText(event['args']['_id'])
                             if event_serviceid == service_id:
                                 # Winner chosen received
                                 services_with_winners.append(service_id)
-                                logger.info(f"Winner chosen for service ID: {service_id}")
+                                # logger.info(f"Winner chosen for service ID: {service_id}")
                                 break
                     except Exception as e:
                         logger.error(f"Error processing winnerChosen events for service ID {service_id}: {str(e)}")
@@ -1959,7 +1959,7 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
 
                     return {"message": f"Federation process completed successfully - {domain}"}
                 else:
-                    logger.info(f"I am not the winner for {service_id}")
+                    # logger.info(f"I am not the winner for {service_id}")
                     no_winner_count += 1
                     if no_winner_count == offers:
                         t_other_provider_chosen = time.time() - process_start_time
