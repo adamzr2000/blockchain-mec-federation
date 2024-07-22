@@ -3,7 +3,7 @@
 # Function to generate and execute the SSH command
 execute_ssh_clean_command() {
   local node_ip=$1
-  local command="cd /home/netcom/blockchain-mec-federation/experiments/10-offer/30-mec-systems && rm consumer-*/*.csv rm provider-*/*.csv"
+  local command="cd /home/netcom/blockchain-mec-federation/experiments/10-offer/30-mec-systems && rm consumer-*/*.csv && rm provider-*/*.csv"
   echo "Executing on ${node_ip}: ${command}"
   ssh netcom@${node_ip} "${command}"
   if [ $? -ne 0 ]; then
