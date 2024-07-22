@@ -1806,7 +1806,7 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
                 new_events = newService_event.get_all_entries()
                 for event in new_events:
                     service_id = web3.toText(event['args']['id'])
-                    service_id = service_id.rstrip(b'\x00')
+                    service_id = service_id.rstrip('\x00')
                     
                     requirements = web3.toText(event['args']['requirements'])
 
