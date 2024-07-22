@@ -1821,11 +1821,14 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
                     # Announcement received
                     t_announce_received = time.time() - process_start_time
                     data.append(['announce_received', t_announce_received])
+                    logger.info(f"{len(open_services)} offers received")
                     
                     # logger.info(f"Announcement Received - Service ID: {service_id}, Requested Service: {repr(requested_service)}, Requested Replicas: {repr(requested_replicas)}")
                     # print(new_events)
                     newService = True
                 
+
+            logger.info(f"Open Services: {open_services}")
 
             # Place a bid offer to the Federation SC
             t_bid_offer_sent = time.time() - process_start_time
