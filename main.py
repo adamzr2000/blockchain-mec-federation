@@ -1834,7 +1834,7 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
             # Place a bid offer to the Federation SC
             t_bid_offer_sent = time.time() - process_start_time
             data.append(['bid_offer_sent', t_bid_offer_sent])
-            winnerChosen_event = []
+            winnerChosen_events = []
             for service_id in open_services:
                 winnerChosen_events.append((service_id, PlaceBid(service_id, price)))
                 logger.info(f"Bid Offer sent to the SC - Service ID: {service_id}, Price: {price} €")
