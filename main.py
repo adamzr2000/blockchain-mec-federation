@@ -1695,7 +1695,7 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
 
                     # service id, service id, index of the bid
                     # print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
-                    logger.info("Bid offer received")
+                    # logger.info("Bid offer received")
                     bid_index = int(event['args']['max_bid_index'])
                     bidderArrived = True 
 
@@ -1703,11 +1703,12 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
                     best_bid_index = 0
 
                     # Received bids
-                    if int(bid_index) >= providers:
+                    if int(bid_index) == providers:
                         # ------ #
                         t_bid_offer_received = time.time() - process_start_time
                         data.append(['bid_offer_received', t_bid_offer_received])
                         # ------ #
+                        logger.info(f"{int(bid_index)} bid offers received")
                         # Loop through all bid indices and print their information
                         for i in range(bid_index):
                             bid_info = GetBidInfo(i)
@@ -1814,7 +1815,7 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
                     
                     if GetServiceState(service_id) == 0:
                         open_services.append(service_id)
-                        logger.info(f"Announcement Received - Open Services: {len(open_services)}")
+                        # logger.info(f"Announcement Received - Open Services: {len(open_services)}")
 
                 # print("OPEN =", len(open_services)) 
                 if len(open_services) >= offers:
