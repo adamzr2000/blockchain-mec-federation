@@ -1838,7 +1838,7 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
                 new_events = newService_event.get_all_entries()
                 for event in new_events:
                     service_id = web3.toText(event['args']['id'])
-                    service_id = service_id.rstrip('\x00')
+                    # service_id = service_id.rstrip('\x00')
                     
                     requirements = web3.toText(event['args']['requirements'])
 
@@ -1877,14 +1877,18 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
                 for service_id, winnerChosen_event in winnerChosen_events:
                     if service_id in services_with_winners:
                         continue
-                    new_events = winnerChosen_event.get_all_entries()
-                    for event in new_events:
-                        event_serviceid = web3.toText(event['args']['_id'])
-                        if event_serviceid == service_id:
-                            # Winner chosen received
-                            services_with_winners.append(service_id)
-                            logger.info(f"Winner chosen for service ID: {service_id}")
-                            break
+                    try:
+                        new_events = winnerChosen_event.get_all_entries()
+                        logger.info(f"New events for service ID {service_id}: {new_events}")
+                        for event in new_events:
+                            event_serviceid = web3.toText(event['args']['_id'])
+                            if event_serviceid == service_id:
+                                # Winner chosen received
+                                services_with_winners.append(service_id)
+                                logger.info(f"Winner chosen for service ID: {service_id}")
+                                break
+                    except Exception as e:
+                        logger.error(f"Error processing winnerChosen events for service ID {service_id}: {str(e)}")
 
             t_winner_received = time.time() - process_start_time
             data.append(['winner_received', t_winner_received])
