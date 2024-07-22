@@ -263,6 +263,17 @@ def GetBidInfo(bid_index):
     bid_info = Federation_contract.functions.GetBid(_id=web3.toBytes(text=service_id), bider_index=bid_index, _creator=block_address).call()
     return bid_info
 
+def GetBidCount():
+    bids_entered = Federation_contract.functions.GetBidCount(_id=web3.toBytes(text=service_id), _creator=block_address).call()
+    return int(bids_entered)
+
+function GetBidCount(bytes32 _id, address _creator) public view returns (uint256) {
+        Service storage current_service = service[_id];
+        require(current_service.id == _id, "Service not exists");
+        require(current_service.creator == _creator, "Only service creator can look into the information");
+        return bidCount[_id];
+    }
+
 def ChooseProvider(bid_index):
     """
     Consumer AD chooses a provider from the list of bids based on the bid index. 
@@ -1698,13 +1709,14 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
                     # print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
                     # logger.info("Bid offer received")
                     bid_index = int(event['args']['max_bid_index'])
-                    logger.info(f"Bids entered: {bid_index}")
+                    bids_entered = GetBidCount()
+                    logger.info(f"Bids entered: {bids_entered}")
                     
                     # Received bids
                     best_bid_index = None
 
                     # Received bids
-                    if int(bid_index) == providers:
+                    if bids_entered == providers:
                         # ------ #
                         t_bid_offer_received = time.time() - process_start_time
                         data.append(['bid_offer_received', t_bid_offer_received])
@@ -1712,7 +1724,7 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
                         bidderArrived = True 
                         logger.info(f"{int(bid_index)} bid offers received")
                         # Loop through all bid indices and print their information
-                        for i in range(bid_index):
+                        for i in range(bids_entered):
                             bid_info = GetBidInfo(i)
                             logger.info(f"Bid {i}: {bid_info}")
                             bid_price = int(bid_info[1]) 
