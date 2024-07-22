@@ -1686,7 +1686,7 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
             bidderArrived = False
 
             logger.info("Waiting for bids...")
-            while bidderArrived == False:
+            while not bidderArrived:
                 new_events = bids_event.get_all_entries()
                 for event in new_events:
                     
@@ -1702,44 +1702,64 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
                     # print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
                     # logger.info("Bid offer received")
                     bid_index = int(event['args']['max_bid_index'])
-                    bids_entered = GetBidCount()
-                    logger.info(f"Bids entered: {bids_entered}")
-                    
-                    # Received bids
-                    best_bid_index = None
 
                     # Received bids
-                    if bids_entered == providers:
+                    if bid_index >= providers:
                         # ------ #
                         t_bid_offer_received = time.time() - process_start_time
                         data.append(['bid_offer_received', t_bid_offer_received])
                         # ------ #
+                        logger.info(f"{bid_index} bid offers received")
                         bidderArrived = True 
-                        logger.info(f"{int(bid_index)} bid offers received")
-                        # Loop through all bid indices and print their information
-                        for i in range(bids_entered):
-                            bid_info = GetBidInfo(i)
-                            logger.info(f"Bid {i}: {bid_info}")
-                            bid_price = int(bid_info[1]) 
-                            if bid_price == matching_price:
-                                best_bid_index = int(bid_info[2])
-                                logger.info(f"Found bid with specific price {specific_price}: {bid_info}")
-                                break
-                        if best_bid_index is None:
-                            logger.error(f"No bid matched the specific price {matching_price}")
-                            raise HTTPException(status_code=500, detail=f"No bid matched the specific price {matching_price}")
-
-                            
-                        # Winner choosen 
-                        t_winner_choosen = time.time() - process_start_time
-                        data.append(['winner_choosen', t_winner_choosen])
-                        
-                        ChooseProvider(best_bid_index)
-                        logger.info(f"Provider Choosen - Bid Index: {best_bid_index}")
-
-                        # Service closed (state 1)
-                        #DisplayServiceState(service_id)
                         break
+            # Use GetBidCount to ensure we have the correct number of bids
+            total_bids = GetBidCount() 
+            logger.info(f"Total bids received from contract: {total_bids}")
+
+            if total_bids < providers:
+                logger.error(f"Not enough bids received: {total_bids} < {providers}")
+                raise HTTPException(status_code=500, detail=f"Not enough bids received: {total_bids} < {providers}")
+
+                
+            # Received bids
+            best_bid_index = None
+            
+            # Loop through all bid indices and print their information
+            for i in range(total_bids):
+                try:
+                    bid_info = GetBidInfo(i)
+                    logger.info(f"Bid {i}: {bid_info}")
+                    if bid_info is None:
+                        logger.warning(f"Bid info for index {i} is None, retrying...")
+                        time.sleep(2)
+                        bid_info = GetBidInfo(i)
+                        if bid_info is None:
+                            logger.error(f"Bid info for index {i} is still None after retry, skipping...")
+                            continue
+
+                    bid_price = int(bid_info[1]) 
+                    if bid_price == matching_price:
+                        best_bid_index = int(bid_info[2])
+                        logger.info(f"Found bid with specific price {specific_price}: {bid_info}")
+                        break
+                except Exception as e:
+                    logger.error(f"Error processing bid at index {i}: {str(e)}")
+                    continue    
+
+            if best_bid_index is None:
+                logger.error(f"No bid matched the specific price {matching_price}")
+                raise HTTPException(status_code=500, detail=f"No bid matched the specific price {matching_price}")
+
+                        
+            # Winner choosen 
+            t_winner_choosen = time.time() - process_start_time
+            data.append(['winner_choosen', t_winner_choosen])
+            
+            ChooseProvider(best_bid_index)
+            logger.info(f"Provider Choosen - Bid Index: {best_bid_index}")
+
+            # Service closed (state 1)
+            #DisplayServiceState(service_id)
 
             # Consumer AD wait for provider confirmation
             serviceDeployed = False 
