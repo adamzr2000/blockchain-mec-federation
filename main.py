@@ -1669,6 +1669,7 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
             process_start_time = time.time()
             
             global bids_event
+            global service_id
             
             # Service Announcement Sent
             t_service_announced = time.time() - process_start_time
@@ -1700,7 +1701,7 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
                     logger.info(f"Bids entered: {bid_index}")
                     
                     # Received bids
-                    best_bid_index = 0
+                    best_bid_index = None
 
                     # Received bids
                     if int(bid_index) == providers:
@@ -1718,6 +1719,10 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
                             if bid_price == matching_price:
                                 best_bid_index = int(bid_info[2])
                                 logger.info(f"Found bid with specific price {specific_price}: {bid_info}")
+                                break
+                        if best_bid_index is None:
+                            logger.error(f"No bid matched the specific price {matching_price}")
+                            raise HTTPException(status_code=500, detail=f"No bid matched the specific price {matching_price}")
 
                             
                         # Winner choosen 
