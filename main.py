@@ -1813,6 +1813,8 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
                     
                     if GetServiceState(service_id) == 0:
                         open_services.append(service_id)
+                        logger.info(f"Announcement Received - Open Services: {len(open_services)}")
+
                 # print("OPEN =", len(open_services)) 
                 if len(open_services) >= offers:
                     
@@ -1820,11 +1822,10 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
                     t_announce_received = time.time() - process_start_time
                     data.append(['announce_received', t_announce_received])
                     
-                    logger.info(f"Announcement Received - Service ID: {service_id}, Requested Service: {repr(requested_service)}, Requested Replicas: {repr(requested_replicas)}")
-                    print(new_events)
+                    # logger.info(f"Announcement Received - Service ID: {service_id}, Requested Service: {repr(requested_service)}, Requested Replicas: {repr(requested_replicas)}")
+                    # print(new_events)
                     newService = True
                 
-            service_id = open_services[-1]
 
             # Place a bid offer to the Federation SC
             t_bid_offer_sent = time.time() - process_start_time

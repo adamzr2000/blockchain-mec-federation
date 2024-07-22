@@ -73,20 +73,20 @@ def start_experiments(test_number):
 
     # Start the provider experiments
     for i in range(NUM_CONSUMERS, total_participants):
-        matching_price = prices[i - NUM_CONSUMERS]
-        EXPERIMENTS_PROVIDER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_provider_v3?export_to_csv={EXPORT_RESULTS}&providers={NUM_PROVIDERS}&matching_price={matching_price}"
+        price = prices[i - NUM_CONSUMERS]
+        EXPERIMENTS_PROVIDER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_provider_v3?export_to_csv={EXPORT_RESULTS}&price={price}&offers={NUM_CONSUMERS}"
         processes.append(run_command(["curl", "-X", "POST", EXPERIMENTS_PROVIDER_ENDPOINT]))
         consumer_index = (consumer_index + 1) % NUM_CONSUMERS
     
     # Start the consumer experiments and wait for them to finish
     for i in range(NUM_CONSUMERS - 1):
-        price = (i + 1) * 2
-        EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_consumer_v3?export_to_csv={EXPORT_RESULTS}&price={price}&offers={total_participants}"
+        matching_price = (i + 1) * 2
+        EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_consumer_v3?export_to_csv={EXPORT_RESULTS}&providers={NUM_PROVIDERS}&matching_price={matching_price}"
         processes.append(run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT]))
     
     # Start the last consumer experiment without running it in the background
-    price = NUM_CONSUMERS * 2
-    EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[NUM_CONSUMERS - 1]}/start_experiments_consumer_v3?export_to_csv={EXPORT_RESULTS}&price={price}&offers={total_participants}"
+    matching_price = NUM_CONSUMERS * 2
+    EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[NUM_CONSUMERS - 1]}/start_experiments_consumer_v3?export_to_csv={EXPORT_RESULTS}&providers={NUM_PROVIDERS}&matching_price={matching_price}"
     run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT]).wait()
 
     for process in processes:
