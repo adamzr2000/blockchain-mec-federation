@@ -37,7 +37,7 @@ def calculate_mean_accumulated_time(directory):
 sns.set_style("whitegrid")
 
 mec_systems = 30
-merged_dir = f'../{mec_systems}-mec-systems/merged'
+merged_dir = f'../1-offer/{mec_systems}-mec-systems/merged'
 
 # --- Plot 1: Mean start and end times of each federation step ---
 # Directory containing merged test results
@@ -166,7 +166,7 @@ mean_times = []
 std_times = []
 
 for mec_systems in participants_to_compare:
-    merged_dir = f'../{mec_systems}-mec-systems/merged'
+    merged_dir = f'../1-offer/{mec_systems}-mec-systems/merged'
     total_federation_times = calculate_total_federation_time(merged_dir)
     mean_times.append(np.mean(total_federation_times))
     std_times.append(np.std(total_federation_times))
@@ -217,7 +217,7 @@ std_times = {step: [] for step in steps_definitions.keys()}
 
 # Calculate mean and standard deviation for each step across multiple MEC systems
 for mec_systems, color, edge_color in zip(participants_to_compare, colors, edge_colors):
-    merged_dir = f'../{mec_systems}-mec-systems/merged'
+    merged_dir = f'../1-offer/{mec_systems}-mec-systems/merged'
     step_times = calculate_step_times(merged_dir, steps_definitions)
     
     for step in steps_definitions.keys():
@@ -291,7 +291,7 @@ plt.show()
 
 # # Calculate start and end times for each step across multiple MEC systems
 # for mec_systems in participants_to_compare:
-#     merged_dir = f'../{mec_systems}-mec-systems/merged'
+#     merged_dir = f'../1-offer/{mec_systems}-mec-systems/merged'
 #     times_data = calculate_times(merged_dir, steps_definitions)
 #     times_df = pd.DataFrame(times_data)
 #     times_df = times_df.groupby('Step').agg({'Start Time': 'mean', 'End Time': 'mean'}).reset_index()
