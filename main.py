@@ -1740,7 +1740,7 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
                     bid_price = int(bid_info[1]) 
                     if bid_price == matching_price:
                         best_bid_index = int(bid_info[2])
-                        logger.info(f"Found bid with specific price {specific_price}: {bid_info}")
+                        logger.info(f"Found bid with specific price {matching_price}: {bid_info}")
                         break
                 except Exception as e:
                     logger.error(f"Error processing bid at index {i}: {str(e)}")
