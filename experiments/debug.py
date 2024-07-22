@@ -1,9 +1,7 @@
-import subprocess
 import time
-import random
 
 # Constants
-EXPORT_RESULTS = "true"
+EXPORT_RESULTS = "false"
 BASE_URLS = [
     "http://10.5.99.1:8000", "http://10.5.99.2:8000", "http://10.5.99.3:8000", "http://10.5.99.4:8000",
     "http://10.5.99.5:8000", "http://10.5.99.6:8000", "http://10.5.99.7:8000", "http://10.5.99.8:8000",
@@ -15,78 +13,77 @@ BASE_URLS = [
     "http://10.5.99.29:8000", "http://10.5.99.30:8000"
 ]
 
-def generate_prices(num_providers):
-    """ Generate random prices for providers """
-    prices = [random.randint(10, 100) for _ in range(num_providers)]
-    return prices
+NUM_CONSUMERS = 10
+NUM_PROVIDERS = 20
+NUM_TESTS = 2  # Set the number of tests to run
+
+def generate_prices():
+    """ Generate prices for providers as [1, 2, 3, ... 20] """
+    return list(range(1, NUM_PROVIDERS + 1))
 
 def deploy_consumer_container(endpoint):
-    """ Deploy consumer container """
-    print(f"Deploying consumer container at {endpoint}")
-    print(f"Command: curl -X POST {endpoint}/deploy_docker_service?image=mec-app&name=mec-app&network=bridge&replicas=1")
+    """ Simulate deploying consumer container """
+    print(f"Simulating deployment of consumer container at {endpoint}")
 
 def run_command(command):
-    """ Run a command and capture its output """
-    print(f"Running: {' '.join(command)}")
-    return command
+    """ Simulate running a command and print its output """
+    print(f"Simulating: {' '.join(command)}")
+    return None
 
-def cleanup_resources(num_consumers, num_providers):
-    """ Cleanup resources for consumers and the winning provider """
-    for i in range(num_consumers):
+def cleanup_resources():
+    """ Simulate cleanup resources for consumers and the winning provider """
+    for i in range(NUM_CONSUMERS):
         endpoint = BASE_URLS[i]
-        print(f"Cleaning up consumer {i+1} at {endpoint}")
-        print(f"Command: curl -X DELETE {endpoint}/delete_docker_service?name=mec-app")
-        print(f"Command: curl -X DELETE {endpoint}/delete_vxlan")
+        print(f"Simulating cleanup for consumer {i+1} at {endpoint}")
+        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_docker_service?name=mec-app"])
+        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_vxlan"])
 
-    for i in range(num_consumers, num_consumers + num_providers):
+    for i in range(NUM_CONSUMERS, NUM_CONSUMERS + NUM_PROVIDERS):
         endpoint = BASE_URLS[i]
-        print(f"Cleaning up provider {i-num_consumers+1} at {endpoint}")
-        print(f"Command: curl -X DELETE {endpoint}/delete_docker_service?name=federated-mec-app")
-        print(f"Command: curl -X DELETE {endpoint}/delete_vxlan")
+        print(f"Simulating cleanup for provider {i-NUM_CONSUMERS+1} at {endpoint}")
+        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_docker_service?name=federated-mec-app"])
+        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_vxlan"])
 
-    print("Cleanup completed.")
+    print("Simulated cleanup completed.")
     time.sleep(2)
 
-def start_experiments(test_number, num_consumers, num_providers):
-    """ Start experiments based on the number of consumers and providers """
-    total_participants = num_consumers + num_providers
-    providers_to_wait = num_providers // num_consumers
+def start_experiments(test_number):
+    """ Simulate starting experiments based on the number of consumers and providers """
+    total_participants = NUM_CONSUMERS + NUM_PROVIDERS
 
-    print(f"Starting experiment {test_number}...")
+    print(f"Starting simulated experiment {test_number}...")
     
-    # Deploy consumer containers
-    for i in range(num_consumers):
+    # Simulate deploying consumer containers
+    for i in range(NUM_CONSUMERS):
         deploy_consumer_container(BASE_URLS[i])
     
-    # Generate random prices for providers
-    prices = generate_prices(num_providers)
-    print(f"Generated prices: {prices}")
+    # Generate prices for providers
+    prices = generate_prices()
+    print(f"Simulated generated prices: {prices}")
 
-    processes = []
     consumer_index = 0
 
-    # Start the provider experiments
-    for i in range(num_consumers, total_participants):
-        consumer_domain = f"consumer-{consumer_index + 1}"
-        EXPERIMENTS_PROVIDER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_provider_v2?export_to_csv={EXPORT_RESULTS}&price={prices[i - num_consumers]}&matching_domain_name={consumer_domain}"
-        processes.append(run_command(["curl", "-X", "POST", EXPERIMENTS_PROVIDER_ENDPOINT]))
-        consumer_index = (consumer_index + 1) % num_consumers
+    # Simulate starting the provider experiments
+    for i in range(NUM_CONSUMERS, total_participants):
+        matching_price = prices[i - NUM_CONSUMERS]
+        EXPERIMENTS_PROVIDER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_provider_v3?export_to_csv={EXPORT_RESULTS}&providers={NUM_PROVIDERS}&matching_price={matching_price}"
+        run_command(["curl", "-X", "POST", EXPERIMENTS_PROVIDER_ENDPOINT])
+        consumer_index = (consumer_index + 1) % NUM_CONSUMERS
     
-    # Start the consumer experiments and wait for them to finish
-    for i in range(num_consumers - 1):
-        EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_consumer_v2?export_to_csv={EXPORT_RESULTS}&providers={providers_to_wait}"
-        processes.append(run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT]))
+    # Simulate starting the consumer experiments
+    for i in range(NUM_CONSUMERS - 1):
+        price = (i + 1) * 2
+        EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_consumer_v3?export_to_csv={EXPORT_RESULTS}&price={price}&offers={total_participants}"
+        run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT])
     
-    # Start the last consumer experiment without running it in the background
-    EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[num_consumers - 1]}/start_experiments_consumer_v2?export_to_csv={EXPORT_RESULTS}&providers={providers_to_wait}"
+    # Simulate starting the last consumer experiment without running it in the background
+    price = NUM_CONSUMERS * 2
+    EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[NUM_CONSUMERS - 1]}/start_experiments_consumer_v3?export_to_csv={EXPORT_RESULTS}&price={price}&offers={total_participants}"
     run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT])
 
-    for process in processes:
-        print(f"Process: {process}")
-
-    print(f"Experiment {test_number} completed.")
-    print("Cleaning up resources...")
-    cleanup_resources(num_consumers, num_providers)
+    print(f"Simulated experiment {test_number} completed.")
+    print("Simulating cleanup of resources...")
+    cleanup_resources()
 
 def validate_input(num_tests):
     """ Validate the input """
@@ -94,22 +91,13 @@ def validate_input(num_tests):
         print("The number of tests must be between 1 and 20.")
         exit(1)
 
-def run_experiments(num_tests, num_consumers, num_providers):
-    """ Main function to run experiments """
+def run_experiments(num_tests):
+    """ Main function to simulate running experiments """
     for i in range(1, num_tests + 1):
-        start_experiments(i, num_consumers, num_providers)
+        start_experiments(i)
 
-    print("All experiments completed.")
+    print("All simulated experiments completed.")
 
 if __name__ == "__main__":
-    num_tests = int(input("Enter the number of tests to run (1-20): "))
-    validate_input(num_tests)
-
-    num_consumers = int(input("Enter the number of consumers: "))
-    num_providers = int(input("Enter the number of providers: "))
-
-    if num_consumers + num_providers > 30:
-        print("The total number of participants cannot exceed 30.")
-        exit(1)
-
-    run_experiments(num_tests, num_consumers, num_providers)
+    validate_input(NUM_TESTS)
+    run_experiments(NUM_TESTS)
