@@ -267,13 +267,6 @@ def GetBidCount():
     bids_entered = Federation_contract.functions.GetBidCount(_id=web3.toBytes(text=service_id), _creator=block_address).call()
     return int(bids_entered)
 
-function GetBidCount(bytes32 _id, address _creator) public view returns (uint256) {
-        Service storage current_service = service[_id];
-        require(current_service.id == _id, "Service not exists");
-        require(current_service.creator == _creator, "Only service creator can look into the information");
-        return bidCount[_id];
-    }
-
 def ChooseProvider(bid_index):
     """
     Consumer AD chooses a provider from the list of bids based on the bid index. 
