@@ -18,7 +18,7 @@ for i in {1..10}; do
   NODE_IP="10.5.99.${i}"
   CONFIG_FILE="10-offer/30-mec-systems/consumer-${i}/"
   GIT_TAG="10-offer-cons${i}"
-  COMMAND="cd /home/netcom/blockchain-mec-federation/experiments && mv consumer/*.csv ${CONFIG_FILE} && cd ../utils && ./utils/push_to_git.sh ${GIT_TAG}"
+  COMMAND="cd /home/netcom/blockchain-mec-federation/experiments && mv consumer/*.csv ${CONFIG_FILE} && cd ../utils && ./push_to_git.sh ${GIT_TAG}"
   execute_ssh_command "${NODE_IP}" "${COMMAND}"
 done
 
@@ -28,6 +28,6 @@ for i in {11..30}; do
   PROVIDER_INDEX=$((i - 10))
   CONFIG_FILE="10-offer/30-mec-systems/provider-${PROVIDER_INDEX}/"
   GIT_TAG="10-offer-prov${PROVIDER_INDEX}"
-  COMMAND="cd /home/netcom/blockchain-mec-federation/experiments && mv provider/*.csv ${CONFIG_FILE} && cd ../utils && ./utils/push_to_git.sh ${GIT_TAG}"
+  COMMAND="cd /home/netcom/blockchain-mec-federation/experiments && mv provider/*.csv ${CONFIG_FILE} && cd ../utils && ./push_to_git.sh ${GIT_TAG}"
   execute_ssh_command "${NODE_IP}" "${COMMAND}"
 done
