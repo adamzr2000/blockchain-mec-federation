@@ -26,7 +26,7 @@ execute_ssh_command() {
 }
 
 # Start the DLT network on the first node
-execute_ssh_command "10.5.99.1" "${BASE_COMMAND} ./start_dlt_network.sh"
+# execute_ssh_command "10.5.99.1" "${BASE_COMMAND} ./start_dlt_network.sh"
 
 # Wait for 5 seconds after the first command
 # echo "Waiting for 5 seconds..."
@@ -37,5 +37,5 @@ for ((i=2; i<=NODES; i++)); do
   NODE_IP="10.5.99.${i}"
   NODE_NAME="node${i}"
   execute_ssh_command "${NODE_IP}" "${BASE_COMMAND} ./join_dlt_network.sh ${NODE_NAME} 30"
-  sleep 5
+  sleep 3
 done
