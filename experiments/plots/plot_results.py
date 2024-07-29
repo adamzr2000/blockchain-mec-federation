@@ -26,7 +26,7 @@ sns.set_style("whitegrid")
 
 # --- Plot 1: Mean start and end times of each federation step ---
 # Directory containing merged test results
-merged_dir = '../merged'
+merged_dir = '../1-offer/2-mec-systems/merged'
 times_data = []
 
 # Process each merged file
@@ -56,27 +56,35 @@ times_df['Order'] = times_df['Step'].apply(lambda x: ordered_steps.index(x))
 times_df = times_df.sort_values('Order', ascending=True)
 
 plt.figure(figsize=(10, 6))
+bar_height = 0.95  # Reduced height for the bars
 for i, step in enumerate(ordered_steps):
     mean_start = times_df.loc[times_df['Step'] == step, 'Start Time'].values[0]
     mean_end = times_df.loc[times_df['Step'] == step, 'End Time'].values[0]
     mean_duration = mean_end - mean_start
-    plt.barh(i, mean_duration, left=mean_start, color=lighter_blue, edgecolor=darker_blue)
-    plt.text(mean_start + mean_duration / 2, i, f"{mean_duration:.2f}s", va='center', ha='center', color='black',fontweight='bold')
+    
+    if step in ['Service Deployment', 'Establish VXLAN Connection']:
+        color = lighter_green
+        edgecolor = darker_green
+        label = 'Deployment procedure' if 'Deployment procedure' not in plt.gca().get_legend_handles_labels()[1] else ""
+    else:
+        color = lighter_blue
+        edgecolor = darker_blue
+        label = 'Federation procedure using blockchain' if 'Federation procedure using blockchain' not in plt.gca().get_legend_handles_labels()[1] else ""
+        
+    plt.barh(i, mean_duration, left=mean_start, color=color, edgecolor=edgecolor, label=label, height=bar_height)
 
 plt.yticks(range(len(ordered_steps)), ordered_steps)
 plt.xlabel('Time (s)')
-plt.ylabel('Phases')
-# plt.title('Mean start and end times of each federation step')
+plt.ylabel('Procedures')
+plt.legend(loc='upper right', fontsize=12)
 plt.tight_layout()
 plt.gca().invert_yaxis()
 plt.savefig('federation_events.pdf')
 plt.show()
 
-
-
 # --- Plot 2: Mean accumulated time for consumer and provider ---
-consumer_dir = '../consumer'
-provider_dir = '../provider'
+consumer_dir = '../1-offer/2-mec-systems/consumer'
+provider_dir = '../1-offer/2-mec-systems/provider-1'
 mean_accumulated_time_consumer = calculate_mean_accumulated_time(consumer_dir)
 mean_accumulated_time_provider = calculate_mean_accumulated_time(provider_dir)
 

@@ -159,9 +159,9 @@ def calculate_total_federation_time(directory):
 sns.set_style("whitegrid")
 
 # List of MEC systems to compare
-participants_to_compare = ["2", "6", "10", "15", "20", "30"]
-colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow, lighter_purple, lighter_orange]
-edge_colors = [darker_blue, darker_green, darker_red, darker_yellow, darker_purple, darker_orange]
+participants_to_compare = ["2", "6", "10", "20", "30"]
+colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow, lighter_purple]
+edge_colors = [darker_blue, darker_green, darker_red, darker_yellow, darker_purple]
 mean_times = []
 std_times = []
 
@@ -207,9 +207,9 @@ def calculate_step_times(directory, steps_definitions):
 sns.set_style("whitegrid")
 
 # List of MEC systems to compare
-participants_to_compare = ["2", "6", "10", "15", "20", "30"]
-colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow, lighter_purple, lighter_orange]
-edge_colors = [darker_blue, darker_green, darker_red, darker_yellow, darker_purple, darker_orange]
+participants_to_compare = ["2", "6", "10", "20", "30"]
+colors = [lighter_blue, lighter_green, lighter_red, lighter_yellow, lighter_purple]
+edge_colors = [darker_blue, darker_green, darker_red, darker_yellow, darker_purple]
 
 # Initialize data storage
 mean_times = {step: [] for step in steps_definitions.keys()}

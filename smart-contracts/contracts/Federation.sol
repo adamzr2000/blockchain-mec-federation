@@ -39,6 +39,7 @@ contract Federation {
     
     // Define events
     event OperatorRegistered(address operator, bytes32 name);
+    event OperatorRemoved(address operator);
     event ServiceAnnouncement(bytes requirements, bytes32 id);
     event NewBid(bytes32 _id, uint256 max_bid_index);
     event ServiceAnnouncementClosed(bytes32 _id);
@@ -51,6 +52,13 @@ contract Federation {
         current_operator.name = name;
         current_operator.registered = true;
         emit OperatorRegistered(msg.sender, name);
+    }
+
+    function removeOperator() public {
+        Operator storage current_operator = operator[msg.sender];
+        require(current_operator.registered == true, "Operator is not registered");
+        delete operator[msg.sender];
+        emit OperatorRemoved(msg.sender);
     }
 
     function getOperatorInfo(address op_address) public view returns (bytes32 name) {

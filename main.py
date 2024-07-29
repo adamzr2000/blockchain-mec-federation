@@ -488,6 +488,28 @@ def create_csv_file(role, header, data):
 
     logger.info(f"Data saved to {file_name}")
 
+def create_csv_file_registration(role, header, data):
+    # Determine the base directory based on the role
+    base_dir = Path("experiments") / role
+    base_dir.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
+
+    # Find the next available file index
+    existing_files = list(base_dir.glob("federation_registration_{}_test_*.csv".format(role)))
+    indices = [int(f.stem.split('_')[-1]) for f in existing_files if f.stem.split('_')[-1].isdigit()]
+    next_index = max(indices) + 1 if indices else 1
+
+    # Construct the file name
+    file_name = base_dir / f"federation_registration_{role}_test_{next_index}.csv"
+
+    # Open and write to the file
+    with open(file_name, 'w', encoding='UTF8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)  # Write the header
+        writer.writerows(data)  # Write the data
+
+    logger.info(f"Data saved to {file_name}")
+
+
 def deploy_docker_containers(image, name, network, replicas, env_vars=None, container_port=5000, start_host_port=5000):
     containers = []
     try:
@@ -736,32 +758,95 @@ async def tx_receipt_endpoint(tx_hash: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/register_domain", 
+@app.post("/register_domain",
           summary="Register a domain",
           tags=["Default DLT federation functions"],
-          description="Endpoint to register a domain in the smart contract")  
-def register_domain_endpoint(name: str = domain_name):
-    global domain_registered  
-    # global nonce
+          description="Endpoint to register a domain in the smart contract")
+def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = False):
+    global domain_registered
+    global nonce
+    header = ['step', 'timestamp']
+    data = []
+
     try:
         if not domain_registered:
+            # Record the time when the transaction is being sent
+            send_time = time.time()
+            data.append(["send_registration_transaction", send_time])
+
             # Build the transaction for the addOperator function
-            add_operator_transaction = Federation_contract.functions.addOperator(Web3.toBytes(text=domain_name)).buildTransaction({
+            add_operator_transaction = Federation_contract.functions.addOperator(Web3.toBytes(text=name)).buildTransaction({
                 'from': block_address,
-                'nonce': nonce
+                'nonce': nonce,
             })
 
             # Send the signed transaction
             tx_hash = send_signed_transaction(add_operator_transaction)
 
-            domain_registered = True
-            logger.info(f"Domain {domain_name} has been registered")
-            return {"tx-hash": tx_hash}
+            # Wait for the transaction receipt
+            receipt = web3.eth.waitForTransactionReceipt(tx_hash)
+
+            # Record the time when the transaction is confirmed
+            confirm_time = time.time()
+            data.append(["confirm_registration_transaction", confirm_time])
+
+            # Calculate the time taken for the transaction to be processed
+            processing_time = confirm_time - send_time
+
+            if receipt.status == 1:  # Transaction was successful
+                domain_registered = True
+                logger.info(f"Domain {name} has been registered in {processing_time:.2f} seconds")
+
+                if export_to_csv:
+                    create_csv_file_registration(domain, header, data)
+
+                return {"tx-hash": tx_hash.hex(), "processing_time": processing_time}
+            else:
+                raise HTTPException(status_code=500, detail="Transaction failed")
+
         else:
-            error_message = f"Domain {domain_name} is already registered in the SC"
+            error_message = f"Domain {name} is already registered in the SC"
             raise HTTPException(status_code=500, detail=error_message)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.delete("/unregister_domain",
+          summary="Unregister a domain",
+          tags=["Default DLT federation functions"],
+          description="Endpoint to unregister a domain in the smart contract")
+def unregister_domain_endpoint():
+    global domain_registered
+    global nonce
+
+    try:
+        if domain_registered:
+
+            # Build the transaction for the addOperator function
+            del_operator_transaction = Federation_contract.functions.removeOperator().buildTransaction({
+                'from': block_address,
+                'nonce': nonce,
+            })
+
+            # Send the signed transaction
+            tx_hash = send_signed_transaction(del_operator_transaction)
+
+            # Wait for the transaction receipt
+            receipt = web3.eth.waitForTransactionReceipt(tx_hash)
+
+            if receipt.status == 1:  # Transaction was successful
+                domain_registered = True
+                logger.info(f"Domain has been unregistered")
+
+                return {"tx-hash": tx_hash.hex()}
+            else:
+                raise HTTPException(status_code=500, detail="Transaction failed")
+
+        else:
+            error_message = f"Domain is not registered in the SC"
+            raise HTTPException(status_code=500, detail=error_message)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 
 @app.post("/create_service_announcement",
           summary="Create a service announcement", 
