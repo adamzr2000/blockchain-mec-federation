@@ -855,11 +855,7 @@ def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = Fals
                         # Record the time when the transaction is confirmed
                         confirm_time = time.time() - process_start_time
                         data.append(["confirm_registration_transaction", confirm_time])
-                        # Calculate the time taken for the transaction to be processed
-                        processing_time = confirm_time - send_time
                         isRegistered = True
-                        confirm_time = time.time()
-                        data.append(["confirm_registration_transaction", confirm_time])
 
             domain_registered = True
 
