@@ -759,6 +759,58 @@ async def tx_receipt_endpoint(tx_hash: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# # @app.post("/register_domain",
+# #           summary="Register a domain",
+# #           tags=["Default DLT federation functions"],
+# #           description="Endpoint to register a domain in the smart contract")
+# # def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = False, participants: int = 2):
+# #     global domain_registered
+# #     global nonce
+# #     header = ['step', 'timestamp']
+# #     data = []
+
+# #     try:
+# #         if not domain_registered:
+# #             # Record the time when the transaction is being sent
+# #             send_time = time.time()
+# #             data.append(["send_registration_transaction", send_time])
+
+# #             # Build the transaction for the addOperator function
+# #             add_operator_transaction = Federation_contract.functions.addOperator(Web3.toBytes(text=name)).buildTransaction({
+# #                 'from': block_address,
+# #                 'nonce': nonce,
+# #             })
+
+# #             # Send the signed transaction
+# #             tx_hash = send_signed_transaction(add_operator_transaction)
+
+# #             # Wait for the transaction receipt
+# #             receipt = web3.eth.waitForTransactionReceipt(tx_hash)
+
+# #             # Record the time when the transaction is confirmed
+# #             confirm_time = time.time()
+# #             data.append(["confirm_registration_transaction", confirm_time])
+
+# #             # Calculate the time taken for the transaction to be processed
+# #             processing_time = confirm_time - send_time
+
+# #             if receipt.status == 1:  # Transaction was successful
+# #                 domain_registered = True
+# #                 logger.info(f"Domain {name} has been registered in {processing_time:.2f} seconds")
+
+# #                 if export_to_csv:
+# #                     create_csv_file_registration(participants, name, header, data)
+
+# #                 return {"tx-hash": tx_hash, "processing_time": processing_time}
+# #             else:
+# #                 raise HTTPException(status_code=500, detail="Transaction failed")
+
+# #         else:
+# #             error_message = f"Domain {name} is already registered in the SC"
+# #             raise HTTPException(status_code=500, detail=error_message)
+# #     except Exception as e:
+# #         raise HTTPException(status_code=500, detail=str(e))
+    
 @app.post("/register_domain",
           summary="Register a domain",
           tags=["Default DLT federation functions"],
@@ -771,8 +823,10 @@ def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = Fals
 
     try:
         if not domain_registered:
+            # Start time of the process
+            process_start_time = time.time()
             # Record the time when the transaction is being sent
-            send_time = time.time()
+            send_time = time.time() - process_start_time
             data.append(["send_registration_transaction", send_time])
 
             # Build the transaction for the addOperator function
@@ -784,33 +838,49 @@ def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = Fals
             # Send the signed transaction
             tx_hash = send_signed_transaction(add_operator_transaction)
 
-            # Wait for the transaction receipt
-            receipt = web3.eth.waitForTransactionReceipt(tx_hash)
+            isRegistered=False
 
-            # Record the time when the transaction is confirmed
-            confirm_time = time.time()
-            data.append(["confirm_registration_transaction", confirm_time])
+            block = web3.eth.getBlock('latest')
+            block_number = block['number']
+            event_filter = Federation_contract.events.OperatorRegistered.createFilter(fromBlock=web3.toHex(block_number))    
 
-            # Calculate the time taken for the transaction to be processed
-            processing_time = confirm_time - send_time
+            while isRegistered == False:
+                new_events = event_filter.get_all_entries()
+                for event in new_events:
+                    my_name = web3.toText(event['args']['name'])
+                    my_name = my_name.rstrip('\x00')
+                    logger.info(f"Event: {event}")
+                    
+                    if name == my_name:
+                        # Record the time when the transaction is confirmed
+                        confirm_time = time.time() - process_start_time
+                        data.append(["confirm_registration_transaction", confirm_time])
+                        # Calculate the time taken for the transaction to be processed
+                        processing_time = confirm_time - send_time
+                        isRegistered = True
+                        confirm_time = time.time()
+                        data.append(["confirm_registration_transaction", confirm_time])
 
-            if receipt.status == 1:  # Transaction was successful
-                domain_registered = True
-                logger.info(f"Domain {name} has been registered in {processing_time:.2f} seconds")
+            domain_registered = True
 
-                if export_to_csv:
-                    create_csv_file_registration(participants, name, header, data)
+            total_duration = time.time() - process_start_time
+            logger.info(f"Domain {name} has been registered in {total_duration:.2f} seconds")
 
-                return {"tx-hash": tx_hash, "processing_time": processing_time}
+            if export_to_csv:
+                # Export the data to a csv file only if export_to_csv is True
+                create_csv_file_registration(participants, name, header, data)
+                logger.info(f"Data exported to CSV for {name}.")
             else:
-                raise HTTPException(status_code=500, detail="Transaction failed")
+                logger.warning("CSV export not requested.")
+            
+            return {"tx-hash": tx_hash}
 
         else:
             error_message = f"Domain {name} is already registered in the SC"
             raise HTTPException(status_code=500, detail=error_message)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @app.delete("/unregister_domain",
           summary="Unregister a domain",
           tags=["Default DLT federation functions"],
@@ -835,7 +905,7 @@ def unregister_domain_endpoint():
             receipt = web3.eth.waitForTransactionReceipt(tx_hash)
 
             if receipt.status == 1:  # Transaction was successful
-                domain_registered = True
+                domain_registered = False
                 logger.info(f"Domain has been unregistered")
 
                 return {"tx-hash": tx_hash}
