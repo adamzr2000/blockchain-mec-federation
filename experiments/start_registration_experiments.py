@@ -41,8 +41,8 @@ def start_experiments(test_number):
 
     # Start the provider experiments
     for i in range(NUM_PARTICIPANTS):
-        participant_name = f"participant-{i + 1}"
-        EXPERIMENTS_ENDPOINT = f"{BASE_URLS[i]}/register_domain?name={participant_name}&export_to_csv={EXPORT_RESULTS}"
+        participant_name = f"participant{i + 1}"
+        EXPERIMENTS_ENDPOINT = f"{BASE_URLS[i]}/register_domain?name={participant_name}&export_to_csv={EXPORT_RESULTS}&participants={NUM_PARTICIPANTS}"
         processes.append(run_command(["curl", "-X", "POST", EXPERIMENTS_ENDPOINT]))
     
     for process in processes:

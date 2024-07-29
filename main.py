@@ -488,18 +488,19 @@ def create_csv_file(role, header, data):
 
     logger.info(f"Data saved to {file_name}")
 
-def create_csv_file_registration(role, header, data):
+def create_csv_file_registration(participants, name, header, data):
     # Determine the base directory based on the role
-    base_dir = Path("experiments") / role
+    number_of_mec_systems = f"{participants}-mec-systems"
+    base_dir = Path("experiments/registration-time") / number_of_mec_systems
     base_dir.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
 
     # Find the next available file index
-    existing_files = list(base_dir.glob("federation_registration_{}_test_*.csv".format(role)))
+    existing_files = list(base_dir.glob("federation_registration_{}_test_*.csv".format(name)))
     indices = [int(f.stem.split('_')[-1]) for f in existing_files if f.stem.split('_')[-1].isdigit()]
     next_index = max(indices) + 1 if indices else 1
 
     # Construct the file name
-    file_name = base_dir / f"federation_registration_{role}_test_{next_index}.csv"
+    file_name = base_dir / f"federation_registration_{name}_test_{next_index}.csv"
 
     # Open and write to the file
     with open(file_name, 'w', encoding='UTF8', newline='') as f:
@@ -762,7 +763,7 @@ async def tx_receipt_endpoint(tx_hash: str):
           summary="Register a domain",
           tags=["Default DLT federation functions"],
           description="Endpoint to register a domain in the smart contract")
-def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = False):
+def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = False, participants: int = 2):
     global domain_registered
     global nonce
     header = ['step', 'timestamp']
@@ -798,7 +799,7 @@ def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = Fals
                 logger.info(f"Domain {name} has been registered in {processing_time:.2f} seconds")
 
                 if export_to_csv:
-                    create_csv_file_registration(domain, header, data)
+                    create_csv_file_registration(participants, name, header, data)
 
                 return {"tx-hash": tx_hash.hex(), "processing_time": processing_time}
             else:
