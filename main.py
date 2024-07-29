@@ -849,13 +849,13 @@ def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = Fals
                 for event in new_events:
                     my_name = web3.toText(event['args']['name'])
                     my_name = my_name.rstrip('\x00')
-                    logger.info(f"Event: {event}")
-                    
+                   
                     if name == my_name:
                         # Record the time when the transaction is confirmed
                         confirm_time = time.time() - process_start_time
                         data.append(["confirm_registration_transaction", confirm_time])
                         isRegistered = True
+                        logger.info(f"Event: {event}")
 
             domain_registered = True
 
