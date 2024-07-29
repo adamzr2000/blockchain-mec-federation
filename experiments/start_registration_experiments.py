@@ -4,7 +4,7 @@ import random
 
 # Constants
 EXPORT_RESULTS = "true"
-NUM_PARTICIPANTS = 6
+NUM_PARTICIPANTS = 10
 BASE_URLS = [
     "http://10.5.99.1:8000", "http://10.5.99.2:8000", "http://10.5.99.3:8000", "http://10.5.99.4:8000",
     "http://10.5.99.5:8000", "http://10.5.99.6:8000", "http://10.5.99.7:8000", "http://10.5.99.8:8000",
