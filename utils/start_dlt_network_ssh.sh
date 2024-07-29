@@ -17,7 +17,7 @@ execute_ssh_command() {
   local node_ip=$1
   local command=$2
   echo "Executing on ${node_ip}: ${command}"
-  ssh netcom@${node_ip} "${command}"
+  ssh netcom@${node_ip} "bash -l -c ${command}"
   if [ $? -ne 0 ]; then
     echo "Error: Command failed on ${node_ip}"
   else
@@ -26,11 +26,11 @@ execute_ssh_command() {
 }
 
 # Start the DLT network on the first node
-# execute_ssh_command "10.5.99.1" "${BASE_COMMAND} ./start_dlt_network.sh"
+execute_ssh_command "10.5.99.1" "${BASE_COMMAND} ./start_dlt_network.sh"
 
 # Wait for 5 seconds after the first command
-# echo "Waiting for 5 seconds..."
-# sleep 5
+echo "Waiting for 5 seconds..."
+sleep 5
 
 # Loop to join the DLT network from node 2 to the specified number of nodes
 for ((i=2; i<=NODES; i++)); do
