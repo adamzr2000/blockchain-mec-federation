@@ -17,7 +17,7 @@ execute_ssh_command() {
   local node_ip=$1
   local command=$2
   echo "Executing on ${node_ip}: ${command}"
-  ssh netcom@${node_ip} "bash -l -c ${command}"
+  ssh netcom@${node_ip} "${command}"
   if [ $? -ne 0 ]; then
     echo "Error: Command failed on ${node_ip}"
   else
@@ -36,6 +36,6 @@ sleep 5
 for ((i=2; i<=NODES; i++)); do
   NODE_IP="10.5.99.${i}"
   NODE_NAME="node${i}"
-  execute_ssh_command "${NODE_IP}" "${BASE_COMMAND} ./join_dlt_network.sh ${NODE_NAME} 30"
+  execute_ssh_command "${NODE_IP}" "${BASE_COMMAND} ./join_dlt_network.sh ${NODE_NAME} ${NODES}"
   sleep 3
 done
