@@ -801,7 +801,7 @@ def register_domain_endpoint(name: str = domain_name, export_to_csv: bool = Fals
                 if export_to_csv:
                     create_csv_file_registration(participants, name, header, data)
 
-                return {"tx-hash": tx_hash.hex(), "processing_time": processing_time}
+                return {"tx-hash": tx_hash, "processing_time": processing_time}
             else:
                 raise HTTPException(status_code=500, detail="Transaction failed")
 
@@ -838,7 +838,7 @@ def unregister_domain_endpoint():
                 domain_registered = True
                 logger.info(f"Domain has been unregistered")
 
-                return {"tx-hash": tx_hash.hex()}
+                return {"tx-hash": tx_hash}
             else:
                 raise HTTPException(status_code=500, detail="Transaction failed")
 
