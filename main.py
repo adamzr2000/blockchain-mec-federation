@@ -171,7 +171,7 @@ docker_ip_range = f"10.{dlt_node_id}.{dlt_node_id}.0/24"
 # Initialize domain-specific configurations and variables
 if domain == "consumer":
     # Consumer-specific variables
-    service_endpoint_consumer = f"ip_address={ip};vxlan_id={vxlan_id};vxlan_port={vxlan_port};docker_subnet={docker_subnet}"
+    service_endpoint_consumer = f"ip_address={ip_address};vxlan_id={vxlan_id};vxlan_port={vxlan_port};docker_subnet={docker_subnet}"
     # service_endpoint_consumer = ip_address
     service_consumer_address = block_address
     service_requirements = 'service=mec-app;replicas=1'
@@ -179,7 +179,7 @@ if domain == "consumer":
 
 else:  # Provider
     # Provider-specific variables
-    service_endpoint_provider = f"ip_address={ip};vxlan_id={vxlan_id};vxlan_port={vxlan_port};docker_subnet={docker_subnet}"
+    service_endpoint_provider = f"ip_address={ip_address};vxlan_id={vxlan_id};vxlan_port={vxlan_port};docker_subnet={docker_subnet}"
     # service_endpoint_provider = ip_address
     federated_host = ''  # Placeholder for federated service deployment
     service_price = 0
@@ -2311,6 +2311,8 @@ def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 
             error_message = "You must be consumer to run this code"
             raise HTTPException(status_code=500, detail=error_message)
     except Exception as e:
+        logger.error(f"Error in start_experiments_consumer_v4: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/start_experiments_provider_v4")
 def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, offers: int = 1):
