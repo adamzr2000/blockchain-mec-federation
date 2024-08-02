@@ -55,6 +55,7 @@ def cleanup_resources():
         
         service_url_1 = f"http://{provider_node_ip}:8000/delete_docker_service?name=federated-mec-app_1"
         service_url_2 = f"http://{provider_node_ip}:8000/delete_docker_service?name=federated-mec-app-2_1"
+        time.sleep(2)
         vxlan_url_11 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_1}&docker_net_name=federation-net"
         vxlan_url_12 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_2}&docker_net_name=federation-net"
         vxlan_url_21 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_1}&docker_net_name=federation-net-2"
@@ -69,6 +70,31 @@ def cleanup_resources():
 
     print("Cleanup completed.")
     time.sleep(2)
+
+def cleanup_resources_bash():
+    try:
+        # Execute the script
+        result = subprocess.run(['./clean_docker_vxlan_config_all_hosts_v4.sh'], 
+                                check=True, 
+                                stdout=subprocess.PIPE, 
+                                stderr=subprocess.PIPE)
+        
+        # Capture and print the output
+        stdout = result.stdout.decode('utf-8')
+        stderr = result.stderr.decode('utf-8')
+        
+        print("Script Output:")
+        print(stdout)
+        
+        if stderr:
+            print("Script Error Output:")
+            print(stderr)
+        
+        return stdout, stderr
+    except subprocess.CalledProcessError as e:
+        # Handle errors in script execution
+        print(f"An error occurred while executing the script: {e}")
+        return None, str(e)
 
 def start_experiments(test_number):
     """ Start experiments based on the number of consumers and providers """
@@ -114,6 +140,7 @@ def start_experiments(test_number):
 
     print(f"Experiment {test_number} completed.")
     print("Cleaning up resources...")
+    # cleanup_resources_bash()
     cleanup_resources()
 
 def validate_input(num_tests):

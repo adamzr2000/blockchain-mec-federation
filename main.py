@@ -1217,8 +1217,8 @@ def delete_docker_network_and_vxlan(sudo_password = 'netcom;', vxlan_id = 200, d
     # Construct the command with arguments
     command = [
         'sudo', '-S', 'bash', script_path,
-        '-v', vxlan_id,
-        '-n', docker_net_name
+        '-n', docker_net_name,
+        '-v', vxlan_id
     ]
     
     try:
