@@ -19876,11 +19876,11 @@
       "events": {},
       "links": {},
       "address": "0x8a899B9fF6293789A9Ed8716e08e5fCA83e975af",
-      "transactionHash": "0xf1b65e57d01f0ba0d5bf728a96da5c9f6cb3ab218c988cc8b982bd5b4b544e8e"
+      "transactionHash": "0x027aa092b4953da29d03bab23f2fb47daf611c00c39bcfa98ec18a0df9e76845"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2024-08-02T15:32:04.618Z",
+  "updatedAt": "2024-08-02T16:45:00.497Z",
   "networkType": "ethereum",
   "devdoc": {
     "methods": {}

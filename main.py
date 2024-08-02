@@ -2344,7 +2344,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
 
                     requested_service, requested_replicas = extract_service_requirements(requirements.rstrip('\x00'))
                     
-                    if GetServiceState(service_id) == 0:
+                    if GetServiceState(service_id) == 0 and service_id not in open_services:
                         open_services.append(service_id)
                         # logger.info(f"Announcement Received - Open Services: {len(open_services)}")
 
