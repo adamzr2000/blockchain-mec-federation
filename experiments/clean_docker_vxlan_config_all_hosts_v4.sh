@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Constants for scalability
-NUM_CONSUMERS=10
-NUM_PROVIDERS=20
+NUM_CONSUMERS=20
+NUM_PROVIDERS=10
 
 # Function to execute a curl command and print debug information
 execute_curl_command() {
@@ -28,12 +28,14 @@ done
 # Loop to delete services for provider nodes
 for i in $(seq $(($NUM_CONSUMERS + 1)) $(($NUM_CONSUMERS + $NUM_PROVIDERS))); do
   NODE_IP="10.5.99.${i}"
-  if [ ${i} -eq $(($NUM_CONSUMERS + 1)) ]; then
-    SERVICE_URL="http://${NODE_IP}:8000/delete_docker_service?name=federated-mec-app_1"
-  else
-    SERVICE_URL="http://${NODE_IP}:8000/delete_docker_service?name=mec-app_1"
-  fi
-  VXLAN_URL="http://${NODE_IP}:8000/delete_vxlan"
-  execute_curl_command "${SERVICE_URL}"
-  execute_curl_command "${VXLAN_URL}"
+  VXLAN_ID=$((200 + i))
+  SERVICE_URL_1="http://${NODE_IP}:8000/delete_docker_service?name=federated-mec-app_1"
+  SERVICE_URL_2="http://${NODE_IP}:8000/delete_docker_service?name=federated-mec-app_2"
+  VXLAN_URL_1="http://${NODE_IP}:8000/delete_vxlan"
+  VXLAN_URL_2="http://${NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID}&docker_net_name=federated-net-2"
+  
+  execute_curl_command "${SERVICE_URL_1}"
+  execute_curl_command "${SERVICE_URL_2}"
+  execute_curl_command "${VXLAN_URL_1}"
+  execute_curl_command "${VXLAN_URL_2}"
 done

@@ -162,24 +162,25 @@ winner = coinbase
 manager_address = ''
 winnerChosen_event = None
 domain_registered = False
-vxlan_id="200"
-vxlan_port="4789"
-docker_subnet = "10.0.0.0/16"
-docker_ip_range = f"10.0.{dlt_node_id}.0/24"
+
+vxlan_id = str(200+ int(dlt_node_id))
+vxlan_port = str(int(4789) + int(dlt_node_id))
+docker_subnet = f"10.{dlt_node_id}.0.0/16"
+docker_ip_range = f"10.{dlt_node_id}.{dlt_node_id}.0/24"
 
 # Initialize domain-specific configurations and variables
 if domain == "consumer":
     # Consumer-specific variables
-    # service_endpoint_consumer = f"ip_address={ip};vxlan_id=200;vxlan_port=4789"
-    service_endpoint_consumer = ip_address
+    service_endpoint_consumer = f"ip_address={ip};vxlan_id={vxlan_id};vxlan_port={vxlan_port};docker_subnet={docker_subnet}"
+    # service_endpoint_consumer = ip_address
     service_consumer_address = block_address
     service_requirements = 'service=mec-app;replicas=1'
     bids_event = None  # Placeholder for event listener setup
 
 else:  # Provider
     # Provider-specific variables
-    # service_endpoint_provider = f"ip_address={ip};vxlan_id=200;vxlan_port=4789"
-    service_endpoint_provider = ip_address
+    service_endpoint_provider = f"ip_address={ip};vxlan_id={vxlan_id};vxlan_port={vxlan_port};docker_subnet={docker_subnet}"
+    # service_endpoint_provider = ip_address
     federated_host = ''  # Placeholder for federated service deployment
     service_price = 0
     bid_index = 0
@@ -446,26 +447,27 @@ def extract_service_requirements(requirements):
         logger.error(f"Invalid requirements format: {requirements}")
         return None, None
 
-# def extract_service_endpoint(endpoint):
-#     """
-#     Extracts the IP address, VXLAN ID, and VXLAN port from the endpoint string.
+def extract_service_endpoint(endpoint):
+    """
+    Extracts the IP address, VXLAN ID, VXLAN port, and Docker subnet from the endpoint string.
 
-#     Args:
-#     - endpoint (str): String containing the endpoint information in the format "ip_address=A;vxlan_id=B;vxlan_port=C".
+    Args:
+    - endpoint (str): String containing the endpoint information in the format "ip_address=A;vxlan_id=B;vxlan_port=C;docker_subnet=D".
 
-#     Returns:
-#     - tuple: A tuple containing the extracted IP address, VXLAN ID, and VXLAN port.
-#     """
-#     match = re.match(r'ip_address=(.*?);vxlan_id=(.*?);vxlan_port=(.*)', endpoint)
+    Returns:
+    - tuple: A tuple containing the extracted IP address, VXLAN ID, VXLAN port, and Docker subnet.
+    """
+    match = re.match(r'ip_address=(.*?);vxlan_id=(.*?);vxlan_port=(.*?);docker_subnet=(.*)', endpoint)
 
-#     if match:
-#         ip_address = match.group(1).decode('utf-8')
-#         vxlan_id = match.group(2).decode('utf-8')
-#         vxlan_port = match.group(3).decode('utf-8')
-#         return ip_address, vxlan_id, vxlan_port
-#     else:
-        #   logger.error(f"Invalid endpoint format: {endpoint}")
-#         return None, None, None
+    if match:
+        ip_address = match.group(1)
+        vxlan_id = match.group(2)
+        vxlan_port = match.group(3)
+        docker_subnet = match.group(4)
+        return ip_address, vxlan_id, vxlan_port, docker_subnet
+    else:
+        logger.error(f"Invalid endpoint format: {endpoint}")
+        return None, None, None, None
 
 def create_csv_file(role, header, data):
     # Determine the base directory based on the role
@@ -678,17 +680,17 @@ def delete_docker_containers_endpoint(name: str):
 
 
 @app.post("/configure_vxlan", tags=["Docker Functions"], summary="Configure Docker network and VXLAN")
-def configure_docker_network_and_vxlan_endpoint(local_ip: str, remote_ip: str, interface_name: str, vxlan_id: str, dst_port: str, subnet: str, ip_range: str):
+def configure_docker_network_and_vxlan_endpoint(local_ip: str, remote_ip: str, interface_name: str, vxlan_id: str, dst_port: str, subnet: str, ip_range: str, docker_net_name: str = 'federation-net'):
     try:
-        configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range)
+        configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, docker_net_name)
         return {"message": f"created federated docker network and vxlan connection successfully"}
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
 
 @app.delete("/delete_vxlan", tags=["Docker Functions"], summary="Delete Docker network and VXLAN")
-def delete_docker_network_and_vxlan_endpoint():
+def delete_docker_network_and_vxlan_endpoint(vxlan_id = 200, docker_net_name = 'federation-net'):
     try:
-        delete_docker_network_and_vxlan()
+        delete_docker_network_and_vxlan('netcom;', vxlan_id, docker_net_name)
         return {"message": f"deleted federated docker network and vxlan configuration successfully"}
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
@@ -1181,7 +1183,7 @@ def deploy_service_endpoint(service_id: str, federated_host: str = "0.0.0.0"):
         raise HTTPException(status_code=500, detail=str(e))    
 
 
-def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, sudo_password = 'netcom;'):
+def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, sudo_password = 'netcom;', docker_net_name = 'federation-net'):
     script_path = './utils/docker_host_setup_vxlan.sh'
     
     # Construct the command with arguments
@@ -1193,7 +1195,8 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
         '-v', vxlan_id,
         '-p', dst_port,
         '-s', subnet,
-        '-d', ip_range
+        '-d', ip_range,
+        '-n', docker_net_name
     ]
     
     try:
@@ -1208,12 +1211,14 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
 
-def delete_docker_network_and_vxlan(sudo_password = 'netcom;'):
+def delete_docker_network_and_vxlan(sudo_password = 'netcom;', vxlan_id = 200, docker_net_name = 'federation-net'):
     script_path = './utils/clean_vxlan_config.sh'
     
     # Construct the command with arguments
     command = [
-        'sudo', '-S', 'bash', script_path
+        'sudo', '-S', 'bash', script_path,
+        '-v', vxlan_id,
+        '-n', docker_net_name
     ]
     
     try:
@@ -2133,8 +2138,182 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
         raise HTTPException(status_code=500, detail=str(e))  
 # ------------------------------------------------------------------------------------------------------------------------------#
 
+def create_smaller_subnet(original_cidr, dlt_node_id):
+    # Split the CIDR notation into IP and subnet mask parts
+    ip, _ = original_cidr.split('/')
+
+    # Split the IP into its octets
+    octets = ip.split('.')
+
+    # Replace the third octet with the dlt_node_id
+    octets[2] = dlt_node_id
+
+    # Reassemble the IP address
+    new_ip = '.'.join(octets)
+
+    # Combine the new IP address with the new subnet mask /24
+    new_cidr = f"{new_ip}/24"
+
+    return new_cidr
+
+
+@app.post("/start_experiments_consumer_v4")
+def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 2, matching_price: int = 2):
+    try:
+        header = ['step', 'timestamp']
+        data = []
+        
+        if domain == 'consumer':
+            
+            # Start time of the process
+            process_start_time = time.time()
+            
+            global bids_event
+            global service_id
+            
+            # Service Announcement Sent
+            t_service_announced = time.time() - process_start_time
+            data.append(['service_announced', t_service_announced])
+            bids_event = AnnounceService()
+
+            logger.info(f"Service Announcement sent to the SC - Service ID: {service_id}")
+
+            # Consumer AD wait for provider bids
+            bidderArrived = False
+
+            logger.info("Waiting for bids...")
+            while not bidderArrived:
+                new_events = bids_event.get_all_entries()
+                for event in new_events:
+                    
+                    # # Bid Offer Received
+                    # t_bid_offer_received = time.time() - process_start_time
+                    # data.append(['bid_offer_received', t_bid_offer_received])
+
+                    event_id = str(web3.toText(event['args']['_id']))
+                    
+                    # Choosing provider
+
+                    # service id, service id, index of the bid
+                    # print(service_id, web3.toText(event['args']['_id']), event['args']['max_bid_index'])
+                    # logger.info("Bid offer received")
+                    bid_index = int(event['args']['max_bid_index'])
+
+                    # Received bids
+                    if bid_index >= providers:
+                        # ------ #
+                        t_bid_offer_received = time.time() - process_start_time
+                        data.append(['bid_offer_received', t_bid_offer_received])
+                        # ------ #
+                        logger.info(f"{bid_index} bid offers received")
+                        bidderArrived = True 
+                        break
+            # Use GetBidCount to ensure we have the correct number of bids
+            total_bids = bid_index
+            logger.info(f"Total bids received from contract: {total_bids}")
+
+            if total_bids < providers:
+                logger.error(f"Not enough bids received: {total_bids} < {providers}")
+                raise HTTPException(status_code=500, detail=f"Not enough bids received: {total_bids} < {providers}")
+
+                
+            # Received bids
+            best_bid_index = None
+            
+            # Loop through all bid indices and print their information
+            for i in range(total_bids):
+                try:
+                    bid_info = GetBidInfo(i)
+                    logger.info(f"Bid {i}: {bid_info}")
+                    if bid_info is None:
+                        logger.warning(f"Bid info for index {i} is None, retrying...")
+                        time.sleep(2)
+                        bid_info = GetBidInfo(i)
+                        if bid_info is None:
+                            logger.error(f"Bid info for index {i} is still None after retry, skipping...")
+                            continue
+
+                    bid_price = int(bid_info[1]) 
+                    if bid_price == matching_price:
+                        best_bid_index = int(bid_info[2])
+                        logger.info(f"Found bid with specific price {matching_price}: {bid_info}")
+                        break
+                except Exception as e:
+                    logger.error(f"Error processing bid at index {i}: {str(e)}")
+                    continue    
+
+            if best_bid_index is None:
+                logger.error(f"No bid matched the specific price {matching_price}")
+                raise HTTPException(status_code=500, detail=f"No bid matched the specific price {matching_price}")
+
+                        
+            # Winner choosen 
+            t_winner_choosen = time.time() - process_start_time
+            data.append(['winner_choosen', t_winner_choosen])
+            
+            ChooseProvider(best_bid_index)
+            logger.info(f"Provider Choosen - Bid Index: {best_bid_index}")
+
+            # Service closed (state 1)
+            #DisplayServiceState(service_id)
+
+            # Consumer AD wait for provider confirmation
+            serviceDeployed = False 
+            while serviceDeployed == False:
+                serviceDeployed = True if GetServiceState(service_id) == 2 else False
+            
+            # Confirmation received
+            t_confirm_deployment_received = time.time() - process_start_time
+            data.append(['confirm_deployment_received', t_confirm_deployment_received])
+            
+            t_establish_vxlan_connection_with_provider_start = time.time() - process_start_time
+            data.append(['establish_vxlan_connection_with_provider_start', t_establish_vxlan_connection_with_provider_start])
+
+            # Service deployed info
+            federated_host, service_endpoint_provider = GetDeployedInfo(service_id, domain)
+        
+            federated_host = federated_host.decode('utf-8')
+            service_endpoint_provider = service_endpoint_provider.decode('utf-8')
+
+            endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_provider)
+
+            logger.info(f"Federated Service Info - Service Endpoint Provider: {service_endpoint_provider}, Federated Host: {federated_host}")
+
+            # Sets up the federation docker network and the VXLAN network interface
+            configure_docker_network_and_vxlan(ip_address, endpoint_vxlan_id, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, docker_ip_range)
+
+            attach_container_to_network("mec-app_1", "federation-net")
+
+            t_establish_vxlan_connection_with_provider_finished = time.time() - process_start_time
+            data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
+           
+            total_duration = time.time() - process_start_time
+
+            logger.info(f"Federation process completed in {total_duration:.2f} seconds")
+
+            federated_host_ip = extract_ip_from_url(federated_host)
+            if federated_host_ip is None:
+                logger.error(f"Could not extract IP from '{federated_host}'")
+
+            logger.info(f"Monitoring connection with federated host ({federated_host_ip})")
+            monitor_connection_command = f"ping -c 10 {federated_host_ip}"
+            execute_command_in_container("mec-app_1", monitor_connection_command)
+
+            if export_to_csv:
+                # Export the data to a csv file only if export_to_csv is True
+                create_csv_file(domain, header, data)
+                logger.info(f"Data exported to CSV for {domain}.")
+            else:
+                logger.warning("CSV export not requested.")
+
+            return {"message": f"Federation process completed in {total_duration:.2f} seconds"}
+        else:
+            error_message = "You must be consumer to run this code"
+            raise HTTPException(status_code=500, detail=error_message)
+    except Exception as e:
+
 @app.post("/start_experiments_provider_v4")
-def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, offers: int = 1):
+def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, offers: int = 1):
     try:
         header = ['step', 'timestamp']
         data = []
@@ -2145,6 +2324,7 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
             process_start_time = time.time()
 
             global winnerChosen_event 
+            global dlt_node_id
             service_id = ''
             newService_event = ServiceAnnouncementEvent()
             newService = False
@@ -2228,10 +2408,14 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
 
                     service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
 
+                    endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_consumer)
+
+                    net_range = create_smaller_subnet(endpoint_docker_subnet, dlt_node_id)
+
                     logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
 
                     # Sets up the federation docker network and the VXLAN network interface
-                    configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+                    configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range)
 
                     container_port=5000
                     exposed_ports=5000
