@@ -682,7 +682,7 @@ def delete_docker_containers_endpoint(name: str):
 @app.post("/configure_vxlan", tags=["Docker Functions"], summary="Configure Docker network and VXLAN")
 def configure_docker_network_and_vxlan_endpoint(local_ip: str, remote_ip: str, interface_name: str, vxlan_id: str, dst_port: str, subnet: str, ip_range: str, docker_net_name: str = 'federation-net'):
     try:
-        configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, docker_net_name)
+        configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range,'netcom;', docker_net_name)
         return {"message": f"created federated docker network and vxlan connection successfully"}
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
@@ -2425,7 +2425,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                             net_name = "federation-net"
                         else:
                             net_name = "federation-net-2"
-                        configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range, net_name)
+                        configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range, 'netcom;', net_name)
                     except Exception as e:
                         logger.error(f"Error during deployment info fetching and network configuration: {e}")
                         raise HTTPException(status_code=500, detail=f"Error during deployment info fetching and network configuration: {e}")
