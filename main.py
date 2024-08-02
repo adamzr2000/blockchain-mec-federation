@@ -2221,7 +2221,7 @@ def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 
             best_bid_index = None
             
             # Loop through all bid indices and print their information
-            retry_attempts = 6
+            retry_attempts = 10
             retry_delay = 2  # seconds
             
             # Loop through all bid indices and print their information

@@ -2,7 +2,7 @@ import subprocess
 import time
 
 # Constants
-EXPORT_RESULTS = "true"
+EXPORT_RESULTS = "false"
 BASE_URLS = [
     "http://10.5.99.1:8000", "http://10.5.99.2:8000", "http://10.5.99.3:8000", "http://10.5.99.4:8000",
     "http://10.5.99.5:8000", "http://10.5.99.6:8000", "http://10.5.99.7:8000", "http://10.5.99.8:8000",
@@ -16,7 +16,7 @@ BASE_URLS = [
 
 NUM_CONSUMERS = 20
 NUM_PROVIDERS = 10
-NUM_TESTS = 1  # Set the number of tests to run
+NUM_TESTS = 2  # Set the number of tests to run
 
 def generate_prices():
     """ Generate prices for providers as [1, 2, 3, ... NUM_PROVIDERS] """
@@ -55,10 +55,10 @@ def cleanup_resources():
         
         service_url_1 = f"http://{provider_node_ip}:8000/delete_docker_service?name=federated-mec-app_1"
         service_url_2 = f"http://{provider_node_ip}:8000/delete_docker_service?name=federated-mec-app-2_1"
-        vxlan_url_11 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_1}&docker_net_name=federated-net"
-        vxlan_url_12 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_2}&docker_net_name=federated-net"
-        vxlan_url_21 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_1}&docker_net_name=federated-net-2"
-        vxlan_url_22 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_2}&docker_net_name=federated-net-2"
+        vxlan_url_11 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_1}&docker_net_name=federation-net"
+        vxlan_url_12 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_2}&docker_net_name=federation-net"
+        vxlan_url_21 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_1}&docker_net_name=federation-net-2"
+        vxlan_url_22 = f"http://{provider_node_ip}:8000/delete_vxlan?vxlan_id={vxlan_id_2}&docker_net_name=federation-net-2"
 
         run_command(["curl", "-X", "DELETE", service_url_1])
         run_command(["curl", "-X", "DELETE", service_url_2])
