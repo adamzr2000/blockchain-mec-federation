@@ -2209,7 +2209,7 @@ def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 
                         bidderArrived = True 
                         break
             # Use GetBidCount to ensure we have the correct number of bids
-            total_bids = bid_index
+            total_bids = bid_index + 1
             logger.info(f"Total bids received from contract: {total_bids}")
 
             if total_bids < providers:
