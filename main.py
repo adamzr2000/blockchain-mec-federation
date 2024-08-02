@@ -2209,7 +2209,7 @@ def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 
                         bidderArrived = True 
                         break
             # Use GetBidCount to ensure we have the correct number of bids
-            total_bids = bid_index + 1
+            total_bids = bid_index
             logger.info(f"Total bids received from contract: {total_bids}")
 
             if total_bids < providers:
@@ -2221,31 +2221,39 @@ def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 
             best_bid_index = None
             
             # Loop through all bid indices and print their information
+            retry_attempts = 6
+            retry_delay = 2  # seconds
+            
+            # Loop through all bid indices and print their information
             for i in range(total_bids):
-                try:
-                    bid_info = GetBidInfo(i)
-                    logger.info(f"Bid {i}: {bid_info}")
-                    if bid_info is None:
-                        logger.warning(f"Bid info for index {i} is None, retrying...")
-                        time.sleep(2)
+                attempts = 0
+                while attempts < retry_attempts:
+                    try:
                         bid_info = GetBidInfo(i)
+                        logger.info(f"Bid {i}: {bid_info}")
                         if bid_info is None:
-                            logger.error(f"Bid info for index {i} is still None after retry, skipping...")
+                            logger.warning(f"Bid info for index {i} is None, retrying...")
+                            time.sleep(retry_delay)
+                            attempts += 1
                             continue
 
-                    bid_price = int(bid_info[1]) 
-                    if bid_price == matching_price:
-                        best_bid_index = int(bid_info[2])
-                        logger.info(f"Found bid with specific price {matching_price}: {bid_info}")
-                        break
-                except Exception as e:
-                    logger.error(f"Error processing bid at index {i}: {str(e)}")
-                    continue    
+                        bid_price = int(bid_info[1]) 
+                        if bid_price == matching_price:
+                            best_bid_index = int(bid_info[2])
+                            logger.info(f"Found bid with specific price {matching_price}: {bid_info}")
+                            break
+                        else:
+                            break
+                    except Exception as e:
+                        logger.error(f"Error processing bid at index {i}: {str(e)}, attempt {attempts + 1}/{retry_attempts}")
+                        time.sleep(retry_delay)
+                        attempts += 1
+                if best_bid_index is not None:
+                    break    
 
             if best_bid_index is None:
                 logger.error(f"No bid matched the specific price {matching_price}")
                 raise HTTPException(status_code=500, detail=f"No bid matched the specific price {matching_price}")
-
                         
             # Winner choosen 
             t_winner_choosen = time.time() - process_start_time
