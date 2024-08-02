@@ -2,7 +2,7 @@
 
 # Function to display usage information
 usage() {
-    echo "Usage: $0 -l <local_ip> -r <remote_ip> -i <interface_name> -v <vxlan_id> -p <dst_port> -s <subnet> -d <ip_range>"
+    echo "Usage: $0 -l <local_ip> -r <remote_ip> -i <interface_name> -v <vxlan_id> -p <dst_port> -s <subnet> -d <ip_range> [-n <network_name>]"
     echo "  -l <local_ip>        Local IP address"
     echo "  -r <remote_ip>       Remote IP address"
     echo "  -i <interface_name>  Interface name (e.g., enp0s3)"
@@ -10,6 +10,7 @@ usage() {
     echo "  -p <dst_port>        Destination port"
     echo "  -s <subnet>          Subnet for Docker network (e.g., 10.0.0.0/16)"
     echo "  -d <ip_range>        IP range for Docker network (e.g., 10.0.1.0/24)"
+    echo "  -n <network_name>    Docker network name (default: federation-net)"
     exit 1
 }
 
@@ -31,7 +32,8 @@ validate_ip() {
 }
 
 # Parse input arguments
-while getopts "l:r:i:v:p:s:d:" opt; do
+network_name="federation-net"
+while getopts "l:r:i:v:p:s:d:n:" opt; do
     case ${opt} in
         l ) local_ip=$OPTARG ;;
         r ) remote_ip=$OPTARG ;;
@@ -40,6 +42,7 @@ while getopts "l:r:i:v:p:s:d:" opt; do
         p ) dst_port=$OPTARG ;;
         s ) subnet=$OPTARG ;;
         d ) ip_range=$OPTARG ;;
+        n ) network_name=$OPTARG ;;
         * ) usage ;;
     esac
 done
@@ -63,8 +66,8 @@ fi
 # This script sets up a Docker network and a VXLAN network interface.
 
 # Step 1: Create a Docker network.
-echo -e "\nCreating Docker network 'federation-net' with subnet $subnet and IP range $ip_range..."
-network_id=$(sudo docker network create --subnet $subnet --ip-range $ip_range federation-net)
+echo -e "\nCreating Docker network '$network_name' with subnet $subnet and IP range $ip_range..."
+network_id=$(sudo docker network create --subnet $subnet --ip-range $ip_range $network_name)
 
 # Step 2: Verify the Docker network creation and extract the bridge name from brctl show.
 sudo docker network inspect $network_id > /dev/null
@@ -74,19 +77,20 @@ bridge_name=$(sudo brctl show | grep $(echo $network_id | cut -c 1-12) | awk '{p
 if [ -z "$bridge_name" ]; then
     echo "Bridge name could not be retrieved."
 else
-    echo -e "\nSuccessfully created Docker network 'federation-net' - Network ID: $network_id, Bridge Name: $bridge_name"
+    echo -e "\nSuccessfully created Docker network '$network_name' - Network ID: $network_id, Bridge Name: $bridge_name"
 fi
 
 # Step 3: Create a VXLAN network interface.
-echo -e "\nCreating VXLAN network interface 'vxlan200' with parameters - VXLAN ID: $vxlan_id, Local IP: $local_ip, Remote IP: $remote_ip, Destination Port: $dst_port, Device Interface: $dev_interface"
-sudo ip link add vxlan200 type vxlan id $vxlan_id local $local_ip remote $remote_ip dstport $dst_port dev $dev_interface
+vxlan_iface="vxlan$vxlan_id"
+echo -e "\nCreating VXLAN network interface '$vxlan_iface' with parameters - VXLAN ID: $vxlan_id, Local IP: $local_ip, Remote IP: $remote_ip, Destination Port: $dst_port, Device Interface: $dev_interface"
+sudo ip link add $vxlan_iface type vxlan id $vxlan_id local $local_ip remote $remote_ip dstport $dst_port dev $dev_interface
 
 # Step 4: Enable the VXLAN network interface.
-# echo -e "\nEnabling the VXLAN interface 'vxlan200'..."
-sudo ip link set vxlan200 up
+# echo -e "\nEnabling the VXLAN interface '$vxlan_iface'..."
+sudo ip link set $vxlan_iface up
 
 # Step 5: Verify that the VXLAN interface is correctly configured.
-# echo -e "\nChecking the list of interfaces for 'vxlan200'..."
+# echo -e "\nChecking the list of interfaces for '$vxlan_iface'..."
 # ip a | grep vxlan
 
 # Step 6: Display the Docker bridge names and check the connectivity.
@@ -94,7 +98,7 @@ sudo ip link set vxlan200 up
 # sudo brctl show
 
 # Step 7: Attach the newly created VXLAN interface to the docker bridge.
-echo -e "\nAttaching VXLAN interface 'vxlan200' to the Docker bridge '$bridge_name'..."
-sudo brctl addif $bridge_name vxlan200
+echo -e "\nAttaching VXLAN interface '$vxlan_iface' to the Docker bridge '$bridge_name'..."
+sudo brctl addif $bridge_name $vxlan_iface
 
 echo -e "\nFederation completed successfully."
