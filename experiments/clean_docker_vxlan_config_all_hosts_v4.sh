@@ -19,8 +19,9 @@ execute_curl_command() {
 # Loop to delete services for consumer nodes
 for i in $(seq 1 $NUM_CONSUMERS); do
   NODE_IP="10.5.99.${i}"
+  VXLAN_ID=$((200 + i))
   SERVICE_URL="http://${NODE_IP}:8000/delete_docker_service?name=mec-app_1"
-  VXLAN_URL="http://${NODE_IP}:8000/delete_vxlan"
+  VXLAN_URL="http://${NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID}&docker_net_name=federation-net"
   execute_curl_command "${SERVICE_URL}"
   execute_curl_command "${VXLAN_URL}"
 done
