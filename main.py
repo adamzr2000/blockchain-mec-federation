@@ -2277,10 +2277,10 @@ def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 
 
             endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_provider)
 
-            logger.info(f"Federated Service Info - Service Endpoint Provider: {service_endpoint_provider}, Federated Host: {federated_host}")
+            logger.info(f"Federated Service Info - Service Endpoint Provider: {endpoint_ip}, Federated Host: {federated_host}")
 
             # Sets up the federation docker network and the VXLAN network interface
-            configure_docker_network_and_vxlan(ip_address, endpoint_vxlan_id, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, docker_ip_range)
+            configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
             attach_container_to_network("mec-app_1", "federation-net")
 
