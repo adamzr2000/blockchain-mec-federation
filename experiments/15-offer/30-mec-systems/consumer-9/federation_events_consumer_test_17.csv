@@ -1,0 +1,7 @@
+step,timestamp
+service_announced,9.5367431640625e-07
+bid_offer_received,14.676729917526245
+winner_choosen,14.727625131607056
+confirm_deployment_received,24.063199281692505
+establish_vxlan_connection_with_provider_start,24.063230514526367
+establish_vxlan_connection_with_provider_finished,24.86417007446289
