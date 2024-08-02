@@ -2397,7 +2397,6 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
             no_winner_count = 0
             deployed_federations = 0
             for service_id in open_services:
-                logger.debug(f"Checking if provider is the winner for service_id: {service_id}")
                 if CheckWinner(service_id):
                     logger.info(f"I am the winner for {service_id}")
                     
@@ -2413,21 +2412,22 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                     logger.debug("Fetching deployed info")
                     try:
                         federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
-                        logger.debug(f"Deployed info: federated_host={federated_host}, service_endpoint_consumer={service_endpoint_consumer}")
 
                         service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
-                        logger.debug(f"Decoded service_endpoint_consumer: {service_endpoint_consumer}")
 
                         endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_consumer)
-                        logger.debug(f"Extracted service endpoint: ip={endpoint_ip}, vxlan_id={endpoint_vxlan_id}, vxlan_port={endpoint_vxlan_port}, docker_subnet={endpoint_docker_subnet}")
 
                         net_range = create_smaller_subnet(endpoint_docker_subnet, dlt_node_id)
-                        logger.debug(f"Created smaller subnet: {net_range}")
+                        # logger.debug(f"Created smaller subnet: {net_range}")
 
                         logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
 
-                        logger.debug("Configuring docker network and VXLAN")
-                        configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range)
+                        if deployed_federations == 0:
+                            net_name = "federation-net"
+                        else:
+                            net_name = "federation-net-2"
+                        # logger.debug(f"Configuring docker network and VXLAN: {docker_network_name}")
+                        configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range, net_name)
                     except Exception as e:
                         logger.error(f"Error during deployment info fetching and network configuration: {e}")
                         raise HTTPException(status_code=500, detail=f"Error during deployment info fetching and network configuration: {e}")
@@ -2440,7 +2440,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                             deploy_docker_containers(
                                 image=requested_service,
                                 name=f"federated-{requested_service}",
-                                network="federation-net",
+                                network=docker_network_name,
                                 replicas=int(requested_replicas),
                                 env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
                                 container_port=container_port,
@@ -2452,7 +2452,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                             deploy_docker_containers(
                                 image=requested_service,
                                 name=f"federated-{requested_service}-2",
-                                network="federation-net-2",
+                                network=docker_network_name,
                                 replicas=int(requested_replicas),
                                 env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
                                 container_port=container_port,
@@ -2489,7 +2489,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                             data.append(['confirm_deployment_sent_service_2', t_confirm_deployment_sent_service_2])
 
                         federated_host = f"http://{federated_host}:{exposed_ports}"
-                        logger.debug(f"Calling ServiceDeployed with host: {federated_host}")
+                        # logger.debug(f"Calling ServiceDeployed with host: {federated_host}")
                         ServiceDeployed(service_id, federated_host)
 
                         deployed_federations += 1
