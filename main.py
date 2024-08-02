@@ -2396,16 +2396,18 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
             am_i_winner = False
             no_winner_count = 0
             for service_id in open_services:
-                # Provider AD asks if he is the winner
                 if CheckWinner(service_id):
                     logger.info(f"I am the winner for {service_id}")
-                    # Start deployment of the requested federated service
-                    logger.info("Start deployment of the requested federated service...")
-                    t_deployment_start = time.time() - process_start_time
-                    data.append(['deployment_start', t_deployment_start])
+                    
+                    if deployed_federations == 0:
+                        t_deployment_start = time.time() - process_start_time
+                        data.append(['deployment_start', t_deployment_start])
+                    else:
+                        t_deployment_start_service_2 = time.time() - process_start_time
+                        data.append(['deployment_start_service_2', t_deployment_start_service_2])
+                    
                     am_i_winner = True
 
-                    # Service deployed info
                     federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
 
                     service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
@@ -2416,61 +2418,76 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
 
                     logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
 
-                    # Sets up the federation docker network and the VXLAN network interface
                     configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range)
 
-                    container_port=5000
-                    exposed_ports=5000
-
-                    # Deploy docker service and wait to be ready and get an IP address
-                    deploy_docker_containers(
-                        image=requested_service,
-                        name=f"federated-{requested_service}",
-                        network="federation-net",
-                        replicas=int(requested_replicas),
-                        env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
-                        container_port=container_port,
-                        start_host_port=exposed_ports
-                    )          
+                    container_port = 5000
+                    if deployed_federations == 0:
+                        exposed_ports = 5000
+                        deploy_docker_containers(
+                            image=requested_service,
+                            name=f"federated-{requested_service}",
+                            network="federation-net",
+                            replicas=int(requested_replicas),
+                            env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
+                            container_port=container_port,
+                            start_host_port=exposed_ports
+                        )
+                    else:
+                        exposed_ports = 5000 + int(dlt_node_id)
+                        deploy_docker_containers(
+                            image=requested_service,
+                            name=f"federated-{requested_service}-2",
+                            network="federation-net-2",
+                            replicas=int(requested_replicas),
+                            env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
+                            container_port=container_port,
+                            start_host_port=exposed_ports
+                        )
 
                     container_ips = get_container_ips(requested_service)
                     if container_ips:
                         first_container_name = next(iter(container_ips))
                         federated_host = container_ips[first_container_name]
                                 
-                    # Deployment finished
-                    t_deployment_finished = time.time() - process_start_time
-                    data.append(['deployment_finished', t_deployment_finished])
-                        
-                    # Deployment confirmation sent
-                    t_confirm_deployment_sent = time.time() - process_start_time
-                    data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
-                    federated_host=f"http://{federated_host}:{exposed_ports}"
+                    if deployed_federations == 0:
+                        t_deployment_finished = time.time() - process_start_time
+                        data.append(['deployment_finished', t_deployment_finished])
+                    else:
+                        t_deployment_finished_service_2 = time.time() - process_start_time
+                        data.append(['deployment_finished_service_2', t_deployment_finished_service_2])
+
+                    if deployed_federations == 0:
+                        t_confirm_deployment_sent = time.time() - process_start_time
+                        data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
+                    else:
+                        t_confirm_deployment_sent_service_2 = time.time() - process_start_time
+                        data.append(['confirm_deployment_sent_service_2', t_confirm_deployment_sent_service_2])
+
+                    federated_host = f"http://{federated_host}:{exposed_ports}"
                     ServiceDeployed(service_id, federated_host)
 
+                    deployed_federations += 1
                     total_duration = time.time() - process_start_time
 
                     logger.info(f"Service Deployed - Federated Host: {federated_host}")
      
                     DisplayServiceState(service_id)
                         
-                    if export_to_csv:
-                        # Export the data to a csv file only if export_to_csv is True
-                        create_csv_file(domain, header, data)
-                        logger.info(f"Data exported to CSV for {domain}.")
-                    else:
-                        logger.warning("CSV export not requested.")
+                    if deployed_federations >= 2:
+                        if export_to_csv:
+                            create_csv_file(domain, header, data)
+                            logger.info(f"Data exported to CSV for {domain}.")
+                        else:
+                            logger.warning("CSV export not requested.")
 
-                    return {"message": f"Federation process completed successfully - {domain}"}
+                        return {"message": f"Federation process completed successfully - {domain}"}
                 else:
-                    # logger.info(f"I am not the winner for {service_id}")
                     no_winner_count += 1
                     if no_winner_count == offers:
                         t_other_provider_chosen = time.time() - process_start_time
                         data.append(['other_provider_chosen', t_other_provider_chosen])
                         logger.info(f"I am not the winner for any service_id")
                         if export_to_csv:
-                            # Export the data to a csv file only if export_to_csv is True
                             create_csv_file(domain, header, data)
                             logger.info(f"Data exported to CSV for {domain}.")
                             return {"message": f"I am not the winner for any service_id"}
@@ -2478,6 +2495,9 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                             logger.warning("CSV export not requested.")
                             return {"message": f"I am not the winner for any service_id"}
 
+            if deployed_federations < 2:
+                logger.error("Could not deploy 2 federations")
+                raise HTTPException(status_code=500, detail="Could not deploy 2 federations")
         else:
             error_message = "You must be provider to run this code"
             raise HTTPException(status_code=500, detail=error_message)

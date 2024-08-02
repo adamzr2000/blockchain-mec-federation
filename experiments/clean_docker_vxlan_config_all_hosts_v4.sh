@@ -26,14 +26,18 @@ for i in $(seq 1 $NUM_CONSUMERS); do
 done
 
 # Loop to delete services for provider nodes
-for i in $(seq $(($NUM_CONSUMERS + 1)) $(($NUM_CONSUMERS + $NUM_PROVIDERS))); do
-  NODE_IP="10.5.99.${i}"
-  VXLAN_ID=$((200 + i))
-  SERVICE_URL_1="http://${NODE_IP}:8000/delete_docker_service?name=federated-mec-app_1"
-  SERVICE_URL_2="http://${NODE_IP}:8000/delete_docker_service?name=federated-mec-app_2"
-  VXLAN_URL_1="http://${NODE_IP}:8000/delete_vxlan"
-  VXLAN_URL_2="http://${NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID}&docker_net_name=federated-net-2"
+for i in $(seq 1 $NUM_PROVIDERS); do
+  PROVIDER_NODE_IP="10.5.99.$((NUM_CONSUMERS + i))"
+  CONSUMER_1=$((2 * i - 1))
+  CONSUMER_2=$((2 * i))
+  VXLAN_ID_1=$((200 + CONSUMER_1))
+  VXLAN_ID_2=$((200 + CONSUMER_2))
   
+  SERVICE_URL_1="http://${PROVIDER_NODE_IP}:8000/delete_docker_service?name=federated-mec-app_1"
+  SERVICE_URL_2="http://${PROVIDER_NODE_IP}:8000/delete_docker_service?name=federated-mec-app-2_1"
+  VXLAN_URL_1="http://${PROVIDER_NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID_1}&docker_net_name=federated-net"
+  VXLAN_URL_2="http://${PROVIDER_NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID_2}&docker_net_name=federated-net-2"
+
   execute_curl_command "${SERVICE_URL_1}"
   execute_curl_command "${SERVICE_URL_2}"
   execute_curl_command "${VXLAN_URL_1}"
