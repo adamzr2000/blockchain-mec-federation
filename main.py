@@ -2408,16 +2408,22 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                     
                     am_i_winner = True
 
+                    logger.info("Fetching deployed info")
+
                     federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
+
+                    logger.info(f"Deployed info: federated_host={federated_host}, service_endpoint_consumer={service_endpoint_consumer}")
 
                     service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
 
                     endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_consumer)
 
                     net_range = create_smaller_subnet(endpoint_docker_subnet, dlt_node_id)
+                    logger.info(f"Created smaller subnet: {net_range}")
 
                     logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
 
+                    logger.info("Configuring docker network and VXLAN")
                     configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range)
 
                     container_port = 5000
