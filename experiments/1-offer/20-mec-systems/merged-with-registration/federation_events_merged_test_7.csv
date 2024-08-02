@@ -1,0 +1,15 @@
+step,timestamp
+send_registration_transaction,8.58306884765625e-07
+confirm_registration_transaction,2.9271558046340944
+service_announced,2.9271561384201052
+announce_received,6.602954077720643
+bid_offer_sent,5.958906340599061
+bid_offer_received,11.087536025047303
+winner_choosen,11.294915127754212
+winner_received,16.144327569007874
+deployment_start,16.047090458869935
+deployment_finished,16.826726126670838
+confirm_deployment_sent,16.826748061180112
+confirm_deployment_received,21.056237626075742
+establish_vxlan_connection_with_provider_start,21.056239771842957
+establish_vxlan_connection_with_provider_finished,21.492360520362855

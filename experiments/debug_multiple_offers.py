@@ -1,4 +1,3 @@
-import subprocess
 import time
 
 # Constants
@@ -16,40 +15,35 @@ BASE_URLS = [
 
 NUM_CONSUMERS = 15
 NUM_PROVIDERS = 15
-NUM_TESTS = 20  # Set the number of tests to run
+NUM_TESTS = 1  # Set the number of tests to run
 
 def generate_prices():
-    """ Generate prices for providers as [1, 2, 3, ... NUM_PROVIDERS] """
+    """ Generate prices for providers as [1, 2, 3, ... 20] """
     return list(range(1, NUM_PROVIDERS + 1))
 
 def deploy_consumer_container(endpoint):
     """ Deploy consumer container """
     print(f"Deploying consumer container at {endpoint}")
-    result = subprocess.run(
-        ["curl", "-X", "POST", f"{endpoint}/deploy_docker_service?image=mec-app&name=mec-app&network=bridge&replicas=1"], 
-        capture_output=True, text=True, check=True
-    )
-    print(result.stdout)
+    command = ["curl", "-X", "POST", f"{endpoint}/deploy_docker_service?image=mec-app&name=mec-app&network=bridge&replicas=1"]
+    print(f"Command: {' '.join(command)}")
 
 def run_command(command):
     """ Run a command and capture its output """
     print(f"Running: {' '.join(command)}")
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    return process
 
 def cleanup_resources():
     """ Cleanup resources for consumers and the winning provider """
     for i in range(NUM_CONSUMERS):
         endpoint = BASE_URLS[i]
         print(f"Cleaning up consumer {i+1} at {endpoint}")
-        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_docker_service?name=mec-app"]).wait()
-        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_vxlan"]).wait()
+        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_docker_service?name=mec-app"])
+        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_vxlan"])
 
     for i in range(NUM_CONSUMERS, NUM_CONSUMERS + NUM_PROVIDERS):
         endpoint = BASE_URLS[i]
         print(f"Cleaning up provider {i-NUM_CONSUMERS+1} at {endpoint}")
-        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_docker_service?name=federated-mec-app"]).wait()
-        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_vxlan"]).wait()
+        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_docker_service?name=federated-mec-app"])
+        run_command(["curl", "-X", "DELETE", f"{endpoint}/delete_vxlan"])
 
     print("Cleanup completed.")
     time.sleep(2)
@@ -75,24 +69,21 @@ def start_experiments(test_number):
     for i in range(NUM_CONSUMERS, total_participants):
         price = prices[i - NUM_CONSUMERS]
         EXPERIMENTS_PROVIDER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_provider_v3?export_to_csv={EXPORT_RESULTS}&price={price}&offers={NUM_CONSUMERS}"
-        processes.append(run_command(["curl", "-X", "POST", EXPERIMENTS_PROVIDER_ENDPOINT]))
+        processes.append(EXPERIMENTS_PROVIDER_ENDPOINT)
+        run_command(["curl", "-X", "POST", EXPERIMENTS_PROVIDER_ENDPOINT])
         consumer_index = (consumer_index + 1) % NUM_CONSUMERS
     
     # Start the consumer experiments and wait for them to finish
     for i in range(NUM_CONSUMERS - 1):
-        # matching_price = (i + 1) * 2
         matching_price = (i + 1) 
         EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[i]}/start_experiments_consumer_v3?export_to_csv={EXPORT_RESULTS}&providers={NUM_PROVIDERS}&matching_price={matching_price}"
-        processes.append(run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT]))
+        processes.append(EXPERIMENTS_CONSUMER_ENDPOINT)
+        run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT])
     
     # Start the last consumer experiment without running it in the background
-    # matching_price = NUM_CONSUMERS * 2
-    matching_price = NUM_CONSUMERS 
+    matching_price = NUM_CONSUMERS
     EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[NUM_CONSUMERS - 1]}/start_experiments_consumer_v3?export_to_csv={EXPORT_RESULTS}&providers={NUM_PROVIDERS}&matching_price={matching_price}"
-    run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT]).wait()
-
-    for process in processes:
-        process.wait()
+    run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT])
 
     print(f"Experiment {test_number} completed.")
     print("Cleaning up resources...")

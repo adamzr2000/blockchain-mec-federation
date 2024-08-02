@@ -65,6 +65,10 @@ def merge_and_save_files(base_dir, system_dir):
                 bid_offer_sent_min = provider_df[provider_df['step'] == 'bid_offer_sent']['timestamp'].min()
                 winner_received_max = provider_df[provider_df['step'] == 'winner_received']['timestamp'].max()
 
+                # announce_received_max = provider_df[provider_df['step'] == 'announce_received']['timestamp'].mean()
+                # bid_offer_sent_min = provider_df[provider_df['step'] == 'bid_offer_sent']['timestamp'].mean()
+                # winner_received_max = provider_df[provider_df['step'] == 'winner_received']['timestamp'].mean()
+
                 # Filter provider-1 for the rest of the steps
                 provider1_dir = os.path.join(system_dir, 'provider-1')
                 provider1_file = os.path.join(provider1_dir, f'federation_events_provider_test_{test_num}.csv')
