@@ -2418,7 +2418,6 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                         endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_consumer)
 
                         net_range = create_smaller_subnet(endpoint_docker_subnet, dlt_node_id)
-                        # logger.debug(f"Created smaller subnet: {net_range}")
 
                         logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
 
@@ -2426,7 +2425,6 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                             net_name = "federation-net"
                         else:
                             net_name = "federation-net-2"
-                        # logger.debug(f"Configuring docker network and VXLAN: {docker_network_name}")
                         configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range, net_name)
                     except Exception as e:
                         logger.error(f"Error during deployment info fetching and network configuration: {e}")
@@ -2440,7 +2438,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                             deploy_docker_containers(
                                 image=requested_service,
                                 name=f"federated-{requested_service}",
-                                network=docker_network_name,
+                                network="federation-net",
                                 replicas=int(requested_replicas),
                                 env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
                                 container_port=container_port,
@@ -2452,7 +2450,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                             deploy_docker_containers(
                                 image=requested_service,
                                 name=f"federated-{requested_service}-2",
-                                network=docker_network_name,
+                                network="federation-net-2",
                                 replicas=int(requested_replicas),
                                 env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
                                 container_port=container_port,
