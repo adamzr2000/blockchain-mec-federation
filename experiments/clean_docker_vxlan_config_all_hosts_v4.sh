@@ -35,11 +35,16 @@ for i in $(seq 1 $NUM_PROVIDERS); do
   
   SERVICE_URL_1="http://${PROVIDER_NODE_IP}:8000/delete_docker_service?name=federated-mec-app_1"
   SERVICE_URL_2="http://${PROVIDER_NODE_IP}:8000/delete_docker_service?name=federated-mec-app-2_1"
-  VXLAN_URL_1="http://${PROVIDER_NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID_1}&docker_net_name=federated-net"
-  VXLAN_URL_2="http://${PROVIDER_NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID_2}&docker_net_name=federated-net-2"
+  VXLAN_URL_11="http://${PROVIDER_NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID_1}&docker_net_name=federated-net"
+  VXLAN_URL_12="http://${PROVIDER_NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID_2}&docker_net_name=federated-net"
+  VXLAN_URL_21="http://${PROVIDER_NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID_1}&docker_net_name=federated-net-2"
+  VXLAN_URL_22="http://${PROVIDER_NODE_IP}:8000/delete_vxlan?vxlan_id=${VXLAN_ID_2}&docker_net_name=federated-net-2"
 
   execute_curl_command "${SERVICE_URL_1}"
   execute_curl_command "${SERVICE_URL_2}"
-  execute_curl_command "${VXLAN_URL_1}"
-  execute_curl_command "${VXLAN_URL_2}"
+  execute_curl_command "${VXLAN_URL_11}"
+  execute_curl_command "${VXLAN_URL_12}"
+  execute_curl_command "${VXLAN_URL_21}"
+  execute_curl_command "${VXLAN_URL_22}"
+
 done
