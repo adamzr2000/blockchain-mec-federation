@@ -688,7 +688,7 @@ def configure_docker_network_and_vxlan_endpoint(local_ip: str, remote_ip: str, i
         logger.error(f"An unexpected error occurred: {str(e)}")
 
 @app.delete("/delete_vxlan", tags=["Docker Functions"], summary="Delete Docker network and VXLAN")
-def delete_docker_network_and_vxlan_endpoint(vxlan_id = 200, docker_net_name = 'federation-net'):
+def delete_docker_network_and_vxlan_endpoint(vxlan_id: str = '200', docker_net_name: str = 'federation-net'):
     try:
         delete_docker_network_and_vxlan('netcom;', vxlan_id, docker_net_name)
         return {"message": f"deleted federated docker network and vxlan configuration successfully"}

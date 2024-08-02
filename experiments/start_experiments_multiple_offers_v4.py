@@ -16,7 +16,7 @@ BASE_URLS = [
 
 NUM_CONSUMERS = 20
 NUM_PROVIDERS = 10
-NUM_TESTS = 20  # Set the number of tests to run
+NUM_TESTS = 1  # Set the number of tests to run
 
 def generate_prices():
     """ Generate prices for providers as [1, 2, 3, ... NUM_PROVIDERS] """
@@ -95,7 +95,7 @@ def start_experiments(test_number):
         consumer_index = (consumer_index + 1) % NUM_CONSUMERS
     
     # Start the consumer experiments and wait for them to finish
-    for i in range(NUM_CONSUMERS - 1):
+    for i in range(NUM_CONSUMERS):
         # matching_price = (i + 1) * 2
         # matching_price = (i + 1) 
         matching_price = (i // 2) + 1  # Adjusted to match 2 consumers per provider
@@ -104,9 +104,10 @@ def start_experiments(test_number):
     
     # Start the last consumer experiment without running it in the background
     # matching_price = NUM_CONSUMERS * 2
-    matching_price = NUM_CONSUMERS 
-    EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[NUM_CONSUMERS - 1]}/start_experiments_consumer_v4?export_to_csv={EXPORT_RESULTS}&providers={NUM_PROVIDERS}&matching_price={matching_price}"
-    run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT]).wait()
+    # matching_price = NUM_CONSUMERS 
+    # matching_price = (i // 2) + 1  # Adjusted to match 2 consumers per provider
+    # EXPERIMENTS_CONSUMER_ENDPOINT = f"{BASE_URLS[NUM_CONSUMERS - 1]}/start_experiments_consumer_v4?export_to_csv={EXPORT_RESULTS}&providers={NUM_PROVIDERS}&matching_price={matching_price}"
+    # run_command(["curl", "-X", "POST", EXPERIMENTS_CONSUMER_ENDPOINT]).wait()
 
     for process in processes:
         process.wait()
