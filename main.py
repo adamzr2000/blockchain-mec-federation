@@ -2236,7 +2236,7 @@ def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 
             best_bid_index = None
             
             # Loop through all bid indices and print their information
-            retry_attempts = 10
+            retry_attempts = 15
             retry_delay = 2  # seconds
             
             # Loop through all bid indices and print their information
@@ -2338,7 +2338,7 @@ def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/start_experiments_provider_v4")
-def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, offers: int = 1):
+def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, offers: int = 1, deployments: int = 2):
     try:
         header = ['step', 'timestamp']
         data = []
@@ -2443,11 +2443,9 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                         net_range = create_smaller_subnet(endpoint_docker_subnet, dlt_node_id)
 
                         logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
+                        svc_name = f"federated-{requested_service}-{deployed_federations}"
+                        net_name = f"federation-net-{deployed_federations}"
 
-                        if deployed_federations == 0:
-                            net_name = "federation-net"
-                        else:
-                            net_name = "federation-net-2"
                         configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range, 'netcom;', net_name)
                     except Exception as e:
                         logger.error(f"Error during deployment info fetching and network configuration: {e}")
@@ -2455,30 +2453,17 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
 
                     container_port = 5000
                     try:
-                        if deployed_federations == 0:
-                            exposed_ports = 5000
-                            logger.debug("Deploying first docker container")
-                            deploy_docker_containers(
-                                image=requested_service,
-                                name=f"federated-{requested_service}",
-                                network="federation-net",
-                                replicas=int(requested_replicas),
-                                env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
-                                container_port=container_port,
-                                start_host_port=exposed_ports
-                            )
-                        else:
-                            exposed_ports = 5000 + int(dlt_node_id)
-                            logger.debug("Deploying second docker container")
-                            deploy_docker_containers(
-                                image=requested_service,
-                                name=f"federated-{requested_service}-2",
-                                network="federation-net-2",
-                                replicas=int(requested_replicas),
-                                env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
-                                container_port=container_port,
-                                start_host_port=exposed_ports
-                            )
+                        exposed_ports = 5000 + int(dlt_node_id) + deployed_federations
+                        logger.debug("Deploying first docker container")
+                        deploy_docker_containers(
+                            image=requested_service,
+                            name=svc_name,
+                            network=net_name,
+                            replicas=int(requested_replicas),
+                            env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
+                            container_port=container_port,
+                            start_host_port=exposed_ports
+                        )
                     except Exception as e:
                         logger.error(f"Error during docker container deployment: {e}")
                         raise HTTPException(status_code=500, detail=f"Error during docker container deployment: {e}")
@@ -2495,19 +2480,12 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                         raise HTTPException(status_code=500, detail=f"Error getting container IPs: {e}")
                                 
                     try:
-                        if deployed_federations == 0:
-                            t_deployment_finished = time.time() - process_start_time
-                            data.append(['deployment_finished', t_deployment_finished])
-                        else:
-                            t_deployment_finished_service_2 = time.time() - process_start_time
-                            data.append(['deployment_finished_service_2', t_deployment_finished_service_2])
+                        t_deployment_finished = time.time() - process_start_time
+                        data.append([f'deployment_finished_service_{deployed_federations}', t_deployment_finished])
 
-                        if deployed_federations == 0:
-                            t_confirm_deployment_sent = time.time() - process_start_time
-                            data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
-                        else:
-                            t_confirm_deployment_sent_service_2 = time.time() - process_start_time
-                            data.append(['confirm_deployment_sent_service_2', t_confirm_deployment_sent_service_2])
+                        t_confirm_deployment_sent = time.time() - process_start_time
+                        data.append([f'confirm_deployment_sent_service_{deployed_federations}', t_confirm_deployment_sent])
+
 
                         federated_host = f"http://{federated_host}:{exposed_ports}"
                         # logger.debug(f"Calling ServiceDeployed with host: {federated_host}")
@@ -2523,7 +2501,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                         logger.error(f"Error during deployment finalization: {e}")
                         raise HTTPException(status_code=500, detail=f"Error during deployment finalization: {e}")
                         
-                    if deployed_federations >= 2:
+                    if deployed_federations >= deployments:
                         if export_to_csv:
                             create_csv_file(domain, header, data)
                             logger.info(f"Data exported to CSV for {domain}.")
@@ -2545,7 +2523,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                             logger.warning("CSV export not requested.")
                             return {"message": f"I am not the winner for any service_id"}
 
-            if deployed_federations < 2:
+            if deployed_federations < deployments:
                 logger.error("Could not deploy 2 federations")
                 raise HTTPException(status_code=500, detail="Could not deploy 2 federations")
         else:
