@@ -2104,7 +2104,7 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
                     logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
 
                     # Sets up the federation docker network and the VXLAN network interface
-                    configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range)
+                    configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, '200', '4789', endpoint_docker_subnet, net_range)
                     # configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
                     container_port=5000
