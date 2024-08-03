@@ -71,12 +71,16 @@ def plot_mean_start_end_times(directory):
     times_df = times_df.sort_values('Order', ascending=True)
     return times_df
 
-# Process additional dataset
-additional_dir = '../10-offer/30-mec-systems/merged-with-registration'
-additional_step_times = calculate_step_times(additional_dir)
+# Process additional datasets
+additional_dirs = {
+    '../10-offer/30-mec-systems/merged-with-registration': '30 MEC systems [10 consumers, 20 providers]',
+    '../15-offer/30-mec-systems/merged-with-registration': '30 MEC systems [15 consumers, 15 providers]',
+    '../20-offer/30-mec-systems/merged-with-registration': '30 MEC systems [20 consumers, 10 providers]'
+}
+additional_step_times = {dir_label: calculate_step_times(directory) for directory, dir_label in additional_dirs.items()}
 
-additional_mean_times = {step: np.mean(additional_step_times[step]) if additional_step_times[step] else np.nan for step in additional_step_times.keys()}
-additional_std_times = {step: np.std(additional_step_times[step]) if additional_step_times[step] else np.nan for step in additional_step_times.keys()}
+additional_mean_times = {dir_label: {step: np.mean(step_times[step]) if step_times[step] else np.nan for step in step_times.keys()} for dir_label, step_times in additional_step_times.items()}
+additional_std_times = {dir_label: {step: np.std(step_times[step]) if step_times[step] else np.nan for step in step_times.keys()} for dir_label, step_times in additional_step_times.items()}
 
 # Plot 5: Comparison of federation steps
 def plot_federation_steps_comparison(participants_to_compare, colors, additional_mean_times, additional_std_times):
@@ -102,7 +106,7 @@ def plot_federation_steps_comparison(participants_to_compare, colors, additional
     # Set the seaborn style for aesthetics
     sns.set_style('ticks')
 
-    plt.figure(figsize=(16, 10))  # Automatically adjusted figure size
+    plt.figure(figsize=(18, 10))  # Automatically adjusted figure size
     x = np.arange(len(mean_times))  # the label locations
     width = 0.1  # the width of the bars
     group_width = 0.12  # the total width of each group of bars
@@ -126,23 +130,26 @@ def plot_federation_steps_comparison(participants_to_compare, colors, additional
                 plt.bar(x[j] + i * group_width, means, width, color=color, edgecolor='black', zorder=1, label=f'{mec_systems} MEC systems' if j == 0 else "")
                 plt.errorbar(x[j] + i * group_width, means, yerr=stds, fmt='none', ecolor='black', capsize=5, zorder=2)
 
-    # Plot additional dataset with color #8c564b
-    additional_color = '#8c564b'
-    for j, step in enumerate(mean_times.keys()):
-        additional_means = additional_mean_times[step]
-        additional_stds = additional_std_times[step]
-        if step == 'Federation\nCompleted\n(T2+T3+T4+T5)':
-            # Plot stacked bar for additional dataset
-            bottom = 0
-            for part in ['Request Federation\n(T2)', 'Bid Offered\n(T3)', 'Provider Chosen\n(T4)', 'Service Deployed\n& Running\n(T5)']:
-                part_means = additional_mean_times[part]
-                plt.bar(x[j] + group_width * len(participants_to_compare), part_means, width, bottom=bottom, color=additional_color, edgecolor='black', zorder=1)
-                bottom += part_means
-            # Plot error bars on top of stacked bar
-            plt.errorbar(x[j] + group_width * len(participants_to_compare), additional_means, yerr=additional_stds, fmt='none', ecolor='black', capsize=5, zorder=2)
-        else:
-            plt.bar(x[j] + group_width * len(participants_to_compare), additional_means, width, color=additional_color, edgecolor='black', zorder=1, label='30 MEC systems [10 consumers, 20 providers]' if j == 0 else "")
-            plt.errorbar(x[j] + group_width * len(participants_to_compare), additional_means, yerr=additional_stds, fmt='none', ecolor='black', capsize=5, zorder=2)
+    # Plot additional datasets with distinctive colors
+    additional_colors = ['#8c564b', '#e377c2', '#7f7f7f']
+    for k, (dir_label, color) in enumerate(zip(additional_dirs.values(), additional_colors)):
+        additional_mean_times_dir = additional_mean_times[dir_label]
+        additional_std_times_dir = additional_std_times[dir_label]
+        for j, step in enumerate(mean_times.keys()):
+            additional_means = additional_mean_times_dir[step]
+            additional_stds = additional_std_times_dir[step]
+            if step == 'Federation\nCompleted\n(T2+T3+T4+T5)':
+                # Plot stacked bar for additional dataset
+                bottom = 0
+                for part in ['Request Federation\n(T2)', 'Bid Offered\n(T3)', 'Provider Chosen\n(T4)', 'Service Deployed\n& Running\n(T5)']:
+                    part_means = additional_mean_times_dir[part]
+                    plt.bar(x[j] + group_width * (len(participants_to_compare) + k), part_means, width, bottom=bottom, color=color, edgecolor='black', zorder=1)
+                    bottom += part_means
+                # Plot error bars on top of stacked bar
+                plt.errorbar(x[j] + group_width * (len(participants_to_compare) + k), additional_means, yerr=additional_stds, fmt='none', ecolor='black', capsize=5, zorder=2)
+            else:
+                plt.bar(x[j] + group_width * (len(participants_to_compare) + k), additional_means, width, color=color, edgecolor='black', zorder=1, label=dir_label if j == 0 else "")
+                plt.errorbar(x[j] + group_width * (len(participants_to_compare) + k), additional_means, yerr=additional_stds, fmt='none', ecolor='black', capsize=5, zorder=2)
 
     plt.xlabel('Federation Procedures', fontsize=18, labelpad=10)  # Add more space between label and axis names
     plt.ylabel('Time (s)', fontsize=18, labelpad=20)

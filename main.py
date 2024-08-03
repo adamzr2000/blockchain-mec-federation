@@ -1244,6 +1244,25 @@ def extract_ip_from_url(url):
     else:
         return None
 
+def create_smaller_subnet(original_cidr, dlt_node_id):
+    # Split the CIDR notation into IP and subnet mask parts
+    ip, _ = original_cidr.split('/')
+
+    # Split the IP into its octets
+    octets = ip.split('.')
+
+    # Replace the third octet with the dlt_node_id
+    octets[2] = dlt_node_id
+
+    # Reassemble the IP address
+    new_ip = '.'.join(octets)
+
+    # Combine the new IP address with the new subnet mask /24
+    new_cidr = f"{new_ip}/24"
+
+    return new_cidr
+
+
 def extract_domain_name_from_service_id(service_id):
     # Extracting the domain_name using regular expression
     match = re.search(r'service\d+-(.+)', service_id)
@@ -1880,33 +1899,41 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
                 
             # Received bids
             best_bid_index = None
+
+            # Loop through all bid indices and print their information
+            retry_attempts = 10
+            retry_delay = 2  # seconds
             
             # Loop through all bid indices and print their information
             for i in range(total_bids):
-                try:
-                    bid_info = GetBidInfo(i)
-                    logger.info(f"Bid {i}: {bid_info}")
-                    if bid_info is None:
-                        logger.warning(f"Bid info for index {i} is None, retrying...")
-                        time.sleep(2)
+                attempts = 0
+                while attempts < retry_attempts:
+                    try:
                         bid_info = GetBidInfo(i)
+                        logger.info(f"Bid {i}: {bid_info}")
                         if bid_info is None:
-                            logger.error(f"Bid info for index {i} is still None after retry, skipping...")
+                            logger.warning(f"Bid info for index {i} is None, retrying...")
+                            time.sleep(retry_delay)
+                            attempts += 1
                             continue
 
-                    bid_price = int(bid_info[1]) 
-                    if bid_price == matching_price:
-                        best_bid_index = int(bid_info[2])
-                        logger.info(f"Found bid with specific price {matching_price}: {bid_info}")
-                        break
-                except Exception as e:
-                    logger.error(f"Error processing bid at index {i}: {str(e)}")
-                    continue    
+                        bid_price = int(bid_info[1]) 
+                        if bid_price == matching_price:
+                            best_bid_index = int(bid_info[2])
+                            logger.info(f"Found bid with specific price {matching_price}: {bid_info}")
+                            break
+                        else:
+                            break
+                    except Exception as e:
+                        logger.error(f"Error processing bid at index {i}: {str(e)}, attempt {attempts + 1}/{retry_attempts}")
+                        time.sleep(retry_delay)
+                        attempts += 1
+                if best_bid_index is not None:
+                    break    
 
             if best_bid_index is None:
                 logger.error(f"No bid matched the specific price {matching_price}")
                 raise HTTPException(status_code=500, detail=f"No bid matched the specific price {matching_price}")
-
                         
             # Winner choosen 
             t_winner_choosen = time.time() - process_start_time
@@ -1936,10 +1963,13 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
             federated_host = federated_host.decode('utf-8')
             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
 
+            endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_provider)
+
             logger.info(f"Federated Service Info - Service Endpoint Provider: {service_endpoint_provider}, Federated Host: {federated_host}")
 
             # Sets up the federation docker network and the VXLAN network interface
-            configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+            configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, '200', '4789', docker_subnet, docker_ip_range)
+            # configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
             attach_container_to_network("mec-app_1", "federation-net")
 
@@ -1970,6 +2000,7 @@ def start_experiments_consumer_v3(export_to_csv: bool = False, providers: int = 
             error_message = "You must be consumer to run this code"
             raise HTTPException(status_code=500, detail=error_message)
     except Exception as e:
+        logger.error(f"Error in start_experiments_consumer_v4: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))    
 
 @app.post("/start_experiments_provider_v3")
@@ -2001,7 +2032,7 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
 
                     requested_service, requested_replicas = extract_service_requirements(requirements.rstrip('\x00'))
                     
-                    if GetServiceState(service_id) == 0:
+                    if GetServiceState(service_id) == 0 and service_id not in open_services:
                         open_services.append(service_id)
                         # logger.info(f"Announcement Received - Open Services: {len(open_services)}")
 
@@ -2067,10 +2098,14 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
 
                     service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
 
+                    endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_consumer)
+                    net_range = create_smaller_subnet(endpoint_docker_subnet, dlt_node_id)
+
                     logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
 
                     # Sets up the federation docker network and the VXLAN network interface
-                    configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+                    configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range)
+                    # configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
 
                     container_port=5000
                     exposed_ports=5000
@@ -2137,26 +2172,6 @@ def start_experiments_provider_v3(export_to_csv: bool = False, price: int = 10, 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))  
 # ------------------------------------------------------------------------------------------------------------------------------#
-
-def create_smaller_subnet(original_cidr, dlt_node_id):
-    # Split the CIDR notation into IP and subnet mask parts
-    ip, _ = original_cidr.split('/')
-
-    # Split the IP into its octets
-    octets = ip.split('.')
-
-    # Replace the third octet with the dlt_node_id
-    octets[2] = dlt_node_id
-
-    # Reassemble the IP address
-    new_ip = '.'.join(octets)
-
-    # Combine the new IP address with the new subnet mask /24
-    new_cidr = f"{new_ip}/24"
-
-    return new_cidr
-
-
 @app.post("/start_experiments_consumer_v4")
 def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 2, matching_price: int = 2):
     try:
