@@ -1,0 +1,10 @@
+step,timestamp
+announce_received,6.284216642379761
+bid_offer_sent,6.285611152648926
+winner_received,31.130127906799316
+deployment_start,31.229909420013428
+deployment_finished,32.87685489654541
+confirm_deployment_sent,32.87686824798584
+deployment_start_service_2,32.97905087471008
+deployment_finished_service_2,34.35744762420654
+confirm_deployment_sent_service_2,34.35745573043823
