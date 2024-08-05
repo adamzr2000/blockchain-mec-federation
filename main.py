@@ -2223,6 +2223,7 @@ def start_experiments_consumer_v4(export_to_csv: bool = False, providers: int = 
                         logger.info(f"{bid_index} bid offers received")
                         bidderArrived = True 
                         break
+                time.sleep(2)
             # Use GetBidCount to ensure we have the correct number of bids
             total_bids = bid_index
             logger.info(f"Total bids received from contract: {total_bids}")
