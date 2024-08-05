@@ -16,7 +16,7 @@ BASE_URLS = [
 
 NUM_CONSUMERS = 25
 NUM_PROVIDERS = 5
-NUM_TESTS = 5  # Set the number of tests to run
+NUM_TESTS = 1  # Set the number of tests to run
 
 def generate_prices():
     """ Generate prices for providers as [1, 2, 3, ... NUM_PROVIDERS] """
