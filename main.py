@@ -2434,103 +2434,122 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                         data.append(['deployment_start_service_2', t_deployment_start_service_2])
                         logger.info(f"Deployment start time for second service recorded: {t_deployment_start_service_2}")
                     
-                    am_i_winner = True
+            am_i_winner = False
+            no_winner_count = 0
+            deployed_federations = 0
+            retry_attempts = 15
+            retry_delay = 2  # seconds
+            
+            for service_id in open_services:
+                logger.info(f"Processing service_id: {service_id}")
 
-                    logger.debug("Fetching deployed info")
+                attempts = 0
+                while attempts < retry_attempts:
                     try:
-                        federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
+                        if CheckWinner(service_id):
+                            logger.info(f"I am the winner for {service_id}")
 
-                        service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
+                            if deployed_federations == 0:
+                                t_deployment_start = time.time() - process_start_time
+                                data.append(['deployment_start', t_deployment_start])
+                                logger.info(f"Deployment start time recorded: {t_deployment_start}")
+                            else:
+                                t_deployment_start_service_2 = time.time() - process_start_time
+                                data.append(['deployment_start_service_2', t_deployment_start_service_2])
+                                logger.info(f"Deployment start time for second service recorded: {t_deployment_start_service_2}")
+                            
+                            am_i_winner = True
 
-                        endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_consumer)
+                            logger.debug("Fetching deployed info")
+                            try:
+                                federated_host, service_endpoint_consumer = GetDeployedInfo(service_id, domain)
 
-                        net_range = create_smaller_subnet(endpoint_docker_subnet, dlt_node_id)
+                                service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
 
-                        logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
-                        svc_name = f"federated-{requested_service}-{deployed_federations}"
-                        net_name = f"federation-net-{deployed_federations}"
+                                endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_consumer)
 
-                        configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range, 'netcom;', net_name)
-                        logger.info(f"Network configuration completed for {svc_name} on network {net_name}")
-                    except Exception as e:
-                        logger.error(f"Error during deployment info fetching and network configuration: {e}")
-                        raise HTTPException(status_code=500, detail=f"Error during deployment info fetching and network configuration: {e}")
+                                net_range = create_smaller_subnet(endpoint_docker_subnet, dlt_node_id)
 
-                    container_port = 5000
-                    try:
-                        exposed_ports = 5000 + int(dlt_node_id) + deployed_federations
-                        logger.debug("Deploying first docker container")
-                        deploy_docker_containers(
-                            image=requested_service,
-                            name=svc_name,
-                            network=net_name,
-                            replicas=int(requested_replicas),
-                            env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
-                            container_port=container_port,
-                            start_host_port=exposed_ports
-                        )
-                        logger.info(f"Docker container {svc_name} deployed successfully on network {net_name}")
-                    except Exception as e:
-                        logger.error(f"Error during docker container deployment: {e}")
-                        raise HTTPException(status_code=500, detail=f"Error during docker container deployment: {e}")
+                                logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
+                                svc_name = f"federated-{requested_service}-{deployed_federations}"
+                                net_name = f"federation-net-{deployed_federations}"
 
-                    try:
-                        logger.debug("Getting container IPs")
-                        container_ips = get_container_ips(requested_service)
-                        if container_ips:
-                            first_container_name = next(iter(container_ips))
-                            federated_host = container_ips[first_container_name]
-                        logger.debug(f"Container IPs: {container_ips}, federated_host: {federated_host}")
-                    except Exception as e:
-                        logger.error(f"Error getting container IPs: {e}")
-                        raise HTTPException(status_code=500, detail=f"Error getting container IPs: {e}")
-                                
-                    try:
-                        t_deployment_finished = time.time() - process_start_time
-                        data.append([f'deployment_finished_service_{deployed_federations}', t_deployment_finished])
-                        logger.info(f"Deployment finished time recorded: {t_deployment_finished}")
+                                configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet, net_range, 'netcom', net_name)
+                                logger.info(f"Network configuration completed for {svc_name} on network {net_name}")
+                            except Exception as e:
+                                logger.error(f"Error during deployment info fetching and network configuration: {e}")
+                                raise HTTPException(status_code=500, detail=f"Error during deployment info fetching and network configuration: {e}")
 
-                        t_confirm_deployment_sent = time.time() - process_start_time
-                        data.append([f'confirm_deployment_sent_service_{deployed_federations}', t_confirm_deployment_sent])
-                        logger.info(f"Confirmation deployment sent time recorded: {t_confirm_deployment_sent}")
+                            container_port = 5000
+                            try:
+                                exposed_ports = 5000 + int(dlt_node_id) + deployed_federations
+                                logger.debug("Deploying docker container")
+                                deploy_docker_containers(
+                                    image=requested_service,
+                                    name=svc_name,
+                                    network=net_name,
+                                    replicas=int(requested_replicas),
+                                    env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
+                                    container_port=container_port,
+                                    start_host_port=exposed_ports
+                                )
+                                logger.info(f"Docker container {svc_name} deployed successfully on network {net_name}")
+                            except Exception as e:
+                                logger.error(f"Error during docker container deployment: {e}")
+                                raise HTTPException(status_code=500, detail=f"Error during docker container deployment: {e}")
 
-                        federated_host = f"http://{federated_host}:{exposed_ports}"
-                        ServiceDeployed(service_id, federated_host)
-                        logger.info(f"Service Deployed - Federated Host: {federated_host}")
+                            try:
+                                logger.debug("Getting container IPs")
+                                container_ips = get_container_ips(requested_service)
+                                if container_ips:
+                                    first_container_name = next(iter(container_ips))
+                                    federated_host = container_ips[first_container_name]
+                                logger.debug(f"Container IPs: {container_ips}, federated_host: {federated_host}")
+                            except Exception as e:
+                                logger.error(f"Error getting container IPs: {e}")
+                                raise HTTPException(status_code=500, detail=f"Error getting container IPs: {e}")
+                                        
+                            try:
+                                t_deployment_finished = time.time() - process_start_time
+                                data.append([f'deployment_finished_service_{deployed_federations}', t_deployment_finished])
+                                logger.info(f"Deployment finished time recorded: {t_deployment_finished}")
 
-                        deployed_federations += 1
-                        total_duration = time.time() - process_start_time
-                        logger.info(f"Total duration for deployment: {total_duration}")
+                                t_confirm_deployment_sent = time.time() - process_start_time
+                                data.append([f'confirm_deployment_sent_service_{deployed_federations}', t_confirm_deployment_sent])
+                                logger.info(f"Confirmation deployment sent time recorded: {t_confirm_deployment_sent}")
 
-                        DisplayServiceState(service_id)
-                    except Exception as e:
-                        logger.error(f"Error during deployment finalization: {e}")
-                        raise HTTPException(status_code=500, detail=f"Error during deployment finalization: {e}")
-                    
-                    if deployed_federations >= deployments:
-                        if export_to_csv:
-                            create_csv_file(domain, header, data)
-                            logger.info(f"Data exported to CSV for {domain}.")
+                                federated_host = f"http://{federated_host}:{exposed_ports}"
+                                ServiceDeployed(service_id, federated_host)
+                                logger.info(f"Service Deployed - Federated Host: {federated_host}")
+
+                                deployed_federations += 1
+                                total_duration = time.time() - process_start_time
+                                logger.info(f"Total duration for deployment: {total_duration}")
+
+                                DisplayServiceState(service_id)
+                            except Exception as e:
+                                logger.error(f"Error during deployment finalization: {e}")
+                                raise HTTPException(status_code=500, detail=f"Error during deployment finalization: {e}")
+                            
+                            if deployed_federations >= deployments:
+                                if export_to_csv:
+                                    create_csv_file(domain, header, data)
+                                    logger.info(f"Data exported to CSV for {domain}.")
+                                else:
+                                    logger.warning("CSV export not requested.")
+
+                                return {"message": f"Federation process completed successfully - {domain}"}
+                            break
                         else:
-                            logger.warning("CSV export not requested.")
-
-                        return {"message": f"Federation process completed successfully - {domain}"}
-                else:
-                    no_winner_count += 1
-                    logger.info(f"No winner for service_id {service_id}. Total no_winner_count: {no_winner_count}")
-                    
-                    if no_winner_count == offers:
-                        t_other_provider_chosen = time.time() - process_start_time
-                        data.append(['other_provider_chosen', t_other_provider_chosen])
-                        logger.info(f"Other provider chosen time recorded: {t_other_provider_chosen}")
-                        
-                        if export_to_csv:
-                            create_csv_file(domain, header, data)
-                            logger.info(f"Data exported to CSV for {domain}.")
-                            return {"message": f"I am not the winner for any service_id"}
-                        else:
-                            logger.warning("CSV export not requested.")
-                            return {"message": f"I am not the winner for any service_id"}
+                            no_winner_count += 1
+                            logger.info(f"No winner for service_id {service_id}. Total no_winner_count: {no_winner_count}")
+                            break
+                    except Exception as e:
+                        logger.error(f"Error checking winner for service ID {service_id}: {str(e)}, attempt {attempts + 1}/{retry_attempts}")
+                        time.sleep(retry_delay)
+                        attempts += 1
+                if am_i_winner:
+                    break
 
             if deployed_federations == 0:
                 logger.error("Could not deploy any federations")
