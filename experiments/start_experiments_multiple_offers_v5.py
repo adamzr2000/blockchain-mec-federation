@@ -2,7 +2,7 @@ import subprocess
 import time
 
 # Constants
-EXPORT_RESULTS = "true"
+EXPORT_RESULTS = "false"
 BASE_URLS = [
     "http://10.5.99.1:8000", "http://10.5.99.2:8000", "http://10.5.99.3:8000", "http://10.5.99.4:8000",
     "http://10.5.99.5:8000", "http://10.5.99.6:8000", "http://10.5.99.7:8000", "http://10.5.99.8:8000",
@@ -16,7 +16,7 @@ BASE_URLS = [
 
 NUM_CONSUMERS = 25
 NUM_PROVIDERS = 5
-NUM_TESTS = 10  # Set the number of tests to run
+NUM_TESTS = 5  # Set the number of tests to run
 
 def generate_prices():
     """ Generate prices for providers as [1, 2, 3, ... NUM_PROVIDERS] """
