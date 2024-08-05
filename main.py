@@ -2429,6 +2429,7 @@ def start_experiments_provider_v4(export_to_csv: bool = False, price: int = 10, 
                         break
                     except Exception as e:
                         logger.error(f"Error checking winner for service ID {service_id}: {str(e)}. Retrying...")
+                        time.sleep(2)
 
                 if is_winner:
                     logger.info(f"I am the winner for {service_id}")
