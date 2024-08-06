@@ -60,7 +60,7 @@ def list_system_dirs(base_dir):
     return [d for d in os.listdir(base_dir) if re.match(r'\d+-mec-systems', d)]
 
 def main():
-    base_dir = './20-offer'
+    base_dir = './15-offer_v1'
     registration_base_dir = './registration-time'
     system_dirs = list_system_dirs(base_dir)
 

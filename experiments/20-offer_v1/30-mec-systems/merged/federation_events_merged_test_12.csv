@@ -6,8 +6,8 @@ bid_offer_received,11.730907320976257
 winner_choosen,12.544261574745178
 winner_received,21.023749589920044
 deployment_start,21.112954998016356
-deployment_finished,23.18319305181503
-confirm_deployment_sent,23.18319798707962
+deployment_finished,22.394440531730652
+confirm_deployment_sent,22.394445061683655
 confirm_deployment_received,25.944886100292205
 establish_vxlan_connection_with_provider_start,25.944899356365205
 establish_vxlan_connection_with_provider_finished,26.781649363040923

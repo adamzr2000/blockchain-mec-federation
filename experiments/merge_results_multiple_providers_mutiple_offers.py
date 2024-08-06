@@ -56,6 +56,7 @@ def merge_and_save_files(base_dir, system_dir):
         aggregated_consumer_steps = {
             'service_announced': aggregated_consumer_df[aggregated_consumer_df['step'] == 'service_announced']['timestamp'].min(),
             'bid_offer_received': aggregated_consumer_df[aggregated_consumer_df['step'] == 'bid_offer_received']['timestamp'].max(),
+            'winner_choosen': aggregated_consumer_df[aggregated_consumer_df['step'] == 'winner_choosen']['timestamp'].min(),
             'confirm_deployment_received': aggregated_consumer_df[aggregated_consumer_df['step'] == 'confirm_deployment_received']['timestamp'].max(),
             'establish_vxlan_connection_with_provider_start': aggregated_consumer_df[aggregated_consumer_df['step'] == 'establish_vxlan_connection_with_provider_start']['timestamp'].min(),
             'establish_vxlan_connection_with_provider_finished': aggregated_consumer_df[aggregated_consumer_df['step'] == 'establish_vxlan_connection_with_provider_finished']['timestamp'].max()
@@ -109,7 +110,7 @@ def merge_and_save_files(base_dir, system_dir):
             print(f"No provider files found for test {test_num}.")
 
 def main():
-    base_dir = './10-offer'
+    base_dir = './15-offer_v1'
     system_dirs = [d for d in os.listdir(base_dir) if re.match(r'\d+-mec-systems', d)]
 
     print("Available system directories:")

@@ -74,8 +74,9 @@ def plot_mean_start_end_times(directory):
 # Process additional datasets
 additional_dirs = {
     '../10-offer/30-mec-systems/merged-with-registration': '30 MEC systems [10 consumers, 20 providers]',
-    '../15-offer/30-mec-systems/merged-with-registration': '30 MEC systems [15 consumers, 15 providers]',
-    '../20-offer/30-mec-systems/merged-with-registration': '30 MEC systems [20 consumers, 10 providers]'
+    '../15-offer_v1/30-mec-systems/merged-with-registration': '30 MEC systems [15 consumers, 15 providers]',
+    '../20-offer_v1/30-mec-systems/merged-with-registration': '30 MEC systems [20 consumers, 10 providers]',
+    '../25-offer/30-mec-systems/merged-with-registration': '30 MEC systems [25 consumers, 5 providers]'
 }
 additional_step_times = {dir_label: calculate_step_times(directory) for directory, dir_label in additional_dirs.items()}
 
@@ -131,7 +132,7 @@ def plot_federation_steps_comparison(participants_to_compare, colors, additional
                 plt.errorbar(x[j] + i * group_width, means, yerr=stds, fmt='none', ecolor='black', capsize=5, zorder=2)
 
     # Plot additional datasets with distinctive colors
-    additional_colors = ['#8c564b', '#e377c2', '#7f7f7f']
+    additional_colors = ['#8c564b', '#e377c2', '#7f7f7f', '#17becf']
     for k, (dir_label, color) in enumerate(zip(additional_dirs.values(), additional_colors)):
         additional_mean_times_dir = additional_mean_times[dir_label]
         additional_std_times_dir = additional_std_times[dir_label]

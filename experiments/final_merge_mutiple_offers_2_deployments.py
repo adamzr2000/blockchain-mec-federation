@@ -29,9 +29,9 @@ def merge_and_save_files(base_dir, system_dir):
 
     # Mapping the new column names to the existing order
     provider_step_mapping = {
-        'deployment_start': 'deployment_start',
-        'deployment_finished_service_2': 'deployment_finished',
-        'confirm_deployment_sent_service_2': 'confirm_deployment_sent'
+        'deployment_start_service_0': 'deployment_start',
+        'deployment_finished_service_0': 'deployment_finished',
+        'confirm_deployment_sent_service_0': 'confirm_deployment_sent'
     }
 
     # Pattern to match the files and extract the test number
@@ -98,7 +98,7 @@ def merge_and_save_files(base_dir, system_dir):
             print(f"No provider files found for test {test_num}.")
 
 def main():
-    base_dir = './20-offer'
+    base_dir = './20-offer_v1'
     system_dirs = [d for d in os.listdir(base_dir) if re.match(r'\d+-mec-systems', d)]
 
     print("Available system directories:")

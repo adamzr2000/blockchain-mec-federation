@@ -90,7 +90,7 @@ def merge_and_save_files(base_dir, system_dir):
             print(f"No provider files found for test {test_num}.")
 
 def main():
-    base_dir = './15-offer'
+    base_dir = './15-offer_v1'
     system_dirs = [d for d in os.listdir(base_dir) if re.match(r'\d+-mec-systems', d)]
 
     print("Available system directories:")
