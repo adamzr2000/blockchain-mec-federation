@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Constants for scalability
-NUM_CONSUMERS=15
-NUM_PROVIDERS=15
+NUM_CONSUMERS=10
+NUM_PROVIDERS=20
 
 # Function to execute a curl command and print debug information
 execute_curl_command() {

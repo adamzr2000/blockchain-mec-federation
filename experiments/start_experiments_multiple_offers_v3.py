@@ -2,7 +2,7 @@ import subprocess
 import time
 
 # Constants
-EXPORT_RESULTS = "false"
+EXPORT_RESULTS = "true"
 BASE_URLS = [
     "http://10.5.99.1:8000", "http://10.5.99.2:8000", "http://10.5.99.3:8000", "http://10.5.99.4:8000",
     "http://10.5.99.5:8000", "http://10.5.99.6:8000", "http://10.5.99.7:8000", "http://10.5.99.8:8000",
@@ -16,7 +16,7 @@ BASE_URLS = [
 
 NUM_CONSUMERS = 10
 NUM_PROVIDERS = 20
-NUM_TESTS = 2  # Set the number of tests to run
+NUM_TESTS = 20  # Set the number of tests to run
 
 def generate_prices():
     """ Generate prices for providers as [1, 2, 3, ... NUM_PROVIDERS] """
@@ -95,9 +95,8 @@ def start_experiments(test_number):
 
     print(f"Experiment {test_number} completed.")
     print("Cleaning up resources...")
-    cleanup_resources()
+    cleanup_resources(NUM_CONSUMERS, NUM_PROVIDERS)
     time.sleep(3)
-    cleanup_resources_bash()
 
 def validate_input(num_tests):
     """ Validate the input """
