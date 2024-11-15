@@ -1183,23 +1183,12 @@ def deploy_service_endpoint(service_id: str, federated_host: str = "0.0.0.0"):
         raise HTTPException(status_code=500, detail=str(e))    
 
 
-def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, sudo_password = 'netcom;', docker_net_name = 'federation-net'):
+def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, sudo_password='netcom;', docker_net_name = 'federation-net'):
     script_path = './utils/docker_host_setup_vxlan.sh'
     
     # Construct the command with arguments
-    # command = [
-    #     'sudo', '-S', 'bash', script_path,
-    #     '-l', local_ip,
-    #     '-r', remote_ip,
-    #     '-i', interface_name,
-    #     '-v', vxlan_id,
-    #     '-p', dst_port,
-    #     '-s', subnet,
-    #     '-d', ip_range,
-    #     '-n', docker_net_name
-    # ]
     command = [
-        'echo', sudo_password, '|', 'sudo', '-S', 'bash', script_path,
+        'sudo', '-S', 'bash', script_path,
         '-l', local_ip,
         '-r', remote_ip,
         '-i', interface_name,
@@ -1212,9 +1201,8 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
     
     try:
         # Run the command with sudo and password
-        # result = subprocess.run(command, input=sudo_password.encode() + b'\n', check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        result = subprocess.run(' '.join(command), shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
+        result = subprocess.run(command, input=sudo_password.encode() + b'\n', check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
         # Print the output of the script
         print(result.stdout.decode())
         
@@ -1675,7 +1663,7 @@ def start_experiments_consumer_v2(export_to_csv: bool = False, providers: int = 
 
             logger.info(f"Monitoring connection with federated host ({federated_host_ip})")
             monitor_connection_command = f"ping -c 10 {federated_host_ip}"
-            # execute_command_in_container("mec-app_1", monitor_connection_command)
+            execute_command_in_container("mec-app_1", monitor_connection_command)
 
             if export_to_csv:
                 # Export the data to a csv file only if export_to_csv is True
