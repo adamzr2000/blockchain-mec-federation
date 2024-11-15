@@ -1198,13 +1198,22 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
     #     '-d', ip_range,
     #     '-n', docker_net_name
     # ]
-    command = f"echo '{sudo_password}' | sudo -S bash {script_path} -l {local_ip} -r {remote_ip} -i {interface_name} -v {vxlan_id} -p {dst_port} -s {subnet} -d {ip_range} -n {docker_net_name}"
-
+    command = [
+        'echo', sudo_password, '|', 'sudo', '-S', 'bash', script_path,
+        '-l', local_ip,
+        '-r', remote_ip,
+        '-i', interface_name,
+        '-v', vxlan_id,
+        '-p', dst_port,
+        '-s', subnet,
+        '-d', ip_range,
+        '-n', docker_net_name
+    ]
     
     try:
         # Run the command with sudo and password
         # result = subprocess.run(command, input=sudo_password.encode() + b'\n', check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        result = subprocess.run(['bash', '-c', command], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = subprocess.run(' '.join(command), shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         # Print the output of the script
         print(result.stdout.decode())
@@ -1517,7 +1526,7 @@ def start_experiments_provider(export_to_csv: bool = False, price: int = 10):
                 start_host_port=exposed_ports
             )          
 
-            container_ips = get_container_ips(f"federated-{requested_service}")
+            container_ips = get_container_ips(requested_service)
             if container_ips:
                 first_container_name = next(iter(container_ips))
                 federated_host = container_ips[first_container_name]
