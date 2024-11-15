@@ -1199,8 +1199,6 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
         '-n', docker_net_name
     ]
 
-    print(f"Executing command: {command}")
-    
     try:
         # Run the command with sudo and password
         result = subprocess.run(command, input=sudo_password.encode() + b'\n', check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -1365,10 +1363,11 @@ def start_experiments_consumer(export_to_csv: bool = False, providers: int = 2):
             federated_host = federated_host.decode('utf-8')
             service_endpoint_provider = service_endpoint_provider.decode('utf-8')
 
+            endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_provider)
+
             logger.info(f"Federated Service Info - Service Endpoint Provider: {service_endpoint_provider}, Federated Host: {federated_host}")
 
-            # Sets up the federation docker network and the VXLAN network interface
-            configure_docker_network_and_vxlan(ip_address, service_endpoint_provider, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+            configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, '200', '4789', docker_subnet, docker_ip_range)
 
             attach_container_to_network("mec-app_1", "federation-net")
 
@@ -1496,10 +1495,13 @@ def start_experiments_provider(export_to_csv: bool = False, price: int = 10):
 
             service_endpoint_consumer = service_endpoint_consumer.decode('utf-8')
 
+            endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = extract_service_endpoint(service_endpoint_consumer)
+            net_range = create_smaller_subnet(endpoint_docker_subnet, dlt_node_id)
+
             logger.info(f"Service Endpoint Consumer: {service_endpoint_consumer}")
 
             # Sets up the federation docker network and the VXLAN network interface
-            configure_docker_network_and_vxlan(ip_address, service_endpoint_consumer, interface_name, vxlan_id, vxlan_port, docker_subnet, docker_ip_range)
+            configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, '200', '4789', endpoint_docker_subnet, net_range)
 
 
             container_port=5000
