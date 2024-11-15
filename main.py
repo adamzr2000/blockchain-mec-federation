@@ -1198,6 +1198,8 @@ def configure_docker_network_and_vxlan(local_ip, remote_ip, interface_name, vxla
         '-d', ip_range,
         '-n', docker_net_name
     ]
+
+    print(f"Executing command: {command}")
     
     try:
         # Run the command with sudo and password
