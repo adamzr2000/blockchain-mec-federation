@@ -1514,7 +1514,7 @@ def start_experiments_provider(export_to_csv: bool = False, price: int = 10):
                 start_host_port=exposed_ports
             )          
 
-            container_ips = get_container_ips(requested_service)
+            container_ips = get_container_ips(f"federated-{requested_service}")
             if container_ips:
                 first_container_name = next(iter(container_ips))
                 federated_host = container_ips[first_container_name]
@@ -1663,7 +1663,7 @@ def start_experiments_consumer_v2(export_to_csv: bool = False, providers: int = 
 
             logger.info(f"Monitoring connection with federated host ({federated_host_ip})")
             monitor_connection_command = f"ping -c 10 {federated_host_ip}"
-            execute_command_in_container("mec-app_1", monitor_connection_command)
+            # execute_command_in_container("mec-app_1", monitor_connection_command)
 
             if export_to_csv:
                 # Export the data to a csv file only if export_to_csv is True
