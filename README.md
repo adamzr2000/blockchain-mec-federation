@@ -6,6 +6,8 @@
 
 </div>
 
+---
+
 ## Overview
 
 Federation of services aims to provide orchestration of services across multiple administrative domains (ADs). This project showcases how different ADs can establish federation efficiently using distributed ledger technologies (DLT) as a mediatior in the process. More specifically, the federation procedures are stored and deployed on a Federation Smart Contract, which is running on top of a permissioned blockchain. Each AD sets up a blockchain node to gain access to the blockchain network and they interact with the Federation Smart Contract by sending transactions.
