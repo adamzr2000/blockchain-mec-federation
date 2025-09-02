@@ -49,7 +49,7 @@ def start_dlt_network(total_nodes: int) -> None:
 
     # Start on node1
     node1 = SUBNET_PREFIX + "1"
-    execute_ssh_command(node1, f"{BASE_COMMAND} ./start_dlt_network.sh")
+    execute_ssh_command(node1, f"{BASE_COMMAND} ./start.sh --validators {total_nodes}")
 
     # Wait 5 seconds as in your original script
     print("Waiting for 5 seconds...")
@@ -58,10 +58,10 @@ def start_dlt_network(total_nodes: int) -> None:
     # Join nodes 2..N
     for i in range(2, total_nodes + 1):
         node_ip = f"{SUBNET_PREFIX}{i}"
-        node_name = f"node{i}"
+        # node_name = f"node{i}"
         execute_ssh_command(
             node_ip,
-            f"{BASE_COMMAND} ./join_dlt_network.sh {node_name} {total_nodes}"
+            f"{BASE_COMMAND} ./join.sh --id {i} --validators {total_nodes}"
         )
         time.sleep(3)
 
