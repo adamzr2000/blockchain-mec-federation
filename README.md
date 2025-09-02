@@ -21,14 +21,14 @@ docker compose build
 
 ```bash
 cd blockchain-network/geth-poa
-./start.sh
+./start.sh --validators 2
 ```
 
 2. Join the network on `domain2`:
 
 ```bash
 cd blockchain-network/geth-poa
-./join.sh node2
+./join.sh node2 2
 ```
 
 ## Usage
