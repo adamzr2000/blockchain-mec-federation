@@ -1,29 +1,27 @@
 module.exports = {
   networks: {
     development: {
-      host: "192.168.56.104", 
+      host: "127.0.0.1", 
       port: 7545,
       network_id: "*"
     },
 
-    node1: {
-      host: process.env.IP_NODE_1,
-      port: process.env.WS_PORT_NODE_1,            
-      network_id: "1234",    
-      websockets: true       
+    geth_network_ws: {
+      host: process.env.NODE_IP,
+      port: process.env.PORT,
+      network_id: process.env.NETWORK_ID,
+      websockets: true
     },
-
-    node2: {
-      host: "192.168.56.105",
-      port: 3335,            
-      network_id: "1234",    
-      websockets: true       
+    geth_network_http: {
+      host: process.env.NODE_IP,
+      port: process.env.PORT,
+      network_id: process.env.NETWORK_ID,
+      websockets: false
     },
-
   },
   compilers: {
     solc: {
-      version: "0.5.0",   
+      version: "0.8.0",   
     }
   },
 };

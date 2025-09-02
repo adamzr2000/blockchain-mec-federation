@@ -1,0 +1,33 @@
+version: '3'
+services:
+  bootnode:
+    image: geth-node-poa
+    container_name: bootnode
+    hostname: bootnode
+    volumes:
+      - ./../config/dlt/bootnode.env:/src/bootnode.env
+      - ./../dockerfiles/geth-node-poa/scripts/password.txt:/src/password.txt
+      - ./../dockerfiles/geth-node-poa/scripts/bootnode_start.sh:/src/bootnode_start.sh
+    command: ./bootnode_start.sh
+    network_mode: "host"
+
+  node1:
+    image: geth-node-poa
+    container_name: node1
+    hostname: node1
+    depends_on:
+      - bootnode
+    volumes:
+      - ./../config/dlt/node1.env:/src/node1.env
+      - ./../dockerfiles/geth-node-poa/scripts/genesis_2_validators.json:/src/genesis.json
+      - ./../dockerfiles/geth-node-poa/scripts/password.txt:/src/password.txt
+      - ./../dockerfiles/geth-node-poa/scripts/node1_start.sh:/src/node1_start.sh      
+    command: ./node1_start.sh
+    network_mode: "host"
+
+  eth-netstats:
+    image: eth-netstats
+    container_name: eth-netstats
+    depends_on:
+      - node1
+    network_mode: "host"

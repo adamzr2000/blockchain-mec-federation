@@ -1,49 +1,37 @@
 #!/bin/bash
 
-# Function to load specific environment variables from a file
-load_specific_env_vars() {
-  local env_file="$1"
-  local node_index="$2"
-  
-  if [ -f "$env_file" ]; then
-    echo "Loading specific environment variables from $env_file"
-    eval $(grep "^IP_NODE_${node_index}=" "$env_file" | xargs)
-    eval $(grep "^WS_PORT_NODE_${node_index}=" "$env_file" | xargs)
-  else
-    echo "Environment file $env_file not found!"
-    exit 1
-  fi
-}
+# === Read from environment variables ===
+node_ip="${NODE_IP:-}"
+port="${PORT:-}"
+protocol="${PROTOCOL:-ws}"  # default to WebSocket
 
-# Array of node environment files
-node_env_files=(
-  "../config/dlt/node1.env"
-  "../config/dlt/node2.env"
-  "../config/dlt/node3.env"
-  "../config/dlt/node4.env"
-)
+# === Validate required inputs ===
+if [[ -z "$node_ip" || -z "$port" ]]; then
+  echo "❌ Error: NODE_IP and PORT must be set as environment variables."
+  echo "Example:"
+  echo "  export NODE_IP=10.0.0.1"
+  echo "  export PORT=3334"
+  echo "  export PROTOCOL=ws"
+  exit 1
+fi
 
-# Load specific environment variables for each node and construct docker_env_args
-docker_env_args=""
-for env_file in "${node_env_files[@]}"; do
-  # Extract the node index (e.g., 1 from node1.env)
-  node_index=$(basename "$env_file" | grep -o '[0-9]\+')
-  load_specific_env_vars "$env_file" "$node_index"
-  docker_env_args+=" -e IP_NODE_${node_index}=$(eval echo \$IP_NODE_${node_index})"
-  docker_env_args+=" -e WS_PORT_NODE_${node_index}=$(eval echo \$WS_PORT_NODE_${node_index})"
-done
+# === Display selected config ===
+if [[ "$protocol" == "http" ]]; then
+  echo "🔗 Deploying via HTTP to http://$node_ip:$port"
+  output=$(truffle migrate --network geth_network_http)
+elif [[ "$protocol" == "ws" ]]; then
+  echo "🔗 Deploying via WebSocket to ws://$node_ip:$port"
+  output=$(truffle migrate --network geth_network_ws)
+else
+  echo "❌ Invalid protocol: $protocol (must be 'ws' or 'http')"
+  exit 1
+fi
 
-# Construct the start command based on the selection
-START_CMD="./deploy_smart_contract.sh"
+# === Print output and extract contract address ===
+echo "$output"
+contract_address=$(echo "$output" | grep "contract address:" | awk '{print $4}')
 
-# Start a Docker container with the specified configurations
-docker run \
-  -it \
-  --rm \
-  --name truffle \
-  --hostname truffle \
-  --network host \
-  -v $(pwd)/.:/smart-contracts \
-  $docker_env_args \
-  truffle:latest \
-  $START_CMD
+# === Export result ===
+echo "CONTRACT_ADDRESS=$contract_address" > ./smart-contract.env
+echo "✅ Contract deployed at: $contract_address"
+echo "📄 Written to smart-contract.env"

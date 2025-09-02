@@ -1,0 +1,293 @@
+# blockchain_interface.py
+
+import json
+import time
+import logging
+import threading
+
+from enum import Enum
+from web3 import Web3, WebsocketProvider, HTTPProvider
+from web3.middleware import geth_poa_middleware
+
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class FederationEvents(str, Enum):
+    OPERATOR_REGISTERED = "OperatorRegistered"
+    OPERATOR_REMOVED = "OperatorRemoved"
+    SERVICE_ANNOUNCEMENT = "ServiceAnnouncement"
+    NEW_BID = "NewBid"
+    SERVICE_ANNOUNCEMENT_CLOSED = "ServiceAnnouncementClosed"
+    SERVICE_DEPLOYED = "ServiceDeployed"
+
+class BlockchainInterface:
+    def __init__(self, eth_address, private_key, eth_node_url, abi_path, contract_address):
+        if eth_node_url.startswith("ws://"):
+            self.web3 = Web3(WebsocketProvider(eth_node_url))
+        elif eth_node_url.startswith("http://"):
+            self.web3 = Web3(HTTPProvider(eth_node_url))
+        else:
+            raise ValueError("eth_node_url must start with ws:// or http://")
+
+        self.web3.middleware_onion.inject(geth_poa_middleware, layer=0)
+        if not self.web3.isConnected():
+            raise ConnectionError(f"Cannot connect to Ethereum node at {eth_node_url}")
+
+        self.eth_address = eth_address
+        self.private_key = private_key
+
+        with open(abi_path, "r") as f:
+            abi = json.load(f).get("abi")
+        if not abi:
+            raise ValueError("ABI not found in JSON")
+
+        self.contract = self.web3.eth.contract(address=Web3.toChecksumAddress(contract_address), abi=abi)
+
+        logger.info(f"Web3 initialized. Address: {self.eth_address}")
+        logger.info(f"Connected to Ethereum node {eth_node_url} | Version: {self.web3.clientVersion}")
+
+        # Initialize local nonce and lock
+        self._nonce_lock = threading.Lock()
+        self._local_nonce = self.web3.eth.getTransactionCount(self.eth_address)
+
+
+    def send_signed_transaction(self, build_transaction):
+        with self._nonce_lock:
+            build_transaction['nonce'] = self._local_nonce
+            self._local_nonce += 1
+
+        # Bump the gas price slightly to avoid underpriced errors
+        # If not using EIP-1559, inject legacy gasPrice
+        if 'maxFeePerGas' not in build_transaction and 'maxPriorityFeePerGas' not in build_transaction:
+            base_gas_price = self.web3.eth.gas_price
+            build_transaction['gasPrice'] = int(base_gas_price * 1.25)
+
+        # Else (EIP-1559): Optional tweak to bump the maxFeePerGas slightly
+        elif 'maxFeePerGas' in build_transaction:
+            build_transaction['maxFeePerGas'] = int(build_transaction['maxFeePerGas'] * 1.25)
+            
+        # print(f"nonce = {build_transaction['nonce']}, maxFeePerGas = {build_transaction['maxFeePerGas']}")
+        signed_txn = self.web3.eth.account.signTransaction(build_transaction, self.private_key)
+        tx_hash = self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return tx_hash.hex()
+
+    def get_transaction_receipt(self, tx_hash: str) -> dict:
+        """
+        Retrieves details of the transaction receipt for the specified hash, including:
+        
+        - Block info: Block hash, block number, and timestamp.
+        - Gas usage: Gas used and cumulative gas.
+        - Status: Transaction success (1) or failure (0).
+        - Sender/Receiver: from_address and to_address.
+        - Logs: Event logs generated during the transaction.
+        - Gas price: Actual gas price paid.
+        - Timestamp: The timestamp of the block in which the transaction was included.
+        
+        Args:
+            tx_hash (str): The transaction hash to retrieve the receipt.
+
+        Returns:
+            dict: A dictionary containing transaction receipt details and block timestamp, or an error message.
+        """
+        try:
+            # Get the transaction receipt
+            receipt = self.web3.eth.get_transaction_receipt(tx_hash)
+
+            if receipt:
+                # Convert HexBytes to strings for JSON serialization
+                receipt_dict = dict(receipt)
+                receipt_dict['blockHash'] = receipt_dict['blockHash'].hex()
+                receipt_dict['transactionHash'] = receipt_dict['transactionHash'].hex()
+                receipt_dict['logsBloom'] = receipt_dict['logsBloom'].hex()
+                receipt_dict['logs'] = [dict(log) for log in receipt_dict['logs']]
+
+                # Rename fields to be more descriptive
+                receipt_dict['from_address'] = receipt_dict.pop('from')
+                receipt_dict['to_address'] = receipt_dict.pop('to')
+
+                # Convert nested hex values in logs
+                for log in receipt_dict['logs']:
+                    log['blockHash'] = log['blockHash'].hex()
+                    log['transactionHash'] = log['transactionHash'].hex()
+                    log['topics'] = [topic.hex() for topic in log['topics']]
+
+                # Retrieve the block number from the receipt
+                block_number = receipt['blockNumber']
+
+                # Fetch the block details using the block number
+                block = self.web3.eth.get_block(block_number)
+
+                # Add the block timestamp to the receipt dictionary
+                receipt_dict['timestamp'] = block['timestamp']
+
+                return receipt_dict
+
+            else:
+                raise Exception("Error: Transaction receipt not found")
+
+        except Exception as e:
+            raise Exception(f"An exception occurred: {str(e)}")
+
+        
+    def create_event_filter(self, event_name: FederationEvents, last_n_blocks: int = None):
+        """
+        Creates a filter to catch the specified event emitted by the smart self.contract.
+        This function can be used to monitor events in real-time or from a certain number of past blocks.
+
+        Args:
+            self.contract: The self.contract instance to monitor events from.
+            event_name (FederationEvents): The name of the smart self.contract event to create a filter for.
+            last_n_blocks (int, optional): If provided, specifies the number of blocks to look back from the latest block.
+                                        If not provided, it listens from the latest block onward.
+
+        Returns:
+            Filter: A filter for catching the specified event.
+        """
+        try:
+            block = self.web3.eth.getBlock('latest')
+            block_number = block['number']
+            
+            # If last_n_blocks is provided, look back, otherwise start from the latest block
+            from_block = max(0, block_number - last_n_blocks) if last_n_blocks else block_number
+            
+            # Use the self.contract instance passed as an argument to access the events
+            event_filter = getattr(self.contract.events, event_name.value).createFilter(fromBlock=self.web3.toHex(from_block))
+            return event_filter
+        except AttributeError:
+            raise ValueError(f"Event '{event_name}' does not exist in the self.contract.")
+        except Exception as e:
+            raise Exception(f"An error occurred while creating the filter for event '{event_name}': {str(e)}")
+
+        
+    def register_domain(self, domain_name: str) -> str:
+        try:
+            tx_data = self.contract.functions.addOperator(domain_name).buildTransaction({'from': self.eth_address})
+            return self.send_signed_transaction(tx_data)
+
+        except Exception as e:
+            logger.error(f"Failed to register domain: {str(e)}")
+            raise Exception(f"Failed to register domain: {str(e)}")
+
+
+    def unregister_domain(self) -> str:
+        try:
+            tx_data = self.contract.functions.removeOperator().buildTransaction({'from': self.eth_address})
+            return self.send_signed_transaction(tx_data)
+
+        except Exception as e:
+            logger.error(f"Failed to unregister domain: {str(e)}")
+            raise Exception(f"Failed to unregister domain: {str(e)}")
+                                    
+    def announce_service(self, requirements: str, endpoint_consumer:str):
+        try:
+            service_id = 'service' + str(int(time.time()))
+            tx_data = self.contract.functions.announceService(
+                self.web3.toBytes(text=service_id),
+                requirements,
+                endpoint_consumer,
+            ).buildTransaction({'from': self.eth_address})
+            tx_hash = self.send_signed_transaction(tx_data)
+            return tx_hash, service_id
+        except Exception as e:
+            logger.error(f"Failed to announce service: {str(e)}")
+            raise Exception(f"Failed to announce service: {str(e)}")
+
+    def place_bid(self, service_id: str, price_wei_per_hour: int, endpoint_provider: str):
+        try:
+            tx_data = self.contract.functions.placeBid(
+                self.web3.toBytes(text=service_id),
+                price_wei_per_hour,
+                endpoint_provider
+            ).buildTransaction({'from': self.eth_address})
+            return self.send_signed_transaction(tx_data)
+
+        except Exception as e:
+            logger.error(f"Failed to place bid for service_id {service_id}: {str(e)}")
+            raise Exception(f"Failed to place bid for service_id {service_id}: {str(e)}")
+
+    def choose_provider(self, service_id: str, bid_index: int):
+        try:
+            tx_data = self.contract.functions.chooseProvider(
+                self.web3.toBytes(text=service_id),
+                bid_index
+            ).buildTransaction({
+                'from': self.eth_address
+            })
+            return self.send_signed_transaction(tx_data)
+
+        except Exception as e:
+            logger.error(f"Failed to choose provider for service_id '{service_id}' and bid_index '{bid_index}': {str(e)}")
+            raise Exception(f"Failed to choose provider for service_id '{service_id}' and bid_index '{bid_index}': {str(e)}")
+
+    def service_deployed(self, service_id: str, info: str):
+        try:
+            tx_data = self.contract.functions.serviceDeployed(
+                self.web3.toBytes(text=service_id),
+                info
+            ).buildTransaction({'from': self.eth_address})
+            return self.send_signed_transaction(tx_data)
+
+        except Exception as e:
+            logger.error(f"Failed to confirm deployment for service_id {service_id}: {str(e)}")
+            raise Exception(f"Failed to confirm deployment for service_id {service_id}: {str(e)}")
+
+    def get_service_state(self, service_id: str) -> int:  
+        try:
+            return self.contract.functions.getServiceState(self.web3.toBytes(text=service_id)).call()
+        except Exception as e:
+            logger.error(f"Failed to retrieve service state for service_id '{service_id}': {str(e)}")
+            raise Exception(f"Failed to retrieve service state for service_id '{service_id}': {str(e)}")
+        
+    def is_winner(self, service_id: str) -> bool:
+        try:
+            return self.contract.functions.isWinner(self.web3.toBytes(text=service_id), self.eth_address).call()
+        except Exception as e:
+            logger.error(f"Failed to check winner for service_id '{service_id}': {str(e)}")
+            raise Exception(f"Failed to check winner for service_id '{service_id}': {str(e)}")
+
+    def get_bid_count(self, service_id) -> int:
+        try:
+            return self.contract.functions.getBidCount(self.web3.toBytes(text=service_id), self.eth_address).call()
+        except Exception as e:
+            logger.error(f"Failed to retrieve bid count for service_id '{service_id}': {str(e)}")
+            raise Exception(f"Failed to retrieve bid count for service_id '{service_id}': {str(e)}")
+
+    def get_bid_info(self, service_id: str, index: int):
+        try:
+            return self.contract.functions.getBidInfo(
+                self.web3.toBytes(text=service_id),
+                index,
+                self.eth_address
+            ).call()
+        except Exception as e:
+            logger.error(f"Failed to retrieve bid info for service_id '{service_id}' and bider index '{index}': {str(e)}")
+            raise Exception(f"Failed to retrieve bid info for service_id '{service_id}' and bider index '{index}': {str(e)}")
+
+    def get_service_info(self, service_id: str, is_provider: bool):
+        try:            
+            service_id, endpoint, requirements = self.contract.functions.getServiceInfo(
+                self.web3.toBytes(text=service_id),
+                is_provider,
+                self.eth_address
+            ).call()
+
+            return service_id, endpoint, requirements
+        except Exception as e:
+            logger.error(f"Failed to retrieve deployed info for service_id '{service_id}': {str(e)}")
+            raise Exception(f"Failed to retrieve deployed info for service_id '{service_id}': {str(e)}")
+        
+    def get_operator_info(self):
+        try:            
+            return self.contract.functions.getOperatorInfo(self.eth_address).call()
+        except Exception as e:
+            logger.error(f"Failed to retrieve operator info: {str(e)}")
+            raise Exception(f"Failed to retrieve operator info: {str(e)}")
+
+    def display_service_state(self, service_id: str):  
+        state = self.get_service_state(service_id)
+        states = ["Open", "Closed", "Deployed"]
+        if 0 <= state < len(states):
+            logger.info(f"Service state: {states[state]}")
+        else:
+            logger.error(f"Service state: {states[state]}")

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity ^0.8.0;
 
 // Define the smart contract
 contract Federation {
@@ -7,154 +7,189 @@ contract Federation {
     // Define the possible states of a service
     enum ServiceState {Open, Closed, Deployed}
 
-    // Define the Operator struct
     struct Operator {
-        bytes32 name;
+        string name;
+        address operatorAddress;
+        uint256 registrationTime;
         bool registered;
     }
 
-    // Define the Service struct
     struct Service {
         address creator;
-        bytes endpoint_consumer; // Changed from bytes32 to bytes
-        bytes32 id;
+        string endpoint_consumer;
+        bytes32 serviceId; // Example "service123" -> 0x7365727669636531323300000000000000000000000000000000000000000000
         address provider;
-        bytes endpoint_provider; // Changed from bytes32 to bytes
-        bytes req_info;
+        string endpoint_provider;
+        string requirements;
         ServiceState state;
     }
 
-    // Define the Bid struct
     struct Bid {
-        address bid_address;
-        uint price;
-        bytes endpoint_provider; // Changed from bytes32 to bytes
+        address bidAddress;
+        uint priceWeiPerHour; // Cost in wei per hour of service
+        string endpoint_provider;
     }
     
-    // Define mappings to store data
+    // Mappings
     mapping(bytes32 => uint) public bidCount;
     mapping(bytes32 => Bid[]) public bids;
     mapping(bytes32 => Service) public service;
     mapping(address => Operator) public operator;
     
-    // Define events
-    event OperatorRegistered(address operator, bytes32 name);
+    // Events
+    event OperatorRegistered(address operator, string name);
     event OperatorRemoved(address operator);
-    event ServiceAnnouncement(bytes requirements, bytes32 id);
-    event NewBid(bytes32 _id, uint256 max_bid_index);
-    event ServiceAnnouncementClosed(bytes32 _id);
-    event ServiceDeployedEvent(bytes32 _id);
+    event ServiceAnnouncement(bytes32 serviceId, string requirements);
+    event NewBid(bytes32 serviceId, uint256 biderIndex);
+    event ServiceAnnouncementClosed(bytes32 serviceId);
+    event ServiceDeployed(bytes32 serviceId);
 
-    function addOperator(bytes32 name) public {
-        Operator storage current_operator = operator[msg.sender];
-        require(name.length > 0, "Name is not valid");
-        require(current_operator.registered == false, "Operator already registered");
-        current_operator.name = name;
-        current_operator.registered = true;
+    // Modifiers
+    modifier onlyRegistered() {
+        require(operator[msg.sender].registered, "Operator: not registered");
+        _;
+    }
+
+    modifier serviceExists(bytes32 serviceId) {
+        require(service[serviceId].serviceId == serviceId, "Service: does not exist");
+        _;
+    }
+
+    modifier onlyServiceCreator(bytes32 serviceId) {
+        require(service[serviceId].creator == msg.sender, "Service: caller is not creator");
+        _;
+    }
+
+    function addOperator(string memory name) public {
+        require(bytes(name).length > 0, "Name is not valid");
+        require(!operator[msg.sender].registered, "Operator: already registered");
+        
+        operator[msg.sender] = Operator({
+                name: name,
+                operatorAddress: msg.sender,
+                registrationTime: block.timestamp,
+                registered: true
+        });
         emit OperatorRegistered(msg.sender, name);
     }
 
-    function removeOperator() public {
-        Operator storage current_operator = operator[msg.sender];
-        require(current_operator.registered == true, "Operator is not registered");
+    function removeOperator() public onlyRegistered {
         delete operator[msg.sender];
         emit OperatorRemoved(msg.sender);
     }
 
-    function getOperatorInfo(address op_address) public view returns (bytes32 name) {
-        Operator storage current_operator = operator[op_address];
-        require(current_operator.registered == true, "Operator is not registered with this address. Please register.");
-        return current_operator.name;
+    function getOperatorInfo(address callAddress) public view returns (
+        string memory name,
+        address opAddress,
+        uint256 registrationTime,
+        bool registered
+    ) {
+        Operator storage op = operator[callAddress];
+        require(op.registered == true, "Operator: not registered");
+        return (op.name, op.operatorAddress, op.registrationTime, op.registered);
     }
 
-    function AnnounceService(bytes memory _requirements, bytes memory _endpoint_consumer, bytes32 _id) public returns(ServiceState) {
-        Operator storage current_operator = operator[msg.sender];
-        Service storage current_service = service[_id];
-        require(current_operator.registered == true, "Operator is not registered. Can not bid. Please register.");
-        require(current_service.id != _id, "Service ID for operator already exists");
+    function announceService(
+        bytes32 serviceId,
+        string memory requirements,
+        string memory endpoint_consumer
+    ) public onlyRegistered {
+        require(service[serviceId].serviceId != serviceId, "Service: ID already exists");
 
-        service[_id] = Service(msg.sender, _endpoint_consumer, _id, msg.sender, _endpoint_consumer, _requirements, ServiceState.Open);
-        emit ServiceAnnouncement(_requirements, _id);
-        return ServiceState.Open;
+        Service storage newService = service[serviceId];
+
+        newService.serviceId = serviceId;
+        newService.requirements = requirements;
+        newService.state = ServiceState.Open;
+        newService.creator = msg.sender;
+        newService.provider = msg.sender;
+        newService.endpoint_consumer = endpoint_consumer;
+        newService.endpoint_provider = endpoint_consumer;
+
+        emit ServiceAnnouncement(serviceId, requirements);
     }
 
-    function GetServiceState(bytes32 _id) public view returns (ServiceState) {
-        return service[_id].state;
+    function getServiceState(bytes32 serviceId) public view returns (ServiceState) {
+        return service[serviceId].state;
     }
 
-    function GetServiceInfo(bytes32 _id, bool provider, address call_address) public view returns (bytes32, bytes memory, bytes memory) {
-        Operator storage current_operator = operator[call_address];
-        Service storage current_service = service[_id];
-        require(current_operator.registered == true, "Operator is not registered. Can not look into. Please register.");
-        require(current_service.state >= ServiceState.Closed, "Service is still open or not exists");
-        if(provider == true) {
-            require(current_service.provider == call_address, "This domain is not a winner");
-            return(current_service.id, current_service.endpoint_consumer, current_service.req_info);
+    function getServiceInfo(
+        bytes32 serviceId, 
+        bool isProvider, 
+        address callAddress
+    ) public view returns (bytes32, string memory, string memory) {
+        Service storage currentService = service[serviceId];
+        require(operator[callAddress].registered, "Operator: not registered");
+        require(currentService.state >= ServiceState.Closed, "Service: not closed");
+
+        if(isProvider) {
+            require(currentService.provider == callAddress, "Service: not provider");
+            return(currentService.serviceId, currentService.endpoint_consumer, currentService.requirements);
         } else {
-            require(current_service.creator == call_address, "This domain is not a creator");
-            return(current_service.id, current_service.endpoint_provider, current_service.req_info);
+            require(currentService.creator == callAddress, "Service: not creator");
+            return(currentService.serviceId, currentService.endpoint_provider, currentService.requirements);
         }
     }
 
-    function PlaceBid(bytes32 _id, uint32 _price, bytes memory _endpoint) public returns (uint256) {
-        Operator storage current_operator = operator[msg.sender];
-        Service storage current_service = service[_id];
-        require(current_operator.registered == true, "Operator is not registered. Can not bid. Please register.");
-        require(current_service.state == ServiceState.Open, "Service is closed or not exists");
-        uint256 max_bid_index = bids[_id].push(Bid(msg.sender, _price, _endpoint));
-        bidCount[_id] = max_bid_index;
-        emit NewBid(_id, max_bid_index);
-        return max_bid_index;
+    function placeBid(
+        bytes32 serviceId, 
+        uint32 priceWeiPerHour,
+        string memory endpoint_provider
+    ) public onlyRegistered serviceExists(serviceId) {
+        Service storage currentService = service[serviceId];
+        require(currentService.state == ServiceState.Open, "Service: not open");
+        require(priceWeiPerHour > 0, "Bid: price must be greater than 0");
+
+        // require(msg.sender != currentService.creator, "Bid: cannot bid on own service");
+
+        bids[serviceId].push(Bid(msg.sender, priceWeiPerHour, endpoint_provider));
+        uint256 index = bids[serviceId].length;
+        bidCount[serviceId] = index;
+
+        emit NewBid(serviceId, index);
     }
 
-    function GetBidCount(bytes32 _id, address _creator) public view returns (uint256) {
-        Service storage current_service = service[_id];
-        require(current_service.id == _id, "Service not exists");
-        require(current_service.creator == _creator, "Only service creator can look into the information");
-        return bidCount[_id];
+    function getBidCount(bytes32 serviceId, address callAddress) public view serviceExists(serviceId) returns (uint256) {
+        require(service[serviceId].creator == callAddress, "Service: caller not creator");
+        return bidCount[serviceId];
     }
 
-    function GetBid(bytes32 _id, uint256 bider_index, address _creator) public view returns (address, uint, uint256) {
-        Service storage current_service = service[_id];
-        Bid[] storage current_bid_pool = bids[_id];
-        require(current_service.id == _id, "Service not exists");
-        require(current_service.creator == _creator, "Only service creator can look into the information");
-        require(bids[_id].length > 0, "No bids for requested Service");
-        return (current_bid_pool[bider_index].bid_address, current_bid_pool[bider_index].price, bider_index);
+    function getBidInfo(bytes32 serviceId, uint256 index, address callAddress) public view serviceExists(serviceId) returns (address, uint, uint256) {
+        require(service[serviceId].creator == callAddress, "Service: caller not creator");
+        Bid[] storage bidPool = bids[serviceId];
+        require(bidPool.length > 0, "Bid: no bids");
+        require(index < bidPool.length, "Bid: index out of range");
+
+        Bid storage b = bidPool[index];
+        return (b.bidAddress, b.priceWeiPerHour, index);
     }
 
-    function ChooseProvider(bytes32 _id, uint256 bider_index) public returns (bytes memory endpoint_provider) {
-        Service storage current_service = service[_id];
-        Bid[] storage current_bid_pool = bids[_id];
-        require(current_service.id == _id, "Service not exists");
-        require(current_service.creator == msg.sender, "Only service creator can close the announcement");
-        require(current_service.state == ServiceState.Open, "Service announcement already closed");
+    function chooseProvider(bytes32 serviceId, uint256 biderIndex) public serviceExists(serviceId) onlyServiceCreator(serviceId) {
+        Service storage currentService = service[serviceId];
+        require(currentService.state == ServiceState.Open, "Service: not open");
+        require(biderIndex < bids[serviceId].length, "Bid: index out of range");
+    
+        currentService.state = ServiceState.Closed;
+        currentService.provider = bids[serviceId][biderIndex].bidAddress;
 
-        current_service.state = ServiceState.Closed;
-        service[_id].provider = current_bid_pool[bider_index].bid_address;
-        service[_id].endpoint_provider = current_bid_pool[bider_index].endpoint_provider;
-        emit ServiceAnnouncementClosed(_id);
-        return service[_id].endpoint_provider;
+        emit ServiceAnnouncementClosed(serviceId);
     }
 
-    function isWinner(bytes32 _id, address _winner) public view returns (bool) {
-        Service storage current_service = service[_id];
-        require(current_service.state == ServiceState.Closed, "Service winner not choosen. Service: DEPLOYED or OPEN");
-        if(current_service.provider == _winner) {
-            return true;
-        } else {
-            return false;
-        }
+    function isWinner(bytes32 serviceId, address callAddress) public view serviceExists(serviceId) returns (bool) {
+        Service storage currentService = service[serviceId];
+        require(currentService.state == ServiceState.Closed, "Service: not closed");
+        
+        return currentService.provider == callAddress;
     }
 
-    function ServiceDeployed(bytes memory info, bytes32 _id) public returns (bool) {
-        Service storage current_service = service[_id];
-        require(current_service.id == _id, "Service not exists");
-        require(current_service.provider == msg.sender, "Only service provider can deploy the service");
-        require(current_service.state == ServiceState.Closed, "Service winner not choosen. Service: DEPLOYED or OPEN");
-        current_service.state = ServiceState.Deployed;
-        current_service.req_info = info;
-        emit ServiceDeployedEvent(_id);
-        return true;
+    function serviceDeployed(bytes32 serviceId, string memory info) public serviceExists(serviceId) {
+        Service storage currentService = service[serviceId];
+        require(currentService.provider == msg.sender, "Service: not provider");
+        require(currentService.state == ServiceState.Closed, "Service: not closed");
+        
+        currentService.state = ServiceState.Deployed;
+        currentService.requirements = info;
+
+        emit ServiceDeployed(serviceId);
     }
 }
