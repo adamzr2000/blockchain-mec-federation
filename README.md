@@ -13,11 +13,6 @@ This project contains the code repositoy, measurements and analysis tools used i
 docker compose build
 ```
 
-### Install the necessary python dependencies:
-```bash
-pip3 install -r requirements.txt
-```
-
 ### Deploy the blockchain network (distributed)
 
 1. Initialize the network on `domain1`:

@@ -1,10 +1,10 @@
 version: "3.9"
 
 services:
-  geth-poa-node:
+  geth-node-poa:
     build:
-      context: ./dockerfiles/geth-poa-node
-    image: geth-poa-node:latest
+      context: ./dockerfiles/geth-node-poa
+    image: geth-node-poa:latest
 
   mef-blockchain-manager:
     build:
