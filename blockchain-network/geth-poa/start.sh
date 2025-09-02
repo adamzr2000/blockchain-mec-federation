@@ -26,8 +26,8 @@ cd "$SCRIPT_DIR"
 export GENESIS_FILE="genesis_${VALIDATORS}_validators.json"
 
 # Optional sanity check (keeps your current relative structure)
-if [[ ! -f "../dockerfiles/geth-node-poa/scripts/${GENESIS_FILE}" ]]; then
-  echo "Error: ../dockerfiles/geth-node-poa/scripts/${GENESIS_FILE} not found."
+if [[ ! -f "../../dockerfiles/geth-node-poa/scripts/${GENESIS_FILE}" ]]; then
+  echo "Error: ../../dockerfiles/geth-node-poa/scripts/${GENESIS_FILE} not found."
   exit 1
 fi
 

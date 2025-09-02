@@ -28,7 +28,7 @@ cd blockchain-network/geth-poa
 
 ```bash
 cd blockchain-network/geth-poa
-./join.sh node2 2
+./join.sh --id 2 --validators 2
 ```
 
 ## Usage
