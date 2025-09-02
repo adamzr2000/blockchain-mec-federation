@@ -36,7 +36,7 @@ cd blockchain-network/geth-poa
 1. Deploy the Federation Smart Contract to the blockchain Network:
 
 ```bash
-./deploy_smart_contract.sh --network-id 1234 --node-ip 127.0.0.1 --port 3334 --protocol ws
+./deploy_smart_contract.sh --network-id 1234 --node-ip 10.5.99.1 --port 3334 --protocol ws
 ```
 
 2. Launch the MEO/MEF server on every VM and define the federation's domain parameters in the [federation](./blockchain-network/) directory using (at least) [consumer1.env](./config/federation/consumer1.env) and [provider1.env](./config/federation/provider1.env) files. Ensure to modify `DOMAIN_FUNCTION` according to the role within the federation (`consumer` or `provider`), and adjust `INTERFACE_NAME` to match your VM's network interface name for VXLAN tunnel setup.

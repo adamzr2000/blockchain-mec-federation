@@ -72,14 +72,13 @@ def stop_dlt_network(max_node: int) -> None:
         node_name = f"node{i}"
         # Make it resilient: if kill fails, emit a note and continue
         kill_cmd = (
-            f"docker kill {node_name} "
-            f"|| echo 'Note: container {node_name} was not running on this host.'"
+            f"docker kill {node_name}"
         )
         execute_ssh_command(node_ip, kill_cmd)
 
     # Stop DLT on node1
     node1 = SUBNET_PREFIX + "1"
-    execute_ssh_command(node1, f"{BASE_COMMAND} ./stop_dlt_network.sh")
+    execute_ssh_command(node1, f"{BASE_COMMAND} ./stop.sh")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Start/stop DLT network via SSH using Fabric.")
