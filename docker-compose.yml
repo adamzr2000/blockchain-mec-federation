@@ -8,14 +8,14 @@ services:
 
   mef-blockchain-manager:
     build:
-      context: ./dockerfiles/ mef-blockchain-manager
+      context: ./dockerfiles/mef-blockchain-manager
     image:  mef-blockchain-manager:latest
 
   eth-netstats:
     build:
       context: ./dockerfiles/eth-netstats
     image: eth-netstats:latest
-    
+
   meo:
     build:
       context: ./dockerfiles/meo
