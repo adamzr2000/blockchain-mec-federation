@@ -3,7 +3,7 @@ services:
     image: geth-node-poa
     container_name: bootnode
     volumes:
-      - ./config/dlt/bootnode.env:/src/bootnode.env
+      - ./config/bootnode.env:/src/bootnode.env
       - ./../../dockerfiles/geth-node-poa/scripts/password.txt:/src/password.txt
       - ./../../dockerfiles/geth-node-poa/scripts/bootnode_start.sh:/src/bootnode_start.sh
     command: ./bootnode_start.sh
@@ -15,7 +15,7 @@ services:
     depends_on:
       - bootnode
     volumes:
-      - ./config/dlt/node1.env:/src/node1.env
+      - ./config/node1.env:/src/node1.env
       - ./../../dockerfiles/geth-node-poa/scripts/${GENESIS_FILE}:/src/genesis.json  # <- dynamic
       - ./../../dockerfiles/geth-node-poa/scripts/password.txt:/src/password.txt
       - ./../../dockerfiles/geth-node-poa/scripts/node1_start.sh:/src/node1_start.sh      

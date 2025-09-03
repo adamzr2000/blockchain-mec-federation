@@ -7,7 +7,7 @@ This project contains the code repositoy, measurements and analysis tools used i
 ---
 
 ```bash
-python3 ssh_git_pull.py -n 3
+python3 utils/ssh_git_pull.py -n 3
 ```
 
 ## 🚀 Deployment guide
@@ -34,7 +34,7 @@ python3 utils/ssh_blockchain_network.py --start -n 3
 ### Deploy the MEO
 
 ```bash
-./start_meo.sh
+python3 utils/ssh_meo.py --start -n 3
 ```
 
 ### Deploy the MEF (blockchain manager)
