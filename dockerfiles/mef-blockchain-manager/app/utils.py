@@ -97,7 +97,8 @@ def create_csv_file_registration(participants, name, header, data):
     logger.info(f"Data saved to {file_name}")
 
 
-def extract_ip_from_url(url) -> str:
+def extract_ip_from_url(url):
+    # Regular expression pattern to match an IP address in a URL
     pattern = r'http://(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):\d+'
     match = re.match(pattern, url)
     
@@ -105,14 +106,33 @@ def extract_ip_from_url(url) -> str:
         return match.group(1)
     else:
         return None
+    
 
-def create_smaller_subnet(original_cidr, identifier, prefix_length=24) -> str:
+def create_smaller_subnet(original_cidr, third_octet_value):
+    # Split the CIDR notation into IP and subnet mask parts
     ip, _ = original_cidr.split('/')
+
+    # Split the IP into its octets
     octets = ip.split('.')
-    octets[2] = identifier  # Modify the third octet with the identifier
+
+    octets[2] = third_octet_value
+
+    # Reassemble the IP address
     new_ip = '.'.join(octets)
-    new_cidr = f"{new_ip}/{prefix_length}"
+
+    # Combine the new IP address with the new subnet mask /24
+    new_cidr = f"{new_ip}/24"
+
     return new_cidr
+
+
+def extract_domain_name_from_service_id(service_id):
+    # Extracting the domain_name using regular expression
+    match = re.search(r'service\d+-(.+)', service_id)
+    if match:
+        return match.group(1)
+    else:
+        return ""
 
 def get_ip_range_from_subnet(subnet: str) -> str:
     try:
@@ -138,30 +158,6 @@ def validate_endpoint(endpoint: str) -> bool:
     if re.match(pattern, endpoint):
         return True
     return False
-
-def configure_router(api_url, sudo_password, local_ip, remote_ip, interface, vni, dst_port, destination_network, tunnel_ip, gateway_ip):
-    payload = {
-        "sudo_password": sudo_password,
-        "local_ip": local_ip,
-        "remote_ip": remote_ip,
-        "interface": interface,
-        "vni": vni,
-        "dst_port": dst_port,
-        "destination_network": destination_network,
-        "tunnel_ip": tunnel_ip,
-        "gateway_ip": gateway_ip
-    }
-    response = requests.post(f"{api_url}/configure_router", json=payload)
-    return response.json()
-
-def remove_vxlan(api_url, sudo_password, vni, destination_network):
-    payload = {
-        "sudo_password": sudo_password,
-        "vni": vni,
-        "destination_network": destination_network
-    }
-    response = requests.post(f"{api_url}/remove_vxlan", json=payload)
-    return response.json()
 
 def test_connectivity(api_url, target):
     payload = {"target": target}

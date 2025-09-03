@@ -45,7 +45,7 @@ GENESIS_FILE="genesis_${VALIDATORS}_validators.json"
 START_CMD="./${NODE_SELECTION}_start.sh"
 
 DOCKER_CMD="docker run -d --name $NODE_SELECTION --hostname $NODE_SELECTION --network host --rm \
--v $(pwd)/../../config/dlt/$NODE_SELECTION.env:/src/$NODE_SELECTION.env \
+-v $(pwd)/config/$NODE_SELECTION.env:/src/$NODE_SELECTION.env \
 -v $(pwd)/../../dockerfiles/geth-node-poa/scripts/$GENESIS_FILE:/src/genesis.json \
 -v $(pwd)/../../dockerfiles/geth-node-poa/scripts/password.txt:/src/password.txt \
 -v $(pwd)/../../dockerfiles/geth-node-poa/scripts/${NODE_SELECTION}_start.sh:/src/${NODE_SELECTION}_start.sh \

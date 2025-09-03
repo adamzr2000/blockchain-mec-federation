@@ -64,6 +64,16 @@ class ExecResponse(BaseModel):
         example={"container": "testsvc_1", "exit_code": 0, "stdout": "pong", "stderr": ""}
     )
 
+class ServiceIPsResponse(BaseModel):
+    success: bool = True
+    message: str = "Fetched container IPs."
+    data: Dict[str, Dict[str, str]] = Field(
+        ...,
+        example={
+            "service_name": {"value": "testsvc"},
+            "container_ips": {"testsvc_1": "172.17.0.2", "testsvc_2": "172.17.0.3"}
+        }
+    )
 # ---------- Endpoints ----------
 
 @app.post(
@@ -130,6 +140,26 @@ def exec_command_endpoint(container_name: str, cmd: str):
         }
     except NotFound:
         raise HTTPException(status_code=404, detail={"success": False, "message": f"Container '{container_name}' not found"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail={"success": False, "message": str(e)})
+
+@app.get(
+    "/service_ips",
+    tags=["Docker Functions"],
+    summary="Get IPs for a service (by name prefix)",
+    response_model=ServiceIPsResponse,
+)
+def service_ips(name: str):
+    try:
+        ips = get_container_ips(app.state.docker, name)
+        return {
+            "success": True,
+            "message": "Fetched container IPs." if ips else "No containers found for this service.",
+            "data": {
+                "service_name": {"value": name},
+                "container_ips": ips
+            }
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail={"success": False, "message": str(e)})
     

@@ -6,6 +6,10 @@ This project contains the code repositoy, measurements and analysis tools used i
 
 ---
 
+```bash
+python3 ssh_git_pull.py -n 3
+```
+
 ## 🚀 Deployment guide
 
 ### Build Docker Images:
@@ -27,161 +31,56 @@ python3 utils/ssh_blockchain_network.py --start -n 3
 ./deploy_smart_contract.sh --network-id 1234 --node-ip 10.5.99.1 --port 3334 --protocol ws
 ```
 
-2. Launch the MEO/MEF server on every VM and define the federation's domain parameters in the [federation](./blockchain-network/) directory using (at least) [consumer1.env](./config/federation/consumer1.env) and [provider1.env](./config/federation/provider1.env) files. Ensure to modify `DOMAIN_FUNCTION` according to the role within the federation (`consumer` or `provider`), and adjust `INTERFACE_NAME` to match your VM's network interface name for VXLAN tunnel setup.
+### Deploy the MEO
 
 ```bash
-# VM1
-./start_app.sh config/federation/consumer1.env
-
-# VM2
-./start_app.sh config/federation/provider1.env
-
-# VM3
-./start_app.sh config/federation/provider2.env
+./start_meo.sh
 ```
 
-For detailed information about the federation functions, refer to the FastAPI documentation, which is based on Swagger UI, at: `http://<vm-ip>:8000/docs`
+### Deploy the MEF (blockchain manager)
+```bash
+./start_blockchain_manager.sh --config blockchain-network/geth-poa/config/node1.env --domain-function consumer
+```
+---
+```bash
+./start_blockchain_manager.sh --config blockchain-network/geth-poa/config/node2.env --domain-function provider
+```
+---
+```bash
+./start_blockchain_manager.sh --config blockchain-network/geth-poa/config/node3.env --domain-function provider
+```
 
-3. Register each AD in the Smart Contract to enable their participation in the federation:
+### Demo
+```bash
+curl -X POST 'http://10.5.99.1:8000/register_domain/domain1' 
+```
+---
+```bash
+curl -X POST 'http://10.5.99.2:8000/register_domain/domain2' 
+```
+---
+```bash
+curl -X POST 'http://10.5.99.3:8000/register_domain/domain3' 
+```
 
 ```bash
-# VM1 
-curl -X POST 'http://10.5.99.1:8000/register_domain' 
-
-# VM2 
-curl -X POST 'http://10.5.99.2:8000/register_domain' 
-
-# VM3
-curl -X POST 'http://10.5.99.3:8000/register_domain' 
+curl -X POST "http://10.5.99.1:8000/start_demo_provider" \
+-H 'Content-Type: application/json' \
+-d '{
+   "endpoint": "k8s_deployment"
+   "price_wei_per_hour": 10,
+   "location": "Madrid, Spain",
+   "export_to_csv": false,
+   "csv_path": "federation_demo_provider.csv"
+}' | jq
 ```
-
-```bash
-# VM1 
-curl -X POST 'http://10.5.99.1:8000/start_experiments_consumer?export_to_csv=false&providers=2'
-
-# VM2 
-curl -X POST 'http://10.5.99.2:8000/start_experiments_provider?export_to_csv=false&price=20'
-
-# VM3
-curl -X POST 'http://10.5.99.3:8000/start_experiments_provider?export_to_csv=false&price=15'
-```
-
 
 ## API Endpoints
 
 ### Web3 Info
 Returns `web3-info` details, otherwise returns an error message.
 
-```sh
-curl -X GET 'http://localhost:8000/web3_info' | jq
+```bash
+FED_API="localhost:8000"
+curl -X 'GET' "http://$FED_API/web3_info" | jq
 ```
-
-### Transaction Receipt
-Returns `tx-receipt` details for a specified `tx-hash`, otherwise returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/tx_receipt?tx_hash=<tx-hash>' | jq
-```
-
-### Register Domain
-Returns the `tx-hash`, otherwise returns an error message.
-
-```sh
-curl -X POST 'http://localhost:8000/register_domain?name=<domain-name>' | jq
-```
-
-### Create Service Announcement
-Returns the `tx-hash` and `service-id` for federation, otherwise returns an error message.
-
-```sh
-curl -X POST 'http://localhost:8000/create_service_announcement?requirements=<service-requirements>&service_endpoint_consumer=<service-endpoint-consumer>' | jq
-```
-
-Example:
-```sh
-curl -X POST 'http://localhost:8000/create_service_announcement?requirements=service=alpine;replicas=1&service_endpoint_consumer=192.168.56.104' | jq
-```
-
-### Check Service Announcements
-Returns `announcements` details, otherwise, returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/check_service_announcements' | jq
-```
-
-### Place Bid
-Returns the `tx-hash`, otherwise returns an error message.
-
-```sh
-curl -X POST 'http://localhost:8000/place_bid?service_id=<service-id>&service_price=<service-price>' | jq
-```
-
-### Check Bids
-Returns the `bids` details, otherwise returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/check_bids?service_id=<service-id>' | jq
-```
-
-### Choose Provider
-Returns the `tx-hash`, otherwise returns an error message.
-
-```sh
-curl -X POST 'http://localhost:8000/choose_provider?bid_index=<bid-index>&service_id=<service-id>' | jq
-``` 
-
-### Check Winner
-Returns the `am-i-winner`, which can be `yes`, or `no`; otherwise, returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/check_winner?service_id=<service-id>' | jq
-```
-
-### Check if I am Winner
-Returns the `winner-chosen`, which can be `yes`, or `no`; otherwise, returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/check_if_i_am_winner?service_id=<service-id>' | jq
-```
-
-### Deploy Service
-Returns the `service-name`, otherwise returns an error message.
-
-```sh
-curl -X POST 'http://localhost:8000/deploy_service?service_id=<service-id>' | jq
-```
-
-### Deploy Docker Service
-Returns the `service-name`, otherwise returns an error message.
-
-```sh
-curl -X POST 'http://localhost:8000/deploy_docker_service?image=alpine&name=<service-name>&network=<docker-network>&replicas=<number-of-replicas>' | jq
-```
-
-### Check Service State
-Returns the `state` of the federated service, which can be `open`,`closed`, or `deployed`; otherwise, returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/check_service_state?service_id=<service-id>' | jq
-```
-
-### Check Deployed Info
-Returns the `service-endpoint` of the provider and `federated-host` (IP of the deployed service); otherwise, returns an error message.
-
-```sh
-curl -X GET 'http://localhost:8000/check_deployed_info?service_id=<service-id>' | jq
-```
-
-
-### Delete Docker Service
-Returns successful deleted debug message, otherwise returns an error message.
-```sh
-curl -X DELETE 'http://localhost:8000/delete_docker_service?name=<service-name>' 
-```
-
-### Delete Resources (VXLAN configuration and federated Docker network)
-
-```sh
-curl -X DELETE 'http://localhost:8000/delete_vxlan'
-```
-

@@ -19,7 +19,10 @@ class FederationEvents(str, Enum):
     SERVICE_ANNOUNCEMENT = "ServiceAnnouncement"
     NEW_BID = "NewBid"
     SERVICE_ANNOUNCEMENT_CLOSED = "ServiceAnnouncementClosed"
+    CONSUMER_ENDPOINT_UPDATED = "ConsumerEndpointUpdated"
+    PROVIDER_ENDPOINT_UPDATED = "ProviderEndpointUpdated"
     SERVICE_DEPLOYED = "ServiceDeployed"
+    SERVICE_CANCELLED = "ServiceCancelled"
 
 class BlockchainInterface:
     def __init__(self, eth_address, private_key, eth_node_url, abi_path, contract_address):
@@ -179,13 +182,13 @@ class BlockchainInterface:
             logger.error(f"Failed to unregister domain: {str(e)}")
             raise Exception(f"Failed to unregister domain: {str(e)}")
                                     
-    def announce_service(self, requirements: str, endpoint_consumer:str):
+    def announce_service(self, requirements: str, endpoint_consumer: int):
         try:
             service_id = 'service' + str(int(time.time()))
             tx_data = self.contract.functions.announceService(
                 self.web3.toBytes(text=service_id),
                 requirements,
-                endpoint_consumer,
+                endpoint_consumer
             ).buildTransaction({'from': self.eth_address})
             tx_hash = self.send_signed_transaction(tx_data)
             return tx_hash, service_id
