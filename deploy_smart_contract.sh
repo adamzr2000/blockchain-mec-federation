@@ -53,7 +53,6 @@ docker run \
   -it \
   --rm \
   --name truffle \
-  --net host \
   -v "$(pwd)/smart-contracts":/smart-contracts \
   -e NODE_IP="$node_ip" \
   -e PORT="$port" \

@@ -15,25 +15,13 @@ docker compose build
 
 ### Deploy the blockchain network (distributed)
 
-1. Initialize the network on `domain1`:
-
-> Note: Please make sure to modify the IP addresses in the [node1.env](./config/dlt/node1.env) and [node2.env](./config/dlt/node2.env) files according to your setup before executing the script.
+> Note: Please make sure to modify the IP addresses in the [node1.env](./config/dlt/node1.env), [node2.env](./config/dlt/node2.env), and [node3.env](./config/dlt/node3.env) files according to your setup before executing the script.
 
 ```bash
-cd blockchain-network/geth-poa
-./start.sh --validators 2
+python3 utils/ssh_blockchain_network.py --start -n 3
 ```
 
-2. Join the network on `domain2`:
-
-```bash
-cd blockchain-network/geth-poa
-./join.sh --id 2 --validators 2
-```
-
-## Usage
-
-1. Deploy the Federation Smart Contract to the blockchain Network:
+### Deploy the Federation Smart Contract
 
 ```bash
 ./deploy_smart_contract.sh --network-id 1234 --node-ip 10.5.99.1 --port 3334 --protocol ws
