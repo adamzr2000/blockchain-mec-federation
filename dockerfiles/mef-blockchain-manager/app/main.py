@@ -69,7 +69,7 @@ required = {
     "ETH_ADDRESS":      eth_address,
     "ETH_PRIVATE_KEY":  eth_private_key,
     "ETH_NODE_URL":     eth_node_url,
-    "CONTRACT_ADDRESS": contract_addr_raw,
+    "CONTRACT_ADDRESS": contract_addr_raw
 }
 missing = [k for k,v in required.items() if not v]
 if missing:
@@ -306,7 +306,15 @@ def start_experiments_consumer(request: DemoConsumerRequest):
     try:
         if domain != 'consumer':
             raise HTTPException(status_code=403, detail="This function is restricted to consumer domains.")
-        response = run_experiments_consumer(requirements=request.requirements, endpoint=request.endpoint, offers_to_wait=request.offers_to_wait, export_to_csv=request.export_to_csv, csv_path=request.csv_path)
+        federation_net = f"10.{request.node_id}.0.0/16"
+        vxlan_id = str(200+ int(request.node_id))
+        vxlan_port = str(int(4789) + int(request.node_id))
+        endpoint = f"ip_address={request.ip_address};vxlan_id={vxlan_id};vxlan_port={vxlan_port};federation_net={federation_net}"
+        if not utils.validate_endpoint(endpoint):
+            raise HTTPException(status_code=400, detail="Invalid endpoint format.")
+        response = run_experiments_consumer(requirements=request.requirements, endpoint=endpoint, offers_to_wait=request.offers_to_wait, 
+                                            meo_endpoint=request.meo_endpoint, vxlan_interface=request.vxlan_interface, node_id=request.node_id,
+                                            export_to_csv=request.export_to_csv, csv_path=request.csv_path)
         return response
 
     except Exception as e:
@@ -318,18 +326,23 @@ def start_experiments_provider(request: DemoProviderRequest):
     try:
         if domain != 'provider':
             raise HTTPException(status_code=403, detail="This function is restricted to provider domains.")
-
-        response = run_experiments_provider(price_wei_per_hour=request.price_wei_per_hour, endpoint=request.endpoint, export_to_csv=request.export_to_csv, csv_path=request.csv_path)
+        endpoint = f"ip_address={request.ip_address};vxlan_id=None;vxlan_port=None;federation_net=None"        
+        if not utils.validate_endpoint(endpoint):
+            raise HTTPException(status_code=400, detail="Invalid endpoint format.")
+        response = run_experiments_provider(price_wei_per_hour=request.price_wei_per_hour, endpoint=endpoint, 
+                                            meo_endpoint=request.meo_endpoint, vxlan_interface=request.vxlan_interface, node_id=request.node_id,
+                                            export_to_csv=request.export_to_csv, csv_path=request.csv_path)
         return response
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def run_experiments_consumer(requirements, endpoint, offers_to_wait, export_to_csv, csv_path):
+def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoint, vxlan_interface, node_id, export_to_csv, csv_path):
     header = ['step', 'timestamp']
     data = []
-
+    local_ip, vxlan_id, vxlan_port, federation_net  = utils.extract_service_endpoint(endpoint)
+    federation_subnet = utils.create_smaller_subnet(federation_net, node_id)
     process_start_time = time.time()
                 
     # Send service announcement (federation request)
@@ -361,7 +374,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, export_to_c
     best_bid_index = None
 
     table = PrettyTable()
-    table.field_names = ["Bid Index", "Provider Address", "Price (Wei/hour)", "Location"]
+    table.field_names = ["Bid Index", "Provider Address", "Price (Wei/hour)"]
 
     # Loop through all bid indices and print their information
     for i in range(received_bids):
@@ -369,8 +382,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, export_to_c
         provider_addr = bid_info[0]
         bid_price = int(bid_info[1])
         bid_index = int(bid_info[2])
-        location = bid_info[3]
-        table.add_row([bid_index, provider_addr, bid_price, location])
+        table.add_row([bid_index, provider_addr, bid_price])
 
         if lowest_price is None or bid_price < lowest_price:
             lowest_price = bid_price
@@ -397,28 +409,30 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, export_to_c
     # blockchain.display_service_state(service_id)
 
     # Federated service info
-    service_id, service_endpoint_provider, deployed_mec_app_ip = blockchain.get_service_info(service_id, provider_flag)
-    endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet  = utils.extract_service_endpoint(service_endpoint_provider)
+    provider_endpoint, deployed_mec_app_ip = blockchain.get_service_info(service_id, provider_flag)
+    remote_ip, provider_endpoint_vxlan_id, provider_endpoint_vxlan_port, provider_endpoint_federation_net  = utils.extract_service_endpoint(provider_endpoint)
     logger.info(
         "📡 Federated service info\n"
         f"{'-'*40}\n"
         f"{'Provider VXLAN endpoint':<22}:\n"
-        f"  └ {'vni':<18}: {endpoint_vxlan_id}\n"
-        f"  └ {'ip_addr':<18}: {endpoint_ip}\n"
-        f"  └ {'udp_port':<18}: {endpoint_vxlan_port}\n"
-        f"  └ {'subnet':<18}: {endpoint_docker_subnet}\n"
+        f"  └ {'vni':<18}: {provider_endpoint_vxlan_id}\n"
+        f"  └ {'ip_addr':<18}: {remote_ip}\n"
+        f"  └ {'udp_port':<18}: {provider_endpoint_vxlan_port}\n"
+        f"  └ {'network':<18}: {provider_endpoint_federation_net}\n"
         f"{'-'*40}"
         f"{'Deployed MEC app IP':<22}: {deployed_mec_app_ip}\n"
         f"{'-'*40}"
     )
 
-    # configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, '200', '4789', docker_subnet, docker_ip_range)
-    # attach_container_to_network("mec-app_1", "federation-net")
+    # print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, vxlan_id, vxlan_port, federation_net, federation_subnet, "fed-net"))
+    # print(utils.attach_to_network(f"{meo_endpoint}/attach_to_network","mecapp_1","fed-net"))
 
     t_establish_vxlan_connection_with_provider_finished = time.time() - process_start_time
     data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
 
     total_duration = time.time() - process_start_time
+
+    # print(utils.exec_cmd(f"{meo_endpoint}/exec","mecapp_1", f"ping -c 5 -i 0.2 {deployed_mec_app_ip}"))
 
     logger.info(f"✅ Federation process successfully completed in {total_duration:.2f} seconds.")
 
@@ -431,10 +445,10 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, export_to_c
     }
 
 
-def run_experiments_provider(price_wei_per_hour, endpoint, export_to_csv, csv_path):
-    federation_step_times = []  
+def run_experiments_provider(price_wei_per_hour, endpoint, meo_endpoint, vxlan_interface, node_id, export_to_csv, csv_path):
     header = ['step', 'timestamp']
     data = []
+    local_ip, vxlan_id, vxlan_port, federation_net  = utils.extract_service_endpoint(endpoint)
 
     process_start_time = time.time()
     open_services = []
@@ -497,38 +511,31 @@ def run_experiments_provider(price_wei_per_hour, endpoint, export_to_csv, csv_pa
 
         return {"message": f"Another provider was chosen for service ID: {service_id}."}
             
+    consumer_endpoint, deployed_mec_app_ip = blockchain.get_service_info(service_id, provider_flag)
+    remote_ip, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net = utils.extract_service_endpoint(consumer_endpoint)
 
-    federated_host, service_endpoint_consumer = blockchain.get_service_info(service_id, provider_flag)
-    endpoint_ip, endpoint_vxlan_id, endpoint_vxlan_port, endpoint_docker_subnet = utils.extract_service_endpoint(service_endpoint_consumer)
+    logger.info(f"Consumer VXLAN endpoint: {consumer_endpoint}")
 
-    logger.info(f"Consumer VXLAN endpoint: {service_endpoint_consumer}")
-
-    logger.info("🚀 Starting deployment of requested federated service...")
-    net_range = utils.create_smaller_subnet(endpoint_docker_subnet, 1)
-    # configure_docker_network_and_vxlan(ip_address, endpoint_ip, interface_name, '200', '4789', endpoint_docker_subnet, net_range)
-    # # Deploy docker service and wait to be ready and get an IP address
-    # deploy_docker_containers(
-    #     image=requested_service,
-    #     name=f"federated-{requested_service}",
-    #     network="federation-net",
-    #     replicas=int(requested_replicas),
-    #     env_vars={"SERVICE_ID": f"{domain_name} MEC system"},
-    #     container_port=container_port,
-    #     start_host_port=exposed_ports
-    # )   
+    federation_subnet = utils.create_smaller_subnet(consumer_endpoint_federation_net, node_id)
+    # print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net, federation_subnet, "fed-net"))
+    
+    # deployed_service = utils.deploy_service(f"{meo_endpoint}/deploy_docker_service", "mec-app:latest", "mecapp", "fed-net", 1)
+    # deployed_mec_app_ip = next(iter(deployed_service["container_ips"].values()))
+    deployed_mec_app_ip = "8.8.8.8"
 
     t_deployment_finished = time.time() - process_start_time
     data.append(['deployment_finished', t_deployment_finished])
         
+    logger.info(f"✅ MEC app deployed - IP: {deployed_mec_app_ip}")
+
     # Confirm service deployed
     t_confirm_deployment_sent = time.time() - process_start_time
     data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
     
-    blockchain.service_deployed(service_id, federated_host)
+    blockchain.service_deployed(service_id, deployed_mec_app_ip)
     
     total_duration = time.time() - process_start_time
 
-    # logger.info(f"✅ Service Deployed - Federated Instance (ROS_IP): {federated_host}")
 
     if export_to_csv:
         utils.create_csv_file(csv_path, header, data)

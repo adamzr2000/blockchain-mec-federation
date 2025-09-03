@@ -26,12 +26,12 @@ class TransactionReceiptResponse(BaseModel):
 
 class ServiceAnnouncementRequest(BaseModel):
     requirements: Optional[str] = "zero_packet_loss"
-    endpoint: Optional[str] = "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=4789;docker_subnet=10.0.0.0/16"
+    endpoint: Optional[str] = "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=4789;federation_net=10.0.0.0/16"
     
 class PlaceBidRequest(BaseModel):
     service_id: str
     price_wei_hour: int
-    endpoint: Optional[str] = "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=4789;docker_subnet=10.0.0.0/16"
+    endpoint: Optional[str] = "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=4789;federation_net=10.0.0.0/16"
 
 class ChooseProviderRequest(BaseModel):
     service_id: str
@@ -43,13 +43,19 @@ class ServiceDeployedRequest(BaseModel):
 
 class DemoConsumerRequest(BaseModel):
     requirements: Optional[str] = "zero_packet_loss"
-    endpoint: Optional[str] = "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=4789;docker_subnet=10.0.0.0/16"
+    meo_endpoint: Optional[str] = "http://127.0.0.1:6666"
+    vxlan_interface: Optional[str] = "ens3"
+    node_id: Optional[int] = 1
+    ip_address: Optional[str] = "127.0.0.1"
     offers_to_wait: Optional[int] = 1
     export_to_csv: Optional[bool] = False
     csv_path: Optional[str] = "federation_demo_consumer.csv"
 
 class DemoProviderRequest(BaseModel):
     price_wei_per_hour: Optional[int] = 10000
-    endpoint: Optional[str] = "ip_address=10.5.99.2;vxlan_id=200;vxlan_port=4789;docker_subnet=10.0.0.0/16"
+    meo_endpoint: Optional[str] = "http://127.0.0.1:6666"
+    vxlan_interface: Optional[str] = "ens3"
+    node_id: Optional[int] = 1
+    ip_address: Optional[str] = "127.0.0.1"
     export_to_csv: Optional[bool] = False
     csv_path: Optional[str] = "federation_demo_provider.csv"

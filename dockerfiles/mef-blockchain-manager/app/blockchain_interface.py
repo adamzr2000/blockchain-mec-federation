@@ -275,7 +275,7 @@ class BlockchainInterface:
                 self.eth_address
             ).call()
 
-            return service_id, endpoint, requirements
+            return endpoint, requirements
         except Exception as e:
             logger.error(f"Failed to retrieve deployed info for service_id '{service_id}': {str(e)}")
             raise Exception(f"Failed to retrieve deployed info for service_id '{service_id}': {str(e)}")

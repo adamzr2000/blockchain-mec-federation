@@ -33,6 +33,8 @@ python3 utils/ssh_blockchain_network.py --stop -n 3
 ./deploy_smart_contract.sh --network-id 1234 --node-ip 10.5.99.1 --port 3334 --protocol ws
 ```
 
+> Note: gas used: 2813598 (0x2aee9e)
+
 ### Deploy the MEO
 
 ```bash
@@ -54,25 +56,53 @@ python3 utils/ssh_mef.py --stop -n 3
 ```
 
 ### Demo
+
 ```bash
-curl -X POST 'http://10.5.99.1:8000/register_domain/domain1' 
-```
----
-```bash
-curl -X POST 'http://10.5.99.2:8000/register_domain/domain2' 
-```
----
-```bash
-curl -X POST 'http://10.5.99.3:8000/register_domain/domain3' 
+python3 utils/register_federation_participants.py -n 3
 ```
 
 ```bash
-curl -X POST "http://10.5.99.1:8000/start_demo_provider" \
+python3 utils/unregister_federation_participants.py -n 3
+```
+
+```bash
+curl -X POST "http://10.5.99.1:8000/start_experiments_consumer" \
 -H 'Content-Type: application/json' \
 -d '{
-   "endpoint": "k8s_deployment"
+   "requirements": "zero_packet_loss",
+   "offers_to_wait": 2,
+   "meo_endpoint": "http://10.5.99.1:6666",
+   "ip_address": "10.5.99.1",
+   "vxlan_interface": "ens3",
+   "node_id": 1,
+   "export_to_csv": false,
+   "csv_path": "federation_demo_provider.csv"
+}' | jq
+```
+
+```bash
+curl -X POST "http://10.5.99.2:8000/start_experiments_provider" \
+-H 'Content-Type: application/json' \
+-d '{
    "price_wei_per_hour": 10,
-   "location": "Madrid, Spain",
+   "meo_endpoint": "http://10.5.99.2:6666",
+   "ip_address": "10.5.99.2",
+   "vxlan_interface": "ens3",
+   "node_id": 2,
+   "export_to_csv": false,
+   "csv_path": "federation_demo_provider.csv"
+}' | jq
+```
+
+```bash
+curl -X POST "http://10.5.99.3:8000/start_experiments_provider" \
+-H 'Content-Type: application/json' \
+-d '{
+   "price_wei_per_hour": 20,
+   "meo_endpoint": "http://10.5.99.3:6666",
+   "ip_address": "10.5.99.3",
+   "vxlan_interface": "ens3",
+   "node_id": 3,
    "export_to_csv": false,
    "csv_path": "federation_demo_provider.csv"
 }' | jq
@@ -84,6 +114,5 @@ curl -X POST "http://10.5.99.1:8000/start_demo_provider" \
 Returns `web3-info` details, otherwise returns an error message.
 
 ```bash
-FED_API="localhost:8000"
-curl -X 'GET' "http://$FED_API/web3_info" | jq
+curl -X 'GET' "http://localhost:8000/web3_info" | jq
 ```

@@ -129,36 +129,41 @@ def attach_to_network(endpoint, container_name, network_name, timeout=60, interv
     raise RuntimeError(f"timeout: {last}")
 
 if __name__ == "__main__":
-    res = deploy_service("http://10.5.99.1:6666/deploy_docker_service", "nginx:alpine", "testsvc", "bridge", 1)
+    meo_endpoint="http://localhost:6666"
+    res = deploy_service(f"{meo_endpoint}/deploy_docker_service", "nginx:alpine", "testsvc", "bridge", 1)
     print(res)
     time.sleep(1)
 
-    res = exec_cmd("http://10.5.99.1:6666/exec","testsvc_1","ping -c 5 -i 0.2 8.8.8.8")
-    print(res)
-    stdout = res["stdout"]
-    loss = float(re.search(r'(\d+(?:\.\d+)?)%\s*packet loss', stdout).group(1))
-    print("packet loss %:", loss)
-    time.sleep(1)
+    # Get first container IP
+    first_ip = next(iter(res["container_ips"].values()))
+    print("First container IP:", first_ip)
 
-    res=configure_vxlan(
-        "http://10.5.99.1:6666/configure_vxlan",
-        "10.5.99.1","10.5.99.2","ens3",200,4789,"10.0.0.0/16","10.0.1.0/24","fed-net"
-    )
-    print(res)
-    time.sleep(1)
+    # res = exec_cmd(f"{meo_endpoint}/exec","testsvc_1","ping -c 5 -i 0.2 8.8.8.8")
+    # print(res)
+    # stdout = res["stdout"]
+    # loss = float(re.search(r'(\d+(?:\.\d+)?)%\s*packet loss', stdout).group(1))
+    # print("packet loss %:", loss)
+    # time.sleep(1)
 
-    res = attach_to_network("http://10.5.99.1:6666/attach_to_network","testsvc_1","fed-net")
-    print(res)
-    time.sleep(1)
+    # res=configure_vxlan(
+    #     f"{meo_endpoint}/configure_vxlan",
+    #     "10.5.99.1","10.5.99.2","ens3",200,4789,"10.0.0.0/16","10.0.1.0/24","fed-net"
+    # )
+    # print(res)
+    # time.sleep(1)
 
-    res = service_ips("http://10.5.99.1:6666/service_ips","testsvc")
-    print(res)
-    time.sleep(1)
-    print(exec_cmd("http://10.5.99.1:6666/exec","testsvc_1","ping -c 5 -i 0.2 10.0.1.1"))
+    # res = attach_to_network(f"{meo_endpoint}/attach_to_network","testsvc_1","fed-net")
+    # print(res)
+    # time.sleep(1)
 
-    res=delete_vxlan("http://10.5.99.1:6666/delete_vxlan",200,"fed-net")
-    print(res)
-    time.sleep(1)
+    # res = service_ips(f"{meo_endpoint}/service_ips","testsvc")
+    # print(res)
+    # time.sleep(1)
+    # print(exec_cmd(f"{meo_endpoint}/exec","testsvc_1","ping -c 5 -i 0.2 10.0.1.1"))
 
-    res = delete_service("http://10.5.99.1:6666/delete_docker_service","testsvc")
+    # res=delete_vxlan(f"{meo_endpoint}/delete_vxlan",200,"fed-net")
+    # print(res)
+    # time.sleep(1)
+
+    res = delete_service(f"{meo_endpoint}/delete_docker_service","testsvc")
     print(res)
