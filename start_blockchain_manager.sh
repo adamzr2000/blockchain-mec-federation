@@ -11,12 +11,6 @@ image="mef-blockchain-manager:latest"
 usage() {
   cat <<EOF
 Usage: $0 --config <path/to/nodeX.env> --domain-function <provider|consumer> [--port <port>] [--container-name <name>] [--image <image>]
-
-  --config            Path to nodeX.env (required), e.g. blockchain-network/geth-poa/config/node5.env
-  --domain-function   "provider" or "consumer" (required)
-  --port              Host port to bind to container's 8000 (default: 8000)
-  --container-name    Docker container name/hostname (default: blockchain-manager)
-  --image             Docker image to run (default: mef-blockchain-manager:latest)
 EOF
   exit 1
 }
@@ -34,19 +28,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Validate required flags
-if [[ -z "$config" || -z "$domain_function" ]]; then
-  echo "ERROR: --config and --domain-function are required."
-  usage
-fi
-if [[ "$domain_function" != "provider" && "$domain_function" != "consumer" ]]; then
-  echo "ERROR: --domain-function must be 'provider' or 'consumer'."
-  exit 1
-fi
-if [[ ! -f "$config" ]]; then
-  echo "ERROR: Config file '$config' not found."
-  exit 1
-fi
+# Validate
+[[ -n "$config" && -n "$domain_function" ]] || { echo "ERROR: --config and --domain-function are required."; usage; }
+[[ "$domain_function" == "provider" || "$domain_function" == "consumer" ]] || { echo "ERROR: --domain-function must be provider|consumer"; exit 1; }
+[[ -f "$config" ]] || { echo "ERROR: Config file '$config' not found."; exit 1; }
 
 # Infer node index X from filename ".../nodeX.env"
 base="$(basename "$config")"
@@ -57,45 +42,35 @@ else
   exit 1
 fi
 
-# Source the node env (may contain command substitutions)
-set -o allexport
-# shellcheck disable=SC1090
-source "$config"
-set +o allexport
+# Safe getter: extract VAR=value from file without executing anything
+get_var() {
+  local var="$1" file="$2" line val
+  line="$(grep -E "^[[:space:]]*${var}[[:space:]]*=" "$file" | tail -n1 || true)"
+  [[ -n "$line" ]] || return 1
+  val="${line#*=}"
+  # trim
+  val="${val#"${val%%[![:space:]]*}"}"
+  val="${val%"${val##*[![:space:]]}"}"
+  # strip surrounding quotes
+  [[ "$val" =~ ^\".*\"$ ]] && val="${val:1:-1}"
+  [[ "$val" =~ ^\'.*\'$ ]] && val="${val:1:-1}"
+  printf '%s' "$val"
+}
 
-# Load contract address
-sc_env="$(pwd)/smart-contracts/smart-contract.env"
-if [[ ! -f "$sc_env" ]]; then
-  echo "ERROR: smart-contract.env not found at $sc_env"
-  exit 1
-fi
-set -o allexport
-# shellcheck disable=SC1090
-source "$sc_env"
-set +o allexport
-: "${CONTRACT_ADDRESS:?Missing CONTRACT_ADDRESS in smart-contract.env}"
+require() { local v="$1" ; [[ -n "$v" ]] || { echo "ERROR: missing required value: $2"; exit 1; }; }
 
-# Helper
-require() { local v="$1"; if [[ -z "${!v:-}" ]]; then echo "ERROR: '$v' must be set in $config"; exit 1; fi; }
-
-# Dynamic names for nodeX
-ETHERBASE_VAR="ETHERBASE_NODE_${node_idx}"
-PRIVATE_KEY_VAR="PRIVATE_KEY_NODE_${node_idx}"
-IP_VAR="IP_NODE_${node_idx}"
-WS_PORT_VAR="WS_PORT_NODE_${node_idx}"
-
-# Pull values
-ETH_ADDRESS="${!ETHERBASE_VAR:-}"
-ETH_PRIVATE_KEY="${!PRIVATE_KEY_VAR:-}"
-NODE_IP="${!IP_VAR:-}"
-WS_PORT="${!WS_PORT_VAR:-}"
-
-# Require essentials
-require "$ETHERBASE_VAR"
-require "$PRIVATE_KEY_VAR"
+# Read only what we need from nodeX.env
+ETH_ADDRESS="$(get_var "ETHERBASE_NODE_${node_idx}" "$config")";  require "$ETH_ADDRESS"  "ETHERBASE_NODE_${node_idx}"
+ETH_PRIVATE_KEY="$(get_var "PRIVATE_KEY_NODE_${node_idx}" "$config")"; require "$ETH_PRIVATE_KEY" "PRIVATE_KEY_NODE_${node_idx}"
+NODE_IP="$(get_var "IP_NODE_${node_idx}" "$config")";               require "$NODE_IP"     "IP_NODE_${node_idx}"
+WS_PORT="$(get_var "WS_PORT_NODE_${node_idx}" "$config")";          require "$WS_PORT"     "WS_PORT_NODE_${node_idx}"
 
 ETH_NODE_URL="ws://${NODE_IP}:${WS_PORT}"
 
+# Read CONTRACT_ADDRESS safely from smart-contracts/smart-contract.env
+sc_env="$(pwd)/smart-contracts/smart-contract.env"
+[[ -f "$sc_env" ]] || { echo "ERROR: smart-contract.env not found at $sc_env"; exit 1; }
+CONTRACT_ADDRESS="$(get_var "CONTRACT_ADDRESS" "$sc_env")"; require "$CONTRACT_ADDRESS" "CONTRACT_ADDRESS"
 
 mask() { local s="$1"; [[ ${#s} -le 8 ]] && printf '%s' "$s" || printf '%s…%s' "${s:0:6}" "${s: -4}"; }
 
@@ -110,20 +85,17 @@ Launching '$container_name' (node ${node_idx}):
   Image            : $image
 INFO
 
-# Docker args
-docker_args=(
-  --rm -d
-  --name "$container_name"
-  --hostname "$container_name"
-  -p "${port}:8000"
-  --env "ETH_ADDRESS=$ETH_ADDRESS"
-  --env "ETH_PRIVATE_KEY=$ETH_PRIVATE_KEY"
-  --env "ETH_NODE_URL=$ETH_NODE_URL"
-  --env "CONTRACT_ADDRESS=$CONTRACT_ADDRESS"
-  --env "DOMAIN_FUNCTION=$domain_function"
-  -v "$(pwd)/smart-contracts":/smart-contracts
-  -v "$(pwd)/experiments":/experiments
-  -v "$(pwd)/dockerfiles/mef-blockchain-manager/app":/app
-)
-
-docker run "${docker_args[@]}" "$image"
+docker run \
+  --rm -d \
+  --name "$container_name" \
+  --hostname "$container_name" \
+  -p "${port}:8000" \
+  --env "ETH_ADDRESS=$ETH_ADDRESS" \
+  --env "ETH_PRIVATE_KEY=$ETH_PRIVATE_KEY" \
+  --env "ETH_NODE_URL=$ETH_NODE_URL" \
+  --env "CONTRACT_ADDRESS=$CONTRACT_ADDRESS" \
+  --env "DOMAIN_FUNCTION=$domain_function" \
+  -v "$(pwd)/smart-contracts":/smart-contracts \
+  -v "$(pwd)/experiments":/experiments \
+  -v "$(pwd)/dockerfiles/mef-blockchain-manager/app":/app \
+  "$image"
