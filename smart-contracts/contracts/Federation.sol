@@ -171,7 +171,7 @@ contract Federation {
     
         currentService.state = ServiceState.Closed;
         currentService.provider = bids[serviceId][biderIndex].bidAddress;
-
+        currentService.endpoint_provider = bids[serviceId][biderIndex].endpoint_provider;
         emit ServiceAnnouncementClosed(serviceId);
     }
 
