@@ -124,14 +124,13 @@ def get_ip_range_from_subnet(subnet: str) -> str:
         return f"Invalid subnet: {e}"
 
 def validate_endpoint(endpoint: str) -> bool:
-    """
-    Validates the 'endpoint' string.
-    Expected format: 'ip_address=<ip_address>;vxlan_id=<vxlan_id>;vxlan_port=<vxlan_port>;federation_net=<federation_net>'
-    """
-    pattern = r'^ip_address=\d{1,3}(\.\d{1,3}){3};vxlan_id=\d+;vxlan_port=\d+;federation_net=\d{1,3}(\.\d{1,3}){3}/\d+$'
-    if re.match(pattern, endpoint):
-        return True
-    return False
+    pattern = (
+        r'^ip_address=\d{1,3}(\.\d{1,3}){3};'
+        r'vxlan_id=(\d+|None);'
+        r'vxlan_port=(\d+|None);'
+        r'federation_net=(\d{1,3}(\.\d{1,3}){3}/\d+|None)$'
+    )
+    return re.match(pattern, endpoint) is not None
 
 # MEO request utilities
 def deploy_service(meo_endpoint, image, name, net, replicas, timeout=60, interval=2.0):
