@@ -57,5 +57,6 @@ class DemoProviderRequest(BaseModel):
     vxlan_interface: Optional[str] = "ens3"
     node_id: Optional[int] = 1
     ip_address: Optional[str] = "127.0.0.1"
+    requirements_filter: Optional[str] = None 
     export_to_csv: Optional[bool] = False
     csv_path: Optional[str] = "federation_demo_provider.csv"
