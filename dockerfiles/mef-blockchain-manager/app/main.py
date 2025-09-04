@@ -391,8 +391,6 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     tx_hash = blockchain.choose_provider(service_id, best_bid_index)
     logger.info(f"🏆 Provider selected - Bid index: {best_bid_index}")
 
-    logger.info("Endpoint for inter-domain connectivity shared.")
-
     # Wait for provider confirmation
     logger.info(f"⏳ Waiting for provider to complete deployment...")
     while blockchain.get_service_state(service_id) != 2:
@@ -404,22 +402,14 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
 
     # blockchain.display_service_state(service_id)
 
+    t_establish_vxlan_connection_with_provider_start = time.time() - process_start_time
+    data.append(['establish_vxlan_connection_with_provider_start', t_establish_vxlan_connection_with_provider_start])
+    
     # Federated service info
     provider_endpoint, deployed_mec_app_ip = blockchain.get_service_info(service_id, provider_flag)
     remote_ip, provider_endpoint_vxlan_id, provider_endpoint_vxlan_port, provider_endpoint_federation_net  = utils.extract_service_endpoint(provider_endpoint)
-    logger.info(
-        "📡 Federated service info\n"
-        f"{'-'*40}\n"
-        f"{'Provider VXLAN endpoint':<22}:\n"
-        f"  └ {'vni':<18}: {provider_endpoint_vxlan_id}\n"
-        f"  └ {'ip_addr':<18}: {remote_ip}\n"
-        f"  └ {'udp_port':<18}: {provider_endpoint_vxlan_port}\n"
-        f"  └ {'network':<18}: {provider_endpoint_federation_net}\n"
-        f"{'-'*40}"
-        f"{'Deployed MEC app IP':<22}: {deployed_mec_app_ip}\n"
-        f"{'-'*40}"
-    )
-
+    logger.info(f"Provider VXLAN endpoint: {provider_endpoint}")
+    logger.info(f"Provider MEC app deployed - IP: {deployed_mec_app_ip}")
     # print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, vxlan_id, vxlan_port, federation_net, federation_subnet, "fed-net"))
     # print(utils.attach_to_network(f"{meo_endpoint}/attach_to_network","mecapp_1","fed-net"))
 

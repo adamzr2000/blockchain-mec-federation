@@ -35,24 +35,13 @@ python3 utils/ssh_blockchain_network.py --stop -n 3
 
 > Note: gas used: 2813598 (0x2aee9e)
 
-### Deploy the MEO
+### Deploy the MEO and the MEF (blockchain manager)
 
 ```bash
-python3 utils/ssh_meo.py --start -n 3
+python3 utils/ssh_mef_meo.py --start -n 3 -c 1 --mef --meo
 ```
-
 ```bash
-python3 utils/ssh_meo.py --stop -n 3
-```
-
-### Deploy the MEF (blockchain manager)
-
-```bash
-python3 utils/ssh_mef.py --start -n 3 -c 1
-```
-
-```bash
-python3 utils/ssh_mef.py --stop -n 3
+python3 utils/ssh_mef_meo.py --stop -n 3 --mef --meo
 ```
 
 ### Demo
