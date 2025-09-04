@@ -78,21 +78,26 @@ def extract_ip_from_url(url):
     
 
 def create_smaller_subnet(original_cidr, third_octet_value):
-    # Split the CIDR notation into IP and subnet mask parts
+    # Split CIDR
     ip, _ = original_cidr.split('/')
 
-    # Split the IP into its octets
+    # Split IP into octets (strings)
     octets = ip.split('.')
 
-    octets[2] = third_octet_value
+    # Ensure the 3rd octet is a string and valid (0–255)
+    if isinstance(third_octet_value, int):
+        val = third_octet_value
+    else:
+        val = int(str(third_octet_value))
 
-    # Reassemble the IP address
-    new_ip = '.'.join(octets)
+    if not (0 <= val <= 255):
+        raise ValueError(f"Invalid third octet: {third_octet_value}")
 
-    # Combine the new IP address with the new subnet mask /24
-    new_cidr = f"{new_ip}/24"
+    octets[2] = str(val)
 
-    return new_cidr
+    # Reassemble as /24
+    new_ip = ".".join(octets)
+    return f"{new_ip}/24"
 
 
 def extract_domain_name_from_service_id(service_id):

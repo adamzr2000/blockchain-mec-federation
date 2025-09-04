@@ -23206,11 +23206,11 @@
       "events": {},
       "links": {},
       "address": "0x8a899B9fF6293789A9Ed8716e08e5fCA83e975af",
-      "transactionHash": "0xd90037461465155ce0de30cc73ebfbc08354ab1bc1dcb57e795a400f8ae7429f"
+      "transactionHash": "0xbb22443abb50a488f5d0d72195c9058c30a6c465f9edbf9f9fe0316e1825cb02"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-09-03T15:09:48.975Z",
+  "updatedAt": "2025-09-04T07:42:10.226Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",
