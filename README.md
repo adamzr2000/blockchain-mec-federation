@@ -46,7 +46,9 @@ python3 utils/ssh_mef_meo.py --stop -n 3 --mef --meo
 
 ### Demo
 
-```bash
+[here](./utils)
+
+<!-- ```bash
 python3 utils/register_federation_participants.py -n 3
 ```
 
@@ -105,15 +107,4 @@ curl -X DELETE "http://10.5.99.1:6666/delete_vxlan?vxlan_id=201&docker_net_name=
 ```shell
 curl -X DELETE "http://10.5.99.2:6666/delete_docker_service?name=mecapp" | jq
 curl -X DELETE "http://10.5.99.2:6666/delete_vxlan?vxlan_id=201&docker_net_name=fed-net" | jq
-```
-
----
-
-## API Endpoints
-
-### Web3 Info
-Returns `web3-info` details, otherwise returns an error message.
-
-```bash
-curl -X 'GET' "http://localhost:8000/web3_info" | jq
-```
+``` -->

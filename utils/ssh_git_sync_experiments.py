@@ -73,7 +73,8 @@ STAMP="$(date -u +'%Y%m%dT%H%M%SZ')"
 HOSTIP="$(hostname -I 2>/dev/null | awk '{{print $1}}')"
 [ -z "$HOSTIP" ] && HOSTIP="$(hostname)"
 
-git commit -m "experiments(${HOSTIP}): ${STAMP}" || {{ echo "[sync] commit failed"; exit 7; }}
+# NOTE: escape braces for f-string so shell sees ${{HOSTIP}} and ${{STAMP}}
+git commit -m "experiments(${{HOSTIP}}): ${{STAMP}}" || {{ echo "[sync] commit failed"; exit 7; }}
 
 # Push with bounded retry; on rejection, rebase on latest and retry
 tries=0

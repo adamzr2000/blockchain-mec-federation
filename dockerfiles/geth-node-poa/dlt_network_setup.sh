@@ -87,7 +87,7 @@ echo "\$output"
 source $node_env
 
 # Define the command
-command="geth --identity 'node$i' --syncmode 'full' --ws --ws.addr \$IP_NODE_$i  --ws.port \$WS_PORT_NODE_$i --datadir node$i --port \$ETH_PORT_NODE_$i --bootnodes \$BOOTNODE_URL --ws.api 'eth,net,web3,personal,miner,admin,clique' --networkid \$NETWORK_ID --nat 'any' --allow-insecure-unlock --authrpc.port \$RPC_PORT_NODE_$i --ipcdisable --unlock \$ETHERBASE_NODE_$i --password password.txt --mine --snapshot=false --miner.etherbase \$ETHERBASE_NODE_$i --ethstats node$i:\$WS_SECRET@\$ETH_NETSATS_IP:\$ETH_NETSATS_PORT" 
+command="geth --identity 'node$i' --syncmode 'full' --ws --ws.addr \$IP_NODE_$i  --ws.port \$WS_PORT_NODE_$i --datadir node$i --port \$ETH_PORT_NODE_$i --bootnodes \$BOOTNODE_URL --ws.api 'eth,net,web3,personal,miner,admin,clique' --networkid \$NETWORK_ID --nat 'any' --allow-insecure-unlock --authrpc.port \$RPC_PORT_NODE_$i --ipcdisable --unlock \$ETHERBASE_NODE_$i --password password.txt --mine --snapshot=false --miner.gaslimit 8000000 --miner.etherbase \$ETHERBASE_NODE_$i --ethstats node$i:\$WS_SECRET@\$ETH_NETSATS_IP:\$ETH_NETSATS_PORT" 
 
 # Add verbosity option to the command if logs need to be saved
 if [ "\$SAVE_LOGS" == "y" ] || [ "\$SAVE_LOGS" == "Y" ]; then

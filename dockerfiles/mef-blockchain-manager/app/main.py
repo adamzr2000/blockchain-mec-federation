@@ -426,12 +426,12 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     loss = float(re.search(r'(\d+(?:\.\d+)?)%\s*packet loss', stdout).group(1))
     status = "success" if loss < 100.0 else "failure"
     t_connection_test = time.time() - process_start_time
-    data.append(['connection_test', t_connection_test, status])
     if status == "success":
         logger.info(f"✅ Connection test SUCCESS ({100 - loss:.1f}% packets received)")
+        data.append(['connection_test_success', t_connection_test])
     else:
         logger.warning(f"❌ Connection test FAILURE ({loss:.1f}% packet loss)")
-
+        data.append(['connection_test_failure', t_connection_test])
 
     total_duration = time.time() - process_start_time
 
