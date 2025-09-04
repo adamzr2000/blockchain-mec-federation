@@ -373,22 +373,18 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     lowest_price = None
     best_bid_index = None
 
-    table = PrettyTable()
-    table.field_names = ["Bid Index", "Provider Address", "Price (Wei/hour)"]
-
     # Loop through all bid indices and print their information
     for i in range(received_bids):
         bid_info = blockchain.get_bid_info(service_id, i)
         provider_addr = bid_info[0]
         bid_price = int(bid_info[1])
         bid_index = int(bid_info[2])
-        table.add_row([bid_index, provider_addr, bid_price])
+        logger.info(f"  └ Bid index: {bid_index}, Provider: {provider_addr}, Price: {bid_price} Wei/hour")
 
         if lowest_price is None or bid_price < lowest_price:
             lowest_price = bid_price
             best_bid_index = bid_index
             # logger.info(f"New lowest price: {lowest_price} with bid index: {best_bid_index}")
-    print(table)
     # Choose winner provider
     t_winner_choosen = time.time() - process_start_time
     data.append(['winner_choosen', t_winner_choosen])

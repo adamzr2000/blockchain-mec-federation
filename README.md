@@ -48,7 +48,7 @@ python3 utils/ssh_meo.py --stop -n 3
 ### Deploy the MEF (blockchain manager)
 
 ```bash
-python utils/ssh_mef.py --start -n 3 -c 1
+python3 utils/ssh_mef.py --start -n 3 -c 1
 ```
 
 ```bash
@@ -62,10 +62,6 @@ python3 utils/register_federation_participants.py -n 3
 ```
 
 ```bash
-python3 utils/unregister_federation_participants.py -n 3
-```
-
-```bash
 curl -X POST "http://10.5.99.1:8000/start_experiments_consumer" \
 -H 'Content-Type: application/json' \
 -d '{
@@ -76,7 +72,7 @@ curl -X POST "http://10.5.99.1:8000/start_experiments_consumer" \
    "vxlan_interface": "ens3",
    "node_id": 1,
    "export_to_csv": false,
-   "csv_path": "federation_demo_provider.csv"
+   "csv_path": "/experiments/test/consumer_run_1.csv"
 }' | jq
 ```
 
@@ -90,7 +86,7 @@ curl -X POST "http://10.5.99.2:8000/start_experiments_provider" \
    "vxlan_interface": "ens3",
    "node_id": 2,
    "export_to_csv": false,
-   "csv_path": "federation_demo_provider.csv"
+   "csv_path": "/experiments/test/provider_2_run_1.csv"
 }' | jq
 ```
 
@@ -104,9 +100,11 @@ curl -X POST "http://10.5.99.3:8000/start_experiments_provider" \
    "vxlan_interface": "ens3",
    "node_id": 3,
    "export_to_csv": false,
-   "csv_path": "federation_demo_provider.csv"
+   "csv_path": "/experiments/test/provider_2_run_1.csv"
 }' | jq
 ```
+
+---
 
 ## API Endpoints
 

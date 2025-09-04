@@ -142,7 +142,7 @@ do
     }
   },
   "difficulty": "1",
-  "gasLimit": "6721975",
+  "gasLimit": "8000000",
   "extraData": "$extraDataForGenesis",
   "alloc": {
     ${alloc::-1}

@@ -33,27 +33,16 @@ def extract_service_endpoint(endpoint):
         logger.error(f"Invalid endpoint format: {endpoint}")
         return None, None, None, None
 
-def create_csv_file(role, header, data):
-    # Determine the base directory based on the role
-    base_dir = Path("experiments") / role
-    base_dir.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
+def create_csv_file(file_path, header, data):
+    file_path = Path(file_path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)  # ensure /experiments exists
 
-    # Find the next available file index
-    existing_files = list(base_dir.glob("federation_events_{}_test_*.csv".format(role)))
-    indices = [int(f.stem.split('_')[-1]) for f in existing_files if f.stem.split('_')[-1].isdigit()]
-    next_index = max(indices) + 1 if indices else 1
-
-    # Construct the file name
-    file_name = base_dir / f"federation_events_{role}_test_{next_index}.csv"
-
-    # Open and write to the file
-    with open(file_name, 'w', encoding='UTF8', newline='') as f:
+    with open(file_path, 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow(header)  # Write the header
-        writer.writerows(data)  # Write the data
-
-    logger.info(f"Data saved to {file_name}")
-
+        writer.writerow(header)
+        writer.writerows(data)
+    logger.info(f"Data saved to {file_path}")
+    
 def create_csv_file_registration(participants, name, header, data):
     # Determine the base directory based on the role
     number_of_mec_systems = f"{participants}-mec-systems"
