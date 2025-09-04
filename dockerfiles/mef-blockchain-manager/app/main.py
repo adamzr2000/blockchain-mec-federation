@@ -412,14 +412,27 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     logger.info(f"Provider MEC app deployed - IP: {deployed_mec_app_ip}")
 
     # Uncomment this during experiments
+    logger.info(
+        f"🔧 Configuring VXLAN:\n"
+        f"  local_ip={local_ip}, remote_ip={remote_ip}, iface={vxlan_interface},\n"
+        f"  vxlan_id={vxlan_id}, vxlan_port={vxlan_port},\n"
+        f"  federation_net={federation_net}, federation_subnet={federation_subnet}"
+    )
     print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, vxlan_id, vxlan_port, federation_net, federation_subnet, "fed-net"))
+    logger.info("🔗 Attaching mecapp_1 container to fed-net")
     print(utils.attach_to_network(f"{meo_endpoint}/attach_to_network","mecapp_1","fed-net"))
 
     t_establish_vxlan_connection_with_provider_finished = time.time() - process_start_time
     data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
 
     # Uncomment this during experiments
+    logger.info(
+        f"📡 Running connection test:\n"
+        f"  container=mecapp_1, target_ip={deployed_mec_app_ip}, "
+        f"packets=6, interval=0.2s"
+    )
     connection_test = utils.exec_cmd(f"{meo_endpoint}/exec","mecapp_1", f"ping -c 6 -i 0.2 {deployed_mec_app_ip}")
+    print(connection_test)
     stdout = connection_test["stdout"]
     loss = float(re.search(r'(\d+(?:\.\d+)?)%\s*packet loss', stdout).group(1))
     status = "success" if loss < 100.0 else "failure"
@@ -515,7 +528,16 @@ def run_experiments_provider(price_wei_per_hour, endpoint, meo_endpoint, vxlan_i
     # Dummy
     deployed_mec_app_ip = "8.8.8.8"
 
+
+    print(local_ip, remote_ip, vxlan_interface, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net, federation_subnet)
+
     # Uncomment this during experiments
+    logger.info(
+        f"🔧 Configuring VXLAN:\n"
+        f"  local_ip={local_ip}, remote_ip={remote_ip}, iface={vxlan_interface},\n"
+        f"  vxlan_id={consumer_endpoint_vxlan_id}, vxlan_port={consumer_endpoint_vxlan_port},\n"
+        f"  federation_net={consumer_endpoint_federation_net}, federation_subnet={federation_subnet}"
+    )
     print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net, federation_subnet, "fed-net"))
     deployed_service = utils.deploy_service(f"{meo_endpoint}/deploy_docker_service", "mec-app:latest", "mecapp", "fed-net", 1)
     deployed_mec_app_ip = next(iter(deployed_service["container_ips"].values()))
