@@ -98,13 +98,13 @@ curl -X POST "http://10.5.99.3:8000/start_experiments_provider" \
 ```
 
 ```shell
-curl -X DELETE "http://10.55.99.1:6666/delete_docker_service?name=mecapp" | jq
-curl -X DELETE "http://10.55.99.1:6666/delete_vxlan?vxlan_id=201&docker_net_name=fed-net" | jq
+curl -X DELETE "http://10.5.99.1:6666/delete_docker_service?name=mecapp" | jq
+curl -X DELETE "http://10.5.99.1:6666/delete_vxlan?vxlan_id=201&docker_net_name=fed-net" | jq
 ```
 
 ```shell
-curl -X DELETE "http://10.55.99.2:6666/delete_docker_service?name=mecapp" | jq
-curl -X DELETE "http://10.55.99.2:6666/delete_vxlan?vxlan_id=201&docker_net_name=fed-net" | jq
+curl -X DELETE "http://10.5.99.2:6666/delete_docker_service?name=mecapp" | jq
+curl -X DELETE "http://10.5.99.2:6666/delete_vxlan?vxlan_id=201&docker_net_name=fed-net" | jq
 ```
 
 ---
