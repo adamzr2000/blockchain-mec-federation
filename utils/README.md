@@ -1,14 +1,21 @@
 ## 🚀 Demo
 
-### Deploy the blockchain network (distributed)
+### Deploy the blockchain network (distributed) - Geth
 ```bash
 PARTICIPANTS=3
 python3 ssh_geth_poa_network.py --start -n $PARTICIPANTS
 ```
----
-### Deploy the federation smart contract
 ```bash
 ./deploy_smart_contract.sh --network-id 1234 --node-ip 10.5.99.1 --port 3334 --protocol ws
+```
+---
+### Deploy the blockchain network (distributed) - Besu
+```bash
+PARTICIPANTS=3
+python3 ssh_besu_network.py --start -n $PARTICIPANTS
+```
+```bash
+./deploy_smart_contract.sh --network-id 1337 --node-ip 10.5.99.1 --port 8445 --protocol http
 ```
 > Note: gas used: 2813598 (0x2aee9e)
 ---
