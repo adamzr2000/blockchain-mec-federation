@@ -20,6 +20,23 @@ x-besu-def:
       --rpc-ws-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PERM,${BESU_CONS_ALGO:-QBFT} ;
 
 services:
+  validator1:
+    << : *besu-def
+    ports:
+      - 21001:8545/tcp
+      - 30303
+      - 9545
+    environment:
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator1,service.version=${BESU_VERSION:-latest}
+    labels:
+      - "consensus=besu"
+    volumes:
+      - ./config/besu/:/config
+      - ./config/nodes/validator1:/opt/besu/keys
+      #- ./logs/besu:/tmp/besu
+    networks:
+      - quorum-dev-quickstart
+
   validator2:
     << : *besu-def
     ports:
@@ -34,8 +51,27 @@ services:
       - ./config/besu/:/config
       - ./config/nodes/validator2:/opt/besu/keys
       #- ./logs/besu:/tmp/besu
-    network_mode: quorum-dev-quickstart
+    networks:
+      - quorum-dev-quickstart
+
+  # === LIGHTWEIGHT EXPLORER ===
+  explorer:
+    image: consensys/quorum-explorer:${QUORUM_EXPLORER_VERSION:-latest}
+    volumes:
+      - ./quorum-explorer/config.json:/app/config.json
+      - ./quorum-explorer/env:/app/.env.production
+    depends_on:
+      - validator1
+    ports:
+      - 25000:25000/tcp
+    networks:
+      - quorum-dev-quickstart
 
 volumes:
   public-keys:
 
+networks:
+  quorum-dev-quickstart:
+    name: quorum-dev-quickstart
+    driver: overlay
+    external: true
