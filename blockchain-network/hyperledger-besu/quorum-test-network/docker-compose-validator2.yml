@@ -18,36 +18,22 @@ x-besu-def:
       --p2p-host=$$(hostname -i) \
       --rpc-http-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PERM,${BESU_CONS_ALGO:-QBFT} \
       --rpc-ws-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PERM,${BESU_CONS_ALGO:-QBFT} ;
-services:
-  validator3:
-    << : *besu-def
-    ports:
-      - 21003:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator3,service.version=${BESU_VERSION:-latest}
-    labels:
-      - "consensus=besu"
-    volumes:
-      - ./config/besu/:/config
-      - ./config/nodes/validator3:/opt/besu/keys
-      #- ./logs/besu:/tmp/besu
-    network_mode: quorum-dev-quickstart
 
-  validator4:
+services:
+
+  validator2:
     << : *besu-def
     ports:
-      - 21004:8545/tcp
+      - 8545:8545/tcp
       - 30303
       - 9545
     environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator4,service.version=${BESU_VERSION:-latest}
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator2,service.version=${BESU_VERSION:-latest}
     labels:
       - "consensus=besu"
     volumes:
       - ./config/besu/:/config
-      - ./config/nodes/validator4:/opt/besu/keys
+      - ./config/nodes/validator2:/opt/besu/keys
       #- ./logs/besu:/tmp/besu
     network_mode: quorum-dev-quickstart
 

@@ -23,7 +23,7 @@ services:
   validator1:
     << : *besu-def
     ports:
-      - 21001:8545/tcp
+      - 8545:8545/tcp
       - 30303
       - 9545
     environment:
@@ -33,23 +33,6 @@ services:
     volumes:
       - ./config/besu/:/config
       - ./config/nodes/validator1:/opt/besu/keys
-      #- ./logs/besu:/tmp/besu
-    networks:
-      - quorum-dev-quickstart
-
-  validator2:
-    << : *besu-def
-    ports:
-      - 21002:8545/tcp
-      - 30303
-      - 9545
-    environment:
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator2,service.version=${BESU_VERSION:-latest}
-    labels:
-      - "consensus=besu"
-    volumes:
-      - ./config/besu/:/config
-      - ./config/nodes/validator2:/opt/besu/keys
       #- ./logs/besu:/tmp/besu
     networks:
       - quorum-dev-quickstart

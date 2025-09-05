@@ -3,6 +3,9 @@
 docker swarm init --advertise-addr 10.5.99.1
 ```
 ```bash
+docker swarm join-token worker
+```
+```bash
 docker node ls
 ```
 ---
@@ -20,11 +23,15 @@ docker swarm leave --force
 ```bash
 ./run.sh docker-compose-validator1.yml
 ./run.sh docker-compose-validator2.yml
+./run.sh docker-compose-validator3.yml
+./run.sh docker-compose-validator4.yml
 ```
 ---
 ```bash
 ./remove.sh docker-compose-validator1.yml
 ./remove.sh docker-compose-validator2.yml
+./remove.sh docker-compose-validator3.yml
+./remove.sh docker-compose-validator4.yml
 ```
 ```bash
 docker network rm quorum-dev-quickstart
