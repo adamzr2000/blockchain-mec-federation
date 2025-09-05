@@ -43,4 +43,5 @@ volumes:
 networks:
   quorum-dev-quickstart:
     name: quorum-dev-quickstart
+    driver: overlay
     external: true
