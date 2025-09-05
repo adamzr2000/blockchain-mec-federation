@@ -33,8 +33,6 @@ services:
       - ./config/besu/:/config
       - ./config/nodes/validator3:/opt/besu/keys
       #- ./logs/besu:/tmp/besu
-    depends_on:
-      - validator1
     network_mode: quorum-dev-quickstart
 
   validator4:
@@ -51,8 +49,6 @@ services:
       - ./config/besu/:/config
       - ./config/nodes/validator4:/opt/besu/keys
       #- ./logs/besu:/tmp/besu
-    depends_on:
-      - validator1
     network_mode: quorum-dev-quickstart
 
 volumes:
