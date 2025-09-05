@@ -34,14 +34,8 @@ services:
       - ./config/besu/:/config
       - ./config/nodes/validator2:/opt/besu/keys
       #- ./logs/besu:/tmp/besu
-    networks:
-      quorum-dev-quickstart:
+    network_mode: quorum-dev-quickstart
 
 volumes:
   public-keys:
 
-networks:
-  quorum-dev-quickstart:
-    name: quorum-dev-quickstart
-    driver: overlay
-    external: true
