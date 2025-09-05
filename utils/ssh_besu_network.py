@@ -27,9 +27,10 @@ def execute_ssh_command(host: str, command: str) -> bool:
     print(f"Executing on {host}: {command}")
     try:
         with Connection(host=host, user=REMOTE_USER) as c:
-            result = c.run(command, hide=False, warn=True)
-            if result.ok:
-                print(f"✅ Success: {host}")
+            result = c.run(command, hide=False, warn=True, pty=True)
+            # tput often fails when TERM is not set, ignore exit 2
+            if result.ok or result.exited == 2:
+                print(f"✅ Success (ignoring tput noise): {host}")
                 return True
             else:
                 print(f"❌ Error: {host} (exit {result.exited})")
