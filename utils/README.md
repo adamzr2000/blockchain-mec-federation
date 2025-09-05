@@ -14,7 +14,7 @@ python3 ssh_geth_poa_network.py --start -n $PARTICIPANTS
 ---
 ### Deploy the MEO and the MEF
 ```bash
-python3 utils/ssh_mef_meo.py --start -n $PARTICIPANTS -c 1 --mef --meo
+python3 ssh_mef_meo.py --start -n $PARTICIPANTS -c 1 --mef --meo
 ```
 ---
 ### Register MECs in the smart contract
@@ -39,7 +39,7 @@ python3 run_experiments_one_offer.py -n $PARTICIPANTS -t $TESTS --export-csv --c
 python3 ssh_git_sync_experiments.py -n $PARTICIPANTS
 ```
 ```bash
-python3 utils/ssh_git_pull.py -n $PARTICIPANTS
+python3 ssh_git_pull.py -n $PARTICIPANTS
 ```
 ---
 ### Stop the blockchain network (distributed)
