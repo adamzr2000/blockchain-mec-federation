@@ -89,12 +89,15 @@ if domain not in ("provider", "consumer"):
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+truffle_abi_path = "/smart-contracts/build/contracts/Federation.json"
+hardhat_abi_path = "/smart-contracts/artifacts/contracts/Federation.sol/Federation.json"
+
 # Initialize blockchain interface
 blockchain = BlockchainInterface(
     eth_address=eth_address,
     private_key=eth_private_key,
     eth_node_url=eth_node_url,
-    abi_path="/smart-contracts/build/contracts/Federation.json",
+    abi_path=hardhat_abi_path,
     contract_address=contract_address
 )
 
@@ -308,7 +311,7 @@ def start_experiments_consumer(request: DemoConsumerRequest):
             raise HTTPException(status_code=403, detail="This function is restricted to consumer domains.")
         federation_net = f"10.{request.node_id}.0.0/16"
         vxlan_id = str(200+ int(request.node_id))
-        vxlan_port = str(int(4789) + int(request.node_id))
+        vxlan_port = str(int(6000) + int(request.node_id))
         endpoint = f"ip_address={request.ip_address};vxlan_id={vxlan_id};vxlan_port={vxlan_port};federation_net={federation_net}"
         if not utils.validate_endpoint(endpoint):
             raise HTTPException(status_code=400, detail="Invalid endpoint format.")

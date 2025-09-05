@@ -6,13 +6,13 @@ module.exports = {
       network_id: "*"
     },
 
-    geth_network_ws: {
+    ethereum_network_ws: {
       host: process.env.NODE_IP,
       port: process.env.PORT,
       network_id: process.env.NETWORK_ID,
       websockets: true
     },
-    geth_network_http: {
+    ethereum_network_http: {
       host: process.env.NODE_IP,
       port: process.env.PORT,
       network_id: process.env.NETWORK_ID,

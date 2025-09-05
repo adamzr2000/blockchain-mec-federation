@@ -37,8 +37,22 @@ class BlockchainInterface:
         if not self.web3.isConnected():
             raise ConnectionError(f"Cannot connect to Ethereum node at {eth_node_url}")
 
-        self.eth_address = eth_address
+        # --- Keys & Address ---
         self.private_key = private_key
+        acct = self.web3.eth.account.from_key(self.private_key)
+        derived_addr = acct.address  # checksum
+
+        if eth_address:
+            provided = Web3.toChecksumAddress(eth_address)
+            if provided != derived_addr:
+                logger.warning(
+                    "Provided ETH_ADDRESS (%s) != address from private key (%s). Using derived.",
+                    provided, derived_addr
+                )
+            self.eth_address = derived_addr
+        else:
+            self.eth_address = derived_addr
+
 
         with open(abi_path, "r") as f:
             abi = json.load(f).get("abi")

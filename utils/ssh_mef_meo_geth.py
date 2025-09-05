@@ -25,29 +25,24 @@ def exec_on_host(host: str, cmd: str) -> bool:
         print(f"[{host}] ✗ exception: {e}")
         return False
 
-# --- MEF part (adapted for Besu setup) ---
 def start_mef(nodes: int, consumers: int) -> None:
-    if consumers < 0:
-        consumers = 0
-    if consumers > nodes:
-        consumers = nodes
+    if consumers < 0: consumers = 0
+    if consumers > nodes: consumers = nodes
     for i in range(1, nodes + 1):
         role = "consumer" if i <= consumers else "provider"
-        node_path = f"blockchain-network/hyperledger-besu/quorum-test-network/config/nodes/validator{i}"
-        host = f"{SUBNET_PREFIX}{i}"
-        rpc_url = f"http://{host}:8545"
+        cfg = f"blockchain-network/geth-poa/config/node{i}.env"
         cmd = (
             f"cd {REMOTE_DIR} && "
-            f"./start_blockchain_manager.sh --node-path {node_path} --domain-function {role} --rpc_url {rpc_url}"
+            f"./start_blockchain_manager.sh --config {cfg} --domain-function {role}"
         )
-        print(f"-> validator{i} on {host} -> {role}")
+        host = f"{SUBNET_PREFIX}{i}"
+        print(f"-> node{i} ({host}) -> {role}")
         exec_on_host(host, cmd)
 
 def stop_mef(nodes: int) -> None:
     for i in range(1, nodes + 1):
         exec_on_host(f"{SUBNET_PREFIX}{i}", STOP_MEF_CMD)
 
-# --- MEO part (unchanged) ---
 def start_meo(nodes: int) -> None:
     for i in range(1, nodes + 1):
         exec_on_host(f"{SUBNET_PREFIX}{i}", START_MEO_CMD)
@@ -77,15 +72,11 @@ def main():
         return
 
     if args.start:
-        if args.mef:
-            start_mef(args.nodes, args.consumers)
-        if args.meo:
-            start_meo(args.nodes)
+        if args.mef: start_mef(args.nodes, args.consumers)
+        if args.meo: start_meo(args.nodes)
     else:
-        if args.mef:
-            stop_mef(args.nodes)
-        if args.meo:
-            stop_meo(args.nodes)
+        if args.mef: stop_mef(args.nodes)
+        if args.meo: stop_meo(args.nodes)
 
 if __name__ == "__main__":
     main()

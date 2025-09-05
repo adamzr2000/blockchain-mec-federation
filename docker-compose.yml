@@ -1,20 +1,9 @@
 services:
-  geth-node-poa:
-    build:
-      context: ./dockerfiles/geth-node-poa
-    image: geth-node-poa:latest
-  quorum-dev:
-    build:
-      context: ./dockerfiles/quorum-dev
-    image: quorum-dev:latest
+  # MEC components
   mef-blockchain-manager:
     build:
       context: ./dockerfiles/mef-blockchain-manager
     image:  mef-blockchain-manager:latest
-  eth-netstats:
-    build:
-      context: ./dockerfiles/eth-netstats
-    image: eth-netstats:latest
   meo:
     build:
       context: ./dockerfiles/meo
@@ -23,7 +12,25 @@ services:
     build:
       context: ./dockerfiles/mec-app
     image: mec-app:latest
+  # Geth components
+  geth-node-poa:
+    build:
+      context: ./dockerfiles/geth-node-poa
+    image: geth-node-poa:latest
+  eth-netstats:
+    build:
+      context: ./dockerfiles/eth-netstats
+    image: eth-netstats:latest
   truffle:
     build:
       context: ./dockerfiles/truffle
     image: truffle:latest
+  # Hyperledger Besu components
+  hardhat:
+    build:
+      context: ./dockerfiles/hardhat
+    image: hardhat:latest
+  quorum-dev:
+    build:
+      context: ./dockerfiles/quorum-dev
+    image: quorum-dev:latest

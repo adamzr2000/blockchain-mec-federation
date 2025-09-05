@@ -3,8 +3,8 @@
 # Initialize variables
 node_ip=""
 port=""
-protocol="http"      # default
-network_id="1337"  # default
+protocol="ws"      # default
+network_id="1234"  # default
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -53,7 +53,7 @@ docker run \
   -it \
   --rm \
   --name truffle \
-  -v "$(pwd)/smart-contracts":/smart-contracts \
+  -v "$(pwd)/smart-contracts-truffle":/smart-contracts \
   -e NODE_IP="$node_ip" \
   -e PORT="$port" \
   -e PROTOCOL="$protocol" \

@@ -6,7 +6,7 @@ PARTICIPANTS=3
 python3 ssh_geth_poa_network.py --start -n $PARTICIPANTS
 ```
 ```bash
-./deploy_smart_contract.sh --network-id 1234 --node-ip 10.5.99.1 --port 3334 --protocol ws
+./deploy_smart_contract_truffle.sh --network-id 1234 --node-ip 10.5.99.1 --port 3334 --protocol ws
 ```
 [eth netstats dashboard](http://10.5.99.1:3000/)
 ---
@@ -16,7 +16,7 @@ PARTICIPANTS=3
 python3 ssh_besu_network.py --start -n $PARTICIPANTS
 ```
 ```bash
-./deploy_smart_contract.sh --network-id 1337 --node-ip 10.5.99.1 --port 8445 --protocol http
+./deploy_smart_contract_hardhat.sh --rpc_url http://10.5.99.1:8545 --chain_id 1337
 ```
 [quorum explorer dashboard](http://10.5.99.1:25000/explorer/nodes)
 > Note: gas used: 2813598 (0x2aee9e)

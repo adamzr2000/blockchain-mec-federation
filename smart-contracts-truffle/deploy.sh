@@ -18,10 +18,10 @@ fi
 # === Display selected config ===
 if [[ "$protocol" == "http" ]]; then
   echo "🔗 Deploying via HTTP to http://$node_ip:$port"
-  output=$(truffle migrate --network geth_network_http)
+  output=$(truffle migrate --network ethereum_network_http)
 elif [[ "$protocol" == "ws" ]]; then
   echo "🔗 Deploying via WebSocket to ws://$node_ip:$port"
-  output=$(truffle migrate --network geth_network_ws)
+  output=$(truffle migrate --network ethereum_network_ws)
 else
   echo "❌ Invalid protocol: $protocol (must be 'ws' or 'http')"
   exit 1

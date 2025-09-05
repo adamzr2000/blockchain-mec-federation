@@ -38,3 +38,19 @@ docker network rm quorum-dev-quickstart
 docker swarm leave --force
 docker info | grep Swarm
 ```
+
+### Web3 endpoints
+
+```bash
+curl -s http://10.5.99.1:8545 \
+  -X POST \
+  -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":1}'
+```
+
+```bash
+curl -s http://10.5.99.1:8545 \
+  -X POST \
+  -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"net_version","params":[],"id":1}'
+```
