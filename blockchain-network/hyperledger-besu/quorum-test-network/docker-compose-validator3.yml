@@ -21,6 +21,7 @@ x-besu-def:
 services:
   validator3:
     << : *besu-def
+    container_name: validator3
     ports:
       - 8545:8545/tcp
       - 30303

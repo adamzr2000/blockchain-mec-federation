@@ -22,6 +22,7 @@ x-besu-def:
 services:
   validator1:
     << : *besu-def
+    container_name: validator1
     ports:
       - 8545:8545/tcp
       - 30303
@@ -40,6 +41,7 @@ services:
   # === LIGHTWEIGHT EXPLORER ===
   explorer:
     image: consensys/quorum-explorer:${QUORUM_EXPLORER_VERSION:-latest}
+    container_name: explorer
     volumes:
       - ./quorum-explorer/config.json:/app/config.json
       - ./quorum-explorer/env:/app/.env.production

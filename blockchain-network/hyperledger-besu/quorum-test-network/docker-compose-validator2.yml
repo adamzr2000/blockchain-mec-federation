@@ -23,6 +23,7 @@ services:
 
   validator2:
     << : *besu-def
+    container_name: validator2
     ports:
       - 8545:8545/tcp
       - 30303
