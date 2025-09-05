@@ -18,12 +18,15 @@ docker swarm leave --force
 docker network create --attachable --subnet 172.16.239.0/24 --driver overlay quorum-dev-quickstart
 ```
 ```bash
+./run.sh docker-compose-validator1.yml
+./run.sh docker-compose-validator2.yml
 ```
 ---
 
 ---
 ```bash
-
+./remove.sh docker-compose-validator1.yml
+./remove.sh docker-compose-validator2.yml
 ```
 ```bash
 docker network rm quorum-dev-quickstart

@@ -29,4 +29,4 @@ docker compose -f $COMPOSE_FILE build --pull
 docker compose -f $COMPOSE_FILE up --detach
 
 # list services and endpoints
-./list.sh
+./list.sh $COMPOSE_FILE

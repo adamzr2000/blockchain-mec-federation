@@ -35,8 +35,6 @@ services:
       - ./config/besu/:/config
       - ./config/nodes/validator2:/opt/besu/keys
       #- ./logs/besu:/tmp/besu
-    depends_on:
-      - validator1
     networks:
       quorum-dev-quickstart:
 
