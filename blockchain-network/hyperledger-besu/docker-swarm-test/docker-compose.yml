@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  alpine1:
+    image: alpine:latest
+    command: ["sh", "-c", "while true; do echo 'Hello from alpine1 on $(hostname)'; sleep 10; done"]
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == mec-system-1
+    networks:
+      - demo-net
+
+  alpine2:
+    image: alpine:latest
+    command: ["sh", "-c", "while true; do echo 'Hello from alpine2 on $(hostname)'; sleep 10; done"]
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == mec-system-2
+    networks:
+      - demo-net
+
+networks:
+  demo-net:
+    driver: overlay
+    ipam:
+      config:
+        - subnet: 172.16.239.0/24

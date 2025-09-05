@@ -6,46 +6,12 @@ This project contains the code repositoy, measurements and analysis tools used i
 
 ---
 
-```bash
-python3 utils/ssh_git_pull.py -n 3
-```
-
-## 🚀 Deployment guide
-
-### Build Docker Images:
+## Build Docker Images:
 ```bash
 docker compose build
 ```
 
-### Deploy the blockchain network (distributed)
-
-```bash
-python3 utils/ssh_blockchain_network.py --start -n 3
-```
-
-```bash
-python3 utils/ssh_blockchain_network.py --stop -n 3
-```
-
-### Deploy the Federation Smart Contract
-
-```bash
-./deploy_smart_contract.sh --network-id 1234 --node-ip 10.5.99.1 --port 3334 --protocol ws
-```
-
-> Note: gas used: 2813598 (0x2aee9e)
-
-### Deploy the MEO and the MEF (blockchain manager)
-
-```bash
-python3 utils/ssh_mef_meo.py --start -n 3 -c 1 --mef --meo
-```
-```bash
-python3 utils/ssh_mef_meo.py --stop -n 3 --mef --meo
-```
-
-### Demo
-
+## 🚀 Demo
 [here](./utils)
 
 <!-- ```bash

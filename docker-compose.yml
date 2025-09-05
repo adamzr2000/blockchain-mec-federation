@@ -3,27 +3,26 @@ services:
     build:
       context: ./dockerfiles/geth-node-poa
     image: geth-node-poa:latest
-
+  quorum-dev:
+    build:
+      context: ./dockerfiles/quorum-dev
+    image: quorum-dev:latest
   mef-blockchain-manager:
     build:
       context: ./dockerfiles/mef-blockchain-manager
     image:  mef-blockchain-manager:latest
-
   eth-netstats:
     build:
       context: ./dockerfiles/eth-netstats
     image: eth-netstats:latest
-
   meo:
     build:
       context: ./dockerfiles/meo
     image: meo:latest
-
   mec-app:
     build:
       context: ./dockerfiles/mec-app
     image: mec-app:latest
-
   truffle:
     build:
       context: ./dockerfiles/truffle
