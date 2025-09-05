@@ -3,7 +3,7 @@ version: '3.8'
 services:
   alpine1:
     image: alpine:latest
-    command: ["sh", "-c", "while true; do echo 'Hello from alpine1 on $(hostname)'; sleep 10; done"]
+    command: ["sh", "-c", "while true; do echo 'Hello from alpine1 on $$(hostname)'; sleep 10; done"]
     deploy:
       placement:
         constraints:
@@ -13,7 +13,7 @@ services:
 
   alpine2:
     image: alpine:latest
-    command: ["sh", "-c", "while true; do echo 'Hello from alpine2 on $(hostname)'; sleep 10; done"]
+    command: ["sh", "-c", "while true; do echo 'Hello from alpine2 on $$(hostname)'; sleep 10; done"]
     deploy:
       placement:
         constraints:

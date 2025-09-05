@@ -23329,11 +23329,11 @@
       "events": {},
       "links": {},
       "address": "0x8a899B9fF6293789A9Ed8716e08e5fCA83e975af",
-      "transactionHash": "0x9b71114be8cd346c6bc341d4fd030ef2232f77489e4a0e098942205e7b6ffed5"
+      "transactionHash": "0x0bd952162f799890817947ea270cbff46c83ad208c5dd56f7ec03702cdbe079f"
     }
   },
   "schemaVersion": "3.4.16",
-  "updatedAt": "2025-09-04T09:12:13.769Z",
+  "updatedAt": "2025-09-04T14:20:53.063Z",
   "networkType": "ethereum",
   "devdoc": {
     "kind": "dev",
