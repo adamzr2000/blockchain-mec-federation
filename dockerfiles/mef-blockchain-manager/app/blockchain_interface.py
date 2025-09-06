@@ -74,17 +74,14 @@ class BlockchainInterface:
             build_transaction['nonce'] = self._local_nonce
             self._local_nonce += 1
 
-        # Bump the gas price slightly to avoid underpriced errors
-        # If not using EIP-1559, inject legacy gasPrice
-        if 'maxFeePerGas' not in build_transaction and 'maxPriorityFeePerGas' not in build_transaction:
-            base_gas_price = self.web3.eth.gas_price
-            build_transaction['gasPrice'] = int(base_gas_price * 1.25)
+        # Always force legacy gasPrice (avoid EIP-1559 fields)
+        base_gas_price = self.web3.eth.gas_price
+        build_transaction['gasPrice'] = int(base_gas_price * 1.25)
 
-        # Else (EIP-1559): Optional tweak to bump the maxFeePerGas slightly
-        elif 'maxFeePerGas' in build_transaction:
-            build_transaction['maxFeePerGas'] = int(build_transaction['maxFeePerGas'] * 1.25)
-            
-        # print(f"nonce = {build_transaction['nonce']}, maxFeePerGas = {build_transaction['maxFeePerGas']}")
+        # Remove any EIP-1559 fields just in case
+        build_transaction.pop('maxFeePerGas', None)
+        build_transaction.pop('maxPriorityFeePerGas', None)
+
         signed_txn = self.web3.eth.account.signTransaction(build_transaction, self.private_key)
         tx_hash = self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
         return tx_hash.hex()
