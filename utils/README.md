@@ -92,7 +92,7 @@ date
 
 ## Clique
 ```shell
-curl -X POST http://localhost:21001 \
+curl -X POST http://localhost:8545 \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc":"2.0",
@@ -103,7 +103,7 @@ curl -X POST http://localhost:21001 \
 ```
 ## QBFT/IBFT
 ```shell
-curl -X POST http://localhost:21001 \
+curl -X POST http://localhost:8545 \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc":"2.0",
