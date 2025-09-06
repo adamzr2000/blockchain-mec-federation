@@ -360,7 +360,7 @@ def run_experiments_registration(name, export_to_csv, csv_path):
     send_time = time.time() - process_start_time
     data.append(["send_registration_transaction", send_time])
 
-    tx_hash = blockchain.register_domain(name=name, wait=True, timeout=30)
+    tx_hash = blockchain.register_domain(name, wait=True, timeout=30)
     
     confirm_time = time.time() - process_start_time
     data.append(["confirm_registration_transaction", confirm_time])
