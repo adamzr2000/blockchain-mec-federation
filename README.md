@@ -11,8 +11,9 @@ This project contains the code repositoy, measurements and analysis tools used i
 docker compose build
 ```
 
-## 🚀 Demo
-[here](./utils)
+## 🚀 Experiments
+
+[README here](./utils)
 
 <!-- ```bash
 python3 utils/register_federation_participants.py -n 3

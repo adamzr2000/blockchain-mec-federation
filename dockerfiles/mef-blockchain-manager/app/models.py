@@ -41,6 +41,11 @@ class ServiceDeployedRequest(BaseModel):
     service_id: str
     info: Optional[str] = "federated_host=0.0.0.0"
 
+class DemoRegistrationRequest(BaseModel):
+    name: str
+    export_to_csv: Optional[bool] = False
+    csv_path: Optional[str] = "/experiments/test/mec_1_run_1.csv"
+
 class DemoConsumerRequest(BaseModel):
     requirements: Optional[str] = "zero_packet_loss"
     meo_endpoint: Optional[str] = "http://127.0.0.1:6666"
@@ -49,7 +54,7 @@ class DemoConsumerRequest(BaseModel):
     ip_address: Optional[str] = "127.0.0.1"
     offers_to_wait: Optional[int] = 1
     export_to_csv: Optional[bool] = False
-    csv_path: Optional[str] = "federation_demo_consumer.csv"
+    csv_path: Optional[str] = "/experiments/test/consumer_1_run_1.csv"
 
 class DemoProviderRequest(BaseModel):
     price_wei_per_hour: Optional[int] = 10000
@@ -59,4 +64,4 @@ class DemoProviderRequest(BaseModel):
     ip_address: Optional[str] = "127.0.0.1"
     requirements_filter: Optional[str] = None 
     export_to_csv: Optional[bool] = False
-    csv_path: Optional[str] = "federation_demo_provider.csv"
+    csv_path: Optional[str] = "/experiments/test/provider_1_run_1.csv"

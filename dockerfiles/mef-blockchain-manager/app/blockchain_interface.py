@@ -177,20 +177,32 @@ class BlockchainInterface:
             raise Exception(f"An error occurred while creating the filter for event '{event_name}': {str(e)}")
 
         
-    def register_domain(self, domain_name: str) -> str:
+    def register_domain(self, domain_name: str, wait: bool = False, timeout: int = 120) -> str:
         try:
             tx_data = self.contract.functions.addOperator(domain_name).buildTransaction({'from': self.eth_address})
-            return self.send_signed_transaction(tx_data)
+            tx_hash = self.send_signed_transaction(tx_data)
+            if wait:
+                logger.info(f"Waiting for transaction {tx_hash} to be mined...")
+                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=timeout)
+                logger.info(f"Transaction mined in block {receipt.blockNumber}")
+
+            return tx_hash
 
         except Exception as e:
             logger.error(f"Failed to register domain: {str(e)}")
             raise Exception(f"Failed to register domain: {str(e)}")
 
 
-    def unregister_domain(self) -> str:
+    def unregister_domain(self, wait: bool = False, timeout: int = 120) -> str:
         try:
             tx_data = self.contract.functions.removeOperator().buildTransaction({'from': self.eth_address})
-            return self.send_signed_transaction(tx_data)
+            tx_hash = self.send_signed_transaction(tx_data)
+            if wait:
+                logger.info(f"Waiting for transaction {tx_hash} to be mined...")
+                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=timeout)
+                logger.info(f"Transaction mined in block {receipt.blockNumber}")
+
+            return tx_hash
 
         except Exception as e:
             logger.error(f"Failed to unregister domain: {str(e)}")

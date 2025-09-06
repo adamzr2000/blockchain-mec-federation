@@ -43,29 +43,6 @@ def create_csv_file(file_path, header, data):
         writer.writerows(data)
     logger.info(f"Data saved to {file_path}")
     
-def create_csv_file_registration(participants, name, header, data):
-    # Determine the base directory based on the role
-    number_of_mec_systems = f"{participants}-mec-systems"
-    base_dir = Path("experiments/registration-time") / number_of_mec_systems
-    base_dir.mkdir(parents=True, exist_ok=True)  # Ensure the directory exists
-
-    # Find the next available file index
-    existing_files = list(base_dir.glob("federation_registration_{}_test_*.csv".format(name)))
-    indices = [int(f.stem.split('_')[-1]) for f in existing_files if f.stem.split('_')[-1].isdigit()]
-    next_index = max(indices) + 1 if indices else 1
-
-    # Construct the file name
-    file_name = base_dir / f"federation_registration_{name}_test_{next_index}.csv"
-
-    # Open and write to the file
-    with open(file_name, 'w', encoding='UTF8', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(header)  # Write the header
-        writer.writerows(data)  # Write the data
-
-    logger.info(f"Data saved to {file_name}")
-
-
 def extract_ip_from_url(url):
     # Regular expression pattern to match an IP address in a URL
     pattern = r'http://(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):\d+'

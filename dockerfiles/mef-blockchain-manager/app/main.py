@@ -24,6 +24,7 @@ from models import (
     PlaceBidRequest,
     ChooseProviderRequest,
     ServiceDeployedRequest,
+    DemoRegistrationRequest,
     DemoConsumerRequest,
     DemoProviderRequest
 )
@@ -304,6 +305,15 @@ def service_deployed_endpoint(request: ServiceDeployedRequest):
 
 
 # ------------------------------------------------------------------------------------------------------------------------------#
+@app.post("/start_experiments_registration", tags=["General federation functions"])
+def register_domain_endpoint(request: DemoRegistrationRequest):
+    try:
+        response = run_experiments_registration(name=request.name, export_to_csv=request.export_to_csv, csv_path=request.csv_path)
+        return response
+    except Exception as e:
+        logger.error(f"Registration process failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/start_experiments_consumer", tags=["Consumer functions"])
 def start_experiments_consumer(request: DemoConsumerRequest):
     try:
@@ -340,6 +350,32 @@ def start_experiments_provider(request: DemoProviderRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+def run_experiments_registration(name, export_to_csv, csv_path):
+    header = ['step', 'timestamp']
+    data = []
+
+    process_start_time = time.time()
+
+    send_time = time.time() - process_start_time
+    data.append(["send_registration_transaction", send_time])
+
+    tx_hash = blockchain.register_domain(name=name, wait=True, timeout=30)
+    
+    confirm_time = time.time() - process_start_time
+    data.append(["confirm_registration_transaction", confirm_time])
+
+    total_duration = time.time() - process_start_time
+
+    logger.info(f"✅ Registration process successfully completed in {total_duration:.2f} seconds.")
+
+    if export_to_csv:
+        utils.create_csv_file(csv_path, header, data)
+    
+    return {
+        "status": "success",
+        "duration_s": round(total_duration, 2)
+    }
 
 def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoint, vxlan_interface, node_id, export_to_csv, csv_path):
     header = ['step', 'timestamp']

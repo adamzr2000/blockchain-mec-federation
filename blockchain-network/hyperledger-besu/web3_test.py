@@ -83,8 +83,8 @@ if __name__ == "__main__":
     creds = load_eth_credentials("quorum-test-network/config/nodes/validator1")
     eth_address = creds["address"]
     eth_private_key = creds["private_key"]
-    eth_node_url="http://127.0.0.1:21001" # validator1 RPC HTTP endpoint
-
+    # eth_node_url="http://127.0.0.1:21001" # validator1 RPC HTTP endpoint
+    eth_node_url="http://10.5.99.1:8545"
     blockchain = BlockchainInterface(
         eth_address=eth_address,
         private_key=eth_private_key,
