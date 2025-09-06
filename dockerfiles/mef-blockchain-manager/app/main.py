@@ -394,7 +394,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     # Wait for provider bids
     bids_event = blockchain.create_event_filter(FederationEvents.NEW_BID)
     bidderArrived = False
-    logger.info("⏳ Waiting for {offers_to_wait} bids...")
+    logger.info(f"⏳ Waiting for {offers_to_wait} bids...")
     while not bidderArrived:
         new_events = bids_event.get_all_entries()
         for event in new_events:
@@ -433,7 +433,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     # Wait for provider confirmation
     logger.info(f"⏳ Waiting for provider to complete deployment...")
     while blockchain.get_service_state(service_id) != 2:
-        time.sleep(0.2)
+        time.sleep(0.1)
                 
     t_confirm_deployment_received = time.time() - process_start_time
     data.append(['confirm_deployment_received', t_confirm_deployment_received])

@@ -46,5 +46,16 @@ curl -X DELETE "http://localhost:6666/delete_docker_service?name=testsvc" | jq
 curl -X DELETE "http://localhost:6666/delete_vxlan?vxlan_id=200&docker_net_name=fed-net" | jq
 ```
 
+# Monitoring
+
+```shell
+curl -X POST "http://localhost:6666/monitor/start?container=validator1&interval=1.0&stdout=true" | jq
+
+curl -X POST "http://localhost:6666/monitor/start?container=validator1&interval=1.0&csv_path=%2Fexperiments%2Ftest%2Fvalidator1.csv&stdout=true" | jq
+
+curl -X POST "http://localhost:6666/monitor/stop" | jq
+```
+
+
 
 

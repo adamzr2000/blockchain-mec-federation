@@ -18,6 +18,7 @@ from services import (
     configure_docker_network_and_vxlan,
     delete_docker_network_and_vxlan,
 )
+from monitoring import DockerContainerMonitor
 
 # ---------- Logging ----------
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -32,10 +33,16 @@ async def lifespan(app: FastAPI):
         info = client.version()
         logger.info(f"Connected to Docker daemon - Version: {info.get('Version')}")
         app.state.docker = client
+        app.state.monitor = None  # ➕ keep a single active monitor
         yield
-    except Exception as e:
-        logger.critical(f"Cannot connect to Docker daemon at startup: {e}")
-        raise
+    finally:
+        # ➕ graceful shutdown: stop monitor if still running
+        mon = getattr(app.state, "monitor", None)
+        if mon and getattr(mon, "_thread", None) and mon._thread.is_alive():
+            try:
+                mon.stop()
+            except Exception as e:
+                logger.error(f"Error stopping monitor during shutdown: {e}")
 
 app = FastAPI(title="MEO API", version="1.0.0", lifespan=lifespan)
 
@@ -205,6 +212,58 @@ def delete_docker_network_and_vxlan_endpoint(
     except Exception as e:
         logger.error(f"delete_vxlan failed: {e}")
         raise HTTPException(status_code=500, detail={"success": False, "message": str(e)})
+
+@app.post(
+    "/monitor/start",
+    tags=["Monitoring"],
+    summary="Start container monitoring",
+    response_model=MessageResponse,
+)
+def monitor_start(
+    container: str,
+    interval: float = 1.0,
+    csv_path: str | None = None,
+    stdout: bool = False,
+):
+    # refuse if already running
+    mon = getattr(app.state, "monitor", None)
+    if mon and getattr(mon, "_thread", None) and mon._thread.is_alive():
+        raise HTTPException(status_code=409, detail={"success": False, "message": "Monitoring already running. Stop it first."})
+
+    try:
+        mon = DockerContainerMonitor(
+            container_ref=container,
+            interval=interval,
+            csv_path=csv_path,
+            write_header=True,
+            stdout=stdout,
+        )
+        mon.start()
+        app.state.monitor = mon
+        return {"success": True, "message": f"Monitoring started for '{container}' (interval={interval}s, csv_path={csv_path or 'None'}, stdout={stdout})."}
+    except Exception as e:
+        logger.error(f"monitor_start failed: {e}")
+        raise HTTPException(status_code=500, detail={"success": False, "message": str(e)})
+    
+@app.post(
+    "/monitor/stop",
+    tags=["Monitoring"],
+    summary="Stop container monitoring",
+    response_model=MessageResponse,
+)
+def monitor_stop():
+    mon = getattr(app.state, "monitor", None)
+    if not mon or not getattr(mon, "_thread", None) or not mon._thread.is_alive():
+        raise HTTPException(status_code=400, detail={"success": False, "message": "No active monitoring to stop."})
+
+    try:
+        mon.stop()
+        app.state.monitor = None
+        return {"success": True, "message": "Monitoring stopped."}
+    except Exception as e:
+        logger.error(f"monitor_stop failed: {e}")
+        raise HTTPException(status_code=500, detail={"success": False, "message": str(e)})
+
 
 if __name__ == "__main__":
     import uvicorn
