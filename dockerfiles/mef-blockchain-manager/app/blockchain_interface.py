@@ -188,8 +188,14 @@ class BlockchainInterface:
             tx_hash = self.send_signed_transaction(tx_data)
             if wait:
                 logger.info(f"Waiting for transaction {tx_hash} to be mined...")
-                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=timeout)
-                logger.info(f"Transaction mined in block {receipt.blockNumber}")
+                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+                if receipt.status != 1:
+                    raise Exception(
+                        f"Transaction {tx_hash} was mined in block {receipt.blockNumber} but failed (status=0)."
+                    )
+
+                logger.info(f"Transaction {tx_hash} successfully included in block {receipt.blockNumber}")
 
             return tx_hash
 
@@ -204,8 +210,14 @@ class BlockchainInterface:
             tx_hash = self.send_signed_transaction(tx_data)
             if wait:
                 logger.info(f"Waiting for transaction {tx_hash} to be mined...")
-                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=timeout)
-                logger.info(f"Transaction mined in block {receipt.blockNumber}")
+                receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+
+                if receipt.status != 1:
+                    raise Exception(
+                        f"Transaction {tx_hash} was mined in block {receipt.blockNumber} but failed (status=0)."
+                    )
+
+                logger.info(f"Transaction {tx_hash} successfully included in block {receipt.blockNumber}")
 
             return tx_hash
 
