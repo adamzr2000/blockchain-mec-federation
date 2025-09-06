@@ -161,7 +161,8 @@ def provider_payload(host: Dict[str, Any], provider_index: int, run_idx: int) ->
     }
 
 def consumer_payload(consumer: Dict[str, Any], num_providers: int, run_idx: int) -> Dict[str, Any]:
-    offers_to_wait = min(2, num_providers) if num_providers > 0 else 0
+    # offers_to_wait = min(2, num_providers) if num_providers > 0 else 0
+    offers_to_wait = num_providers
     ip = consumer["ip"]
     return {
         "requirements": "zero_packet_loss",

@@ -394,7 +394,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     # Wait for provider bids
     bids_event = blockchain.create_event_filter(FederationEvents.NEW_BID)
     bidderArrived = False
-    logger.info("⏳ Waiting for bids...")
+    logger.info("⏳ Waiting for {offers_to_wait} bids...")
     while not bidderArrived:
         new_events = bids_event.get_all_entries()
         for event in new_events:
