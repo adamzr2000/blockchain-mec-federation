@@ -174,7 +174,7 @@ def tx_receipt_endpoint(tx_hash: str):
 @app.post("/register_domain/{name}", summary="Register a new domain (operator)", tags=["General federation functions"])
 def register_domain_endpoint(name: str):
     try:
-        tx_hash = blockchain.register_domain(name=name, wait=False, timeout=30)
+        tx_hash = blockchain.register_domain(name, wait=False, timeout=30)
         return {"tx_hash": tx_hash}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
