@@ -4,6 +4,7 @@ Minimal runner with static host inventory.
 - Pre-run: deploy consumer app via MEO (mec-app:latest -> mecapp on bridge)
 - Run: start providers (parallel) then consumer
 - Post-run: delete consumer app; delete provider1 app; delete VXLAN on consumer+provider1
+- Monitor: start validator resource monitoring before run, stop after run (only if --export-csv)
 - Writes files ONLY if something fails (HTTP >= 400 or {"success": false})
 
 Usage:
@@ -15,7 +16,6 @@ import argparse
 import json
 import random
 import time
-import os
 import socket
 import uuid
 from datetime import datetime, timezone
@@ -61,30 +61,25 @@ HOSTS: List[Dict[str, Any]] = [
     {"role": "provider", "node_id": 30, "ip": "10.5.99.30", "iface": "ens3"},
 ]
 
-# --- Defaults (overridden by CLI) ---
+# --- Defaults ---
 BM_PORT = 8000
 MEO_PORT = 6666
-REQ_TIMEOUT = 90  # seconds
+REQ_TIMEOUT = 90
 EXPORT_TO_CSV = False
-CSV_BASE = "/experiments/test"  # remote CSV base (overridable via --csv-base)
-LOWEST_PRICE = 10              # provider1
-PRICE_MIN, PRICE_MAX = 11, 100 # provider2..K
-BETWEEN_RUNS = 3.0  # seconds; set e.g. 5.0 to wait 5s between runs
+CSV_BASE = "/experiments/test"
+LOWEST_PRICE = 10
+PRICE_MIN, PRICE_MAX = 11, 100
+BETWEEN_RUNS = 3.0
 
-# Consumer & Provider1 app (same name per your note)
 CONSUMER_APP_IMAGE = "mec-app:latest"
-APP_NAME = "mecapp"               # used on consumer AND provider1
+APP_NAME = "mecapp"
 CONSUMER_APP_NETWORK = "bridge"
 CONSUMER_APP_REPLICAS = 1
 
-# VXLAN cleanup (both consumer and provider1)
 VXLAN_ID_CLEANUP = 201
 VXLAN_NETNAME = "fed-net"
-# ---------------------------------------
 
-
-# ---------- Error sink (lazy; only writes on error) ----------
-
+# ---------- Error sink ----------
 class ErrorSink:
     def __init__(self, base: Path):
         self.base = base
@@ -93,9 +88,6 @@ class ErrorSink:
     def _ensure_session(self):
         if self.session_dir is None:
             utc = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-            host = socket.gethostname()
-            pid = os.getpid()
-            rid = uuid.uuid4().hex[:6]
             self.session_dir = self.base / f"session_{utc}"
             self.session_dir.mkdir(parents=True, exist_ok=True)
             print(f"[errors] session dir: {self.session_dir}")
@@ -106,11 +98,9 @@ class ErrorSink:
         run_dir.mkdir(parents=True, exist_ok=True)
         (run_dir / filename).write_text(json.dumps(payload, indent=2, ensure_ascii=False))
 
-ERRS: Optional[ErrorSink] = None 
-
+ERRS: Optional[ErrorSink] = None
 
 # ---------- HTTP helpers ----------
-
 def _safe_json(resp: requests.Response):
     try:
         return resp.json()
@@ -145,13 +135,38 @@ def delete_params(url: str, params: Dict[str, Any]) -> Tuple[int, Any]:
     except Exception as e:
         return 599, {"error": str(e), "url": url, "params": params}
 
+# ---------- Monitoring helpers ----------
+def start_monitor(host_ip: str, validator_name: str, run_idx: int):
+    url = f"http://{host_ip}:{MEO_PORT}/monitor/start"
+    params = {
+        "container": validator_name,
+        "interval": 1.0,
+        "stdout": "true",
+    }
+    if EXPORT_TO_CSV:
+        params["csv_path"] = f"{CSV_BASE}/docker-logs/{validator_name}_run_{run_idx}.csv"
+
+    print(f"[monitor] start {validator_name} on {host_ip} → POST {url} params={params}")
+    sc, resp = post_params(url, params)
+    if is_error(sc, resp) and ERRS:
+        ERRS.write(run_idx, f"monitor_start_{validator_name}_run{run_idx}.json",
+                   {"host": host_ip, "status": sc, "response": resp})
+
+def stop_monitor(host_ip: str, validator_name: str, run_idx: int):
+    if not EXPORT_TO_CSV:
+        return
+    url = f"http://{host_ip}:{MEO_PORT}/monitor/stop"
+    print(f"[monitor] stop {validator_name} on {host_ip} → POST {url}")
+    sc, resp = post_params(url, {})
+    if is_error(sc, resp) and ERRS:
+        ERRS.write(run_idx, f"monitor_stop_{validator_name}_run{run_idx}.json",
+                   {"host": host_ip, "status": sc, "response": resp})
 
 # ---------- Payload builders ----------
-
 def provider_payload(host: Dict[str, Any], provider_index: int, run_idx: int) -> Dict[str, Any]:
     ip = host["ip"]
     return {
-        "price_wei_per_hour": 0,  # set by caller
+        "price_wei_per_hour": 0,
         "meo_endpoint": f"http://{ip}:{MEO_PORT}",
         "ip_address": ip,
         "vxlan_interface": host["iface"],
@@ -161,7 +176,6 @@ def provider_payload(host: Dict[str, Any], provider_index: int, run_idx: int) ->
     }
 
 def consumer_payload(consumer: Dict[str, Any], num_providers: int, run_idx: int) -> Dict[str, Any]:
-    # offers_to_wait = min(2, num_providers) if num_providers > 0 else 0
     offers_to_wait = num_providers
     ip = consumer["ip"]
     return {
@@ -175,31 +189,23 @@ def consumer_payload(consumer: Dict[str, Any], num_providers: int, run_idx: int)
         "csv_path": f"{CSV_BASE}/consumer_run_{run_idx}.csv",
     }
 
-
 # ---------- Pricing ----------
-
 def generate_prices(num_providers: int) -> List[int]:
     prices: List[int] = []
     for i in range(1, num_providers + 1):
         prices.append(LOWEST_PRICE if i == 1 else random.randint(PRICE_MIN, PRICE_MAX))
     return prices
 
-
-# ---------- MEO helpers (deploy/cleanup) ----------
-
+# ---------- MEO helpers ----------
 def meo_deploy_consumer_app(consumer_ip: str, run_idx: int) -> None:
     url = f"http://{consumer_ip}:{MEO_PORT}/deploy_docker_service"
-    params = {
-        "image": CONSUMER_APP_IMAGE,
-        "name": APP_NAME,
-        "network": CONSUMER_APP_NETWORK,
-        "replicas": CONSUMER_APP_REPLICAS,
-    }
+    params = {"image": CONSUMER_APP_IMAGE, "name": APP_NAME,
+              "network": CONSUMER_APP_NETWORK, "replicas": CONSUMER_APP_REPLICAS}
     print(f"[consumer] deploy app → POST {url} params={params}")
     sc, resp = post_params(url, params)
     if is_error(sc, resp) and ERRS:
         ERRS.write(run_idx, f"consumer_deploy_error_run{run_idx}.json", {"status": sc, "response": resp})
-    time.sleep(1.0)  # brief settle
+    time.sleep(1.0)
 
 def meo_delete_service(host_ip: str, service_name: str, run_idx: int, tag: str) -> None:
     url = f"http://{host_ip}:{MEO_PORT}/delete_docker_service"
@@ -219,9 +225,7 @@ def meo_delete_vxlan(host_ip: str, vxlan_id: int, netname: str, run_idx: int, ta
         ERRS.write(run_idx, f"{tag}_delete_vxlan_error_run{run_idx}.json",
                    {"host": host_ip, "status": sc, "response": resp})
 
-
 # ---------- Experiment calls ----------
-
 def start_provider(host: Dict[str, Any], provider_index: int, price: int, run_idx: int) -> Dict[str, Any]:
     ip = host["ip"]
     url = f"http://{ip}:{BM_PORT}/start_experiments_provider"
@@ -247,92 +251,80 @@ def start_consumer(consumer: Dict[str, Any], num_providers: int, run_idx: int) -
                    {"host": ip, "status": sc, "response": resp})
     return {"status": sc}
 
-
 # ---------- Orchestration ----------
-
 def run_one(total_nodes: int, run_idx: int) -> None:
-    assert 2 <= total_nodes <= len(HOSTS), f"nodes must be between 2 and {len(HOSTS)}"
+    assert 2 <= total_nodes <= len(HOSTS)
 
     consumer = HOSTS[0]
     providers = HOSTS[1:total_nodes]
-    num_providers = len(providers)
+    all_nodes = [consumer] + providers
 
-    # 0) Pre-run: deploy consumer app
+    # 0) Start monitoring (validators)
+    for node in all_nodes:
+        validator_name = f"validator{node['node_id']}"
+        start_monitor(node["ip"], validator_name, run_idx)
+
+    # 1) Pre-run: deploy consumer app
     meo_deploy_consumer_app(consumer["ip"], run_idx)
 
-    # 1) Kick off providers in parallel (do NOT wait yet)
-    prices = generate_prices(num_providers)
-    with ThreadPoolExecutor(max_workers=min(16, num_providers)) as pool:
-        prov_futs = []
-        for provider_index, host in enumerate(providers, start=1):
-            price = prices[provider_index - 1]
-            prov_futs.append(pool.submit(start_provider, host, provider_index, price, run_idx))
+    # 2) Kick off providers
+    prices = generate_prices(len(providers))
+    with ThreadPoolExecutor(max_workers=min(16, len(providers))) as pool:
+        prov_futs = [pool.submit(start_provider, host, idx, price, run_idx)
+                     for idx, (host, price) in enumerate(zip(providers, prices), start=1)]
 
-        # 2) Small grace period, then start consumer on the main thread
         time.sleep(0.5)
-        cons_result = start_consumer(consumer, num_providers, run_idx)
+        cons_result = start_consumer(consumer, len(providers), run_idx)
 
-        # 3) Now wait for all providers to finish
-        prov_results = []
-        for f in as_completed(prov_futs):
-            prov_results.append(f.result())
+        prov_results = [f.result() for f in as_completed(prov_futs)]
 
     ok_prov = sum(1 for r in prov_results if r["status"] < 400)
     ok_cons = cons_result["status"] < 400
-    print(f"[run {run_idx}] providers ok: {ok_prov}/{num_providers} | consumer ok: {ok_cons}")
+    print(f"[run {run_idx}] providers ok: {ok_prov}/{len(providers)} | consumer ok: {ok_cons}")
 
-    # 4) Post-run cleanup
-    # 4a) delete consumer app on consumer
+    # 3) Stop monitoring (validators)
+    for node in all_nodes:
+        validator_name = f"validator{node['node_id']}"
+        stop_monitor(node["ip"], validator_name, run_idx)
+
+    # 4) Cleanup
     meo_delete_service(consumer["ip"], APP_NAME, run_idx, tag="consumer")
-
-    # 4b) delete provider1 app on provider1 (winner) — uses SAME name as consumer
     if providers:
-        provider1 = providers[0]  # logical provider1 (lowest price)
+        provider1 = providers[0]
         meo_delete_service(provider1["ip"], APP_NAME, run_idx, tag="provider1")
-        # 4c) delete VXLAN on provider1
         meo_delete_vxlan(provider1["ip"], VXLAN_ID_CLEANUP, VXLAN_NETNAME, run_idx, tag="provider1")
-
-    # 4d) delete VXLAN on consumer
     meo_delete_vxlan(consumer["ip"], VXLAN_ID_CLEANUP, VXLAN_NETNAME, run_idx, tag="consumer")
 
-
 # ---------- CLI ----------
-
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(description="Minimal experiments runner (errors only logging)")
-    ap.add_argument("-n", "--nodes", type=int, required=True, help="Total nodes (consumer=1, providers=2..N)")
-    ap.add_argument("-t", "--tests", type=int, required=True, help="Number of repetitions")
-    ap.add_argument("--export-csv", action="store_true", default=False,
-                    help="Set export_to_csv=true in requests (default: False)")
-    ap.add_argument("--csv-base", default="/experiments/test",
-                    help="Remote base path for CSVs; local error logs go to ../<csv-base>/logs (default: /experiments/test)")
+    ap.add_argument("-n", "--nodes", type=int, required=True)
+    ap.add_argument("-t", "--tests", type=int, required=True)
+    ap.add_argument("--export-csv", action="store_true", default=False)
+    ap.add_argument("--csv-base", default="/experiments/test")
     return ap.parse_args()
 
 def compute_local_logs_root(csv_base: str) -> Path:
-    clean = csv_base.lstrip("/")  # drop leading slash if absolute
+    clean = csv_base.lstrip("/")
     return Path("..") / clean / "logs"
 
 def main() -> int:
     global CSV_BASE, EXPORT_TO_CSV, ERRS
-
     args = parse_args()
+
     if args.nodes < 2:
-        print("Error: -n/--nodes must be >= 2 (1 consumer + 1 provider)")
+        print("Error: -n/--nodes must be >= 2")
         return 2
     if args.tests < 1:
         print("Error: -t/--tests must be >= 1")
         return 2
 
-    # Apply CLI overrides
     CSV_BASE = args.csv_base
     EXPORT_TO_CSV = bool(args.export_csv)
-
-    # Init error sink at ../<csv-base>/logs
-    log_root = compute_local_logs_root(CSV_BASE)
-    ERRS = ErrorSink(log_root)
+    ERRS = ErrorSink(compute_local_logs_root(CSV_BASE))
 
     print(f"Remote CSV base: {CSV_BASE}")
-    print(f"Local error logs: {log_root} (only written if something fails)")
+    print(f"Local error logs: {compute_local_logs_root(CSV_BASE)}")
     print("export_to_csv:", EXPORT_TO_CSV)
 
     for i in range(1, args.tests + 1):
@@ -341,10 +333,9 @@ def main() -> int:
         if i < args.tests and BETWEEN_RUNS > 0:
             print(f"Waiting {BETWEEN_RUNS}s before next run...")
             time.sleep(BETWEEN_RUNS)
-            
+
     print("\nAll experiments completed.")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
