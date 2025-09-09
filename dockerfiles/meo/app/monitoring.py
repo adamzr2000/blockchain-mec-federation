@@ -355,7 +355,7 @@ class DockerContainerMonitor:
                     sample["blk_read_mb"], sample["blk_write_mb"],
                     sample["net_rx_mb"], sample["net_tx_mb"],
                 )
-                # print(f"timestamp: {sample['timestamp']}")
+                # logger.info(f"timestamp: {sample['timestamp']}")
 
             if self.on_sample:
                 try:
