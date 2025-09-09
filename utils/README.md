@@ -107,7 +107,7 @@ curl -X POST http://localhost:8545 \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc":"2.0",
-    "method":"ibft_getValidatorsByBlockNumber",
+    "method":"qbft_getValidatorsByBlockNumber",
     "params":["latest"],
     "id":1
   }'
