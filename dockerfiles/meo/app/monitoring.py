@@ -4,7 +4,8 @@ Modular Docker container resource monitor (window-aware, no throughput MB/s).
 
 - Start/stop API + context manager
 - CPU %, Mem MB, Mem limit MB, Mem %
-- Disk R/W MB (cumulative) with fallback: Docker blkio -> cgroup v2 io.stat -> /proc/<pid>/io
+- Disk R/W MB (cumulative) with robust fallback:
+  Docker blkio -> cgroup v1 -> cgroup v2 -> /proc/<pid>/io -> docker exec (v2/proc1)
 - Net RX/TX MB (cumulative)
 - Per-window totals via get_window_totals()
 - Optional CSV, per-sample callback
@@ -58,6 +59,7 @@ def _compute_cpu_percent(stats) -> float:
     return 0.0
 
 def _compute_mem_used_mb(stats) -> float:
+    # working-set-ish: usage - cache
     usage = _safe_get(stats, ("memory_stats","usage"))
     cache = _safe_get(stats, ("memory_stats","stats","cache"))
     used_no_cache = usage - cache if usage >= cache else usage
@@ -90,6 +92,72 @@ def _docker_blkio_mb(stats):
             elif op == "Write":
                 writes += val
     return _bytes_to_mb(reads), _bytes_to_mb(writes)
+
+# ---- cgroup v1 helpers ----
+def _cgroup_paths_v1(pid: int) -> dict:
+    """
+    Parse /proc/<pid>/cgroup and return {controller: path} for cgroup v1.
+    Example: '8:blkio:/docker/<id>' -> {'blkio': '/docker/<id>'}
+    """
+    paths = {}
+    try:
+        with open(f"/proc/{pid}/cgroup", "r") as f:
+            for line in f:
+                parts = line.strip().split(":")
+                if len(parts) != 3:
+                    continue
+                ctrls = parts[1]
+                path = parts[2]
+                for ctrl in ctrls.split(","):
+                    paths[ctrl] = path
+    except Exception:
+        pass
+    return paths
+
+def _blkio_from_cgroup_v1(pid: int):
+    """
+    Read blkio bytes from cgroup v1:
+    - blkio.throttle.io_service_bytes (preferred)
+    - blkio.io_service_bytes (fallback)
+    Aggregates Read/Write across devices.
+    """
+    paths = _cgroup_paths_v1(pid)
+    cg_rel = paths.get("blkio")
+    if not cg_rel:
+        return None
+
+    base = os.path.join("/sys/fs/cgroup/blkio", cg_rel.lstrip("/"))
+    files = [
+        os.path.join(base, "blkio.throttle.io_service_bytes"),
+        os.path.join(base, "blkio.io_service_bytes"),
+    ]
+
+    reads = 0
+    writes = 0
+    try:
+        for fp in files:
+            if not os.path.exists(fp):
+                continue
+            with open(fp, "r") as f:
+                for line in f:
+                    # "8:0 Read 123456"  or sometimes "Read 123456"
+                    parts = line.strip().split()
+                    if len(parts) == 3:
+                        _, op, val = parts
+                    elif len(parts) == 2 and parts[0] in ("Read", "Write"):
+                        op, val = parts
+                    else:
+                        continue
+                    if op == "Read":
+                        reads += int(val)
+                    elif op == "Write":
+                        writes += int(val)
+            # if we got data from the first file, stop (avoid double counting)
+            if reads or writes:
+                break
+        return _bytes_to_mb(reads), _bytes_to_mb(writes)
+    except Exception:
+        return None
 
 # ---- cgroup v2 helpers ----
 def _is_cgroup_v2(pid: int) -> bool:
@@ -143,7 +211,7 @@ def _blkio_from_proc_io(pid: int):
     except Exception:
         return None
 
-# ---- network helper (this was missing in your file) ----
+# ---- network helper ----
 def _compute_net_mb(stats):
     rx = 0
     tx = 0
@@ -171,6 +239,7 @@ class DockerContainerMonitor:
     _baseline: Optional[Dict[str, float]] = field(default=None, init=False, repr=False)
     _last_sample: Optional[Dict[str, Any]] = field(default=None, init=False, repr=False)
     _container_pid: Optional[int] = field(default=None, init=False, repr=False)
+    _container_obj: Optional[Any] = field(default=None, init=False, repr=False)
 
     def start(self) -> None:
         if docker is None:
@@ -184,6 +253,7 @@ class DockerContainerMonitor:
         self._last_sample = None
 
         if self.csv_path:
+            is_new = not os.path.exists(self.csv_path) or os.path.getsize(self.csv_path) == 0
             self._csv_file = open(self.csv_path, "a", newline="")
             fieldnames = [
                 "timestamp",
@@ -195,7 +265,7 @@ class DockerContainerMonitor:
                 "net_rx_mb", "net_tx_mb",
             ]
             self._csv_writer = csv.DictWriter(self._csv_file, fieldnames=fieldnames)
-            if self.write_header:
+            if self.write_header and is_new:
                 try:
                     self._csv_writer.writeheader()
                     self._csv_file.flush()
@@ -241,10 +311,56 @@ class DockerContainerMonitor:
                                self.container_ref, matches[0].id[:12], matches[0].name)
             return matches[0]
 
+    # ---- exec fallbacks (used only if host paths fail) ----
+    def _blkio_from_exec_cgroup_io_stat(self):
+        """Exec inside target container: read /sys/fs/cgroup/io.stat (cgroup v2)."""
+        try:
+            if not self._container_obj:
+                return None
+            res = self._container_obj.exec_run("cat /sys/fs/cgroup/io.stat", stdout=True, stderr=False)
+            if getattr(res, "exit_code", 1) != 0 or not getattr(res, "output", b""):
+                return None
+            rbytes = wbytes = 0
+            for line in res.output.decode("utf-8", "ignore").splitlines():
+                for kv in line.strip().split():
+                    if kv.startswith("rbytes="):
+                        rbytes += int(kv.split("=", 1)[1])
+                    elif kv.startswith("wbytes="):
+                        wbytes += int(kv.split("=", 1)[1])
+            return _bytes_to_mb(rbytes), _bytes_to_mb(wbytes)
+        except Exception:
+            return None
+
+    def _blkio_from_exec_proc1_io(self):
+        """Exec inside target container: read /proc/1/io (last resort)."""
+        try:
+            if not self._container_obj:
+                return None
+            res = self._container_obj.exec_run("cat /proc/1/io", stdout=True, stderr=False)
+            if getattr(res, "exit_code", 1) != 0 or not getattr(res, "output", b""):
+                return None
+            read_bytes = write_bytes = 0
+            for line in res.output.decode("utf-8", "ignore").splitlines():
+                if line.startswith("read_bytes:"):
+                    read_bytes = int(line.split(":", 1)[1].strip())
+                elif line.startswith("write_bytes:"):
+                    write_bytes = int(line.split(":", 1)[1].strip())
+            return _bytes_to_mb(read_bytes), _bytes_to_mb(write_bytes)
+        except Exception:
+            return None
+
     def _compute_blkio_mb_with_fallback(self, stats):
+        # 1) Docker API
         r_mb, w_mb = _docker_blkio_mb(stats)
         if (r_mb > 0.0 or w_mb > 0.0) or not self._container_pid:
             return r_mb, w_mb
+
+        # 2) cgroup v1 blkio (compose often lands here on some hosts)
+        v1_vals = _blkio_from_cgroup_v1(self._container_pid)
+        if v1_vals is not None:
+            return v1_vals
+
+        # 3) cgroup v2 io.stat (native hosts using unified hierarchy)
         try:
             if _is_cgroup_v2(self._container_pid):
                 cg_vals = _blkio_from_cgroup_v2(self._container_pid)
@@ -252,12 +368,21 @@ class DockerContainerMonitor:
                     return cg_vals
         except Exception:
             pass
-        try:
-            proc_vals = _blkio_from_proc_io(self._container_pid)
-            if proc_vals is not None:
-                return proc_vals
-        except Exception:
-            pass
+
+        # 4) /proc/<pid>/io (host-level, may miss child I/O)
+        proc_vals = _blkio_from_proc_io(self._container_pid)
+        if proc_vals is not None:
+            return proc_vals
+
+        # 5) exec inside target container (works in constrained/WSL2/inside-container cases)
+        exec_cg = self._blkio_from_exec_cgroup_io_stat()
+        if exec_cg is not None:
+            return exec_cg
+        exec_proc = self._blkio_from_exec_proc1_io()
+        if exec_proc is not None:
+            return exec_proc
+
+        # give up
         return r_mb, w_mb
 
     def _run(self) -> None:
@@ -269,6 +394,7 @@ class DockerContainerMonitor:
             return
 
         try:
+            self._container_obj = container
             try:
                 self._container_pid = int(container.attrs.get("State", {}).get("Pid", 0)) or None
             except Exception:
@@ -307,7 +433,7 @@ class DockerContainerMonitor:
             mem_percent = _compute_mem_percent(mem_mb, mem_limit_mb)
 
             sample = {
-                "timestamp": int(time.time() * 1000),
+                "timestamp": int(time.time() * 1000),  # ms
                 "cpu_percent": round(_compute_cpu_percent(stats), 2),
                 "mem_mb": mem_mb,
                 "mem_limit_mb": round(mem_limit_mb, 2) if mem_limit_mb is not None else None,
@@ -355,7 +481,6 @@ class DockerContainerMonitor:
                     sample["blk_read_mb"], sample["blk_write_mb"],
                     sample["net_rx_mb"], sample["net_tx_mb"],
                 )
-                # logger.info(f"timestamp: {sample['timestamp']}")
 
             if self.on_sample:
                 try:
@@ -411,7 +536,7 @@ class DockerContainerMonitor:
     def get_last_sample(self) -> Optional[Dict[str, Any]]:
         return self._last_sample
 
-# ---------- demo ----------
+# ---------- (optional local demo) ----------
 # if __name__ == "__main__":
 #     import logging
 #     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)

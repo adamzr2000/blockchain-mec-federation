@@ -153,8 +153,6 @@ def start_monitor(host_ip: str, validator_name: str, run_idx: int):
                    {"host": host_ip, "status": sc, "response": resp})
 
 def stop_monitor(host_ip: str, validator_name: str, run_idx: int):
-    if not EXPORT_TO_CSV:
-        return
     url = f"http://{host_ip}:{MEO_PORT}/monitor/stop"
     print(f"[monitor] stop {validator_name} on {host_ip} → POST {url}")
     sc, resp = post_params(url, {})

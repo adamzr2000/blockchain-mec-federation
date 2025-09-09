@@ -357,15 +357,15 @@ def run_experiments_registration(name, export_to_csv, csv_path):
 
     process_start_time = time.time()
 
-    send_time = time.time() - process_start_time
+    send_time = int((time.time() - process_start_time) * 1000)
     data.append(["send_registration_transaction", send_time])
 
     tx_hash = blockchain.register_domain(name, wait=True, timeout=30)
     
-    confirm_time = time.time() - process_start_time
+    confirm_time = int((time.time() - process_start_time) * 1000)
     data.append(["confirm_registration_transaction", confirm_time])
 
-    total_duration = time.time() - process_start_time
+    total_duration = int((time.time() - process_start_time) * 1000)
 
     logger.info(f"✅ Registration process successfully completed in {total_duration:.2f} seconds.")
 
@@ -385,7 +385,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     process_start_time = time.time()
                 
     # Send service announcement (federation request)
-    t_service_announced = time.time() - process_start_time
+    t_service_announced = int((time.time() - process_start_time) * 1000)
     data.append(['service_announced', t_service_announced])
 
     tx_hash, service_id = blockchain.announce_service(requirements, endpoint) 
@@ -402,7 +402,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
             received_bids = int(event['args']['biderIndex'])
             
             if event_service_id == service_id and received_bids >= offers_to_wait:
-                t_bid_offer_received = time.time() - process_start_time
+                t_bid_offer_received = int((time.time() - process_start_time) * 1000)
                 data.append(['bid_offer_received', t_bid_offer_received])
                 logger.info(f"📨 {received_bids} bid(s) received:")
                 bidderArrived = True 
@@ -425,7 +425,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
             best_bid_index = bid_index
             # logger.info(f"New lowest price: {lowest_price} with bid index: {best_bid_index}")
     # Choose winner provider
-    t_winner_choosen = time.time() - process_start_time
+    t_winner_choosen = int((time.time() - process_start_time) * 1000)
     data.append(['winner_choosen', t_winner_choosen])
     tx_hash = blockchain.choose_provider(service_id, best_bid_index)
     logger.info(f"🏆 Provider selected - Bid index: {best_bid_index}")
@@ -435,13 +435,13 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     while blockchain.get_service_state(service_id) != 2:
         time.sleep(0.1)
                 
-    t_confirm_deployment_received = time.time() - process_start_time
+    t_confirm_deployment_received = int((time.time() - process_start_time) * 1000)
     data.append(['confirm_deployment_received', t_confirm_deployment_received])
     logger.info("✅ Deployment confirmation received.")
 
     # blockchain.display_service_state(service_id)
 
-    t_establish_vxlan_connection_with_provider_start = time.time() - process_start_time
+    t_establish_vxlan_connection_with_provider_start = int((time.time() - process_start_time) * 1000)
     data.append(['establish_vxlan_connection_with_provider_start', t_establish_vxlan_connection_with_provider_start])
     
     # Federated service info
@@ -454,7 +454,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, vxlan_id, vxlan_port, federation_net, federation_subnet, "fed-net"))
     print(utils.attach_to_network(f"{meo_endpoint}/attach_to_network","mecapp_1","fed-net"))
 
-    t_establish_vxlan_connection_with_provider_finished = time.time() - process_start_time
+    t_establish_vxlan_connection_with_provider_finished = int((time.time() - process_start_time) * 1000)
     data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
 
     # Uncomment this during experiments
@@ -464,7 +464,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
     logger.debug(f"🔍 Ping output:\n{stdout}")
     loss = float(re.search(r'(\d+(?:\.\d+)?)%\s*packet loss', stdout).group(1))
     status = "success" if loss < 100.0 else "failure"
-    t_connection_test = time.time() - process_start_time
+    t_connection_test = int((time.time() - process_start_time) * 1000)
     if status == "success":
         logger.info(f"✅ Connection test SUCCESS ({100 - loss:.1f}% packets received)")
         data.append(['connection_test_success', t_connection_test])
@@ -472,7 +472,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoin
         logger.warning(f"❌ Connection test FAILURE ({loss:.1f}% packet loss)")
         data.append(['connection_test_failure', t_connection_test])
 
-    total_duration = time.time() - process_start_time
+    total_duration = int((time.time() - process_start_time) * 1000)
 
     logger.info(f"✅ Federation process successfully completed in {total_duration:.2f} seconds.")
 
@@ -509,7 +509,7 @@ def run_experiments_provider(price_wei_per_hour, endpoint, meo_endpoint, vxlan_i
 
         if len(open_services) > 0:
             # Announcement received
-            t_announce_received = time.time() - process_start_time
+            t_announce_received = int((time.time() - process_start_time) * 1000)
             data.append(['announce_received', t_announce_received])
             logger.info(f"Offers received: {len(open_services)} - Service ID: {service_id} - Requirements: {requirements}")
             newService = True
@@ -517,7 +517,7 @@ def run_experiments_provider(price_wei_per_hour, endpoint, meo_endpoint, vxlan_i
     service_id = open_services[-1]  # Select the latest open service
 
     # Place bid
-    t_bid_offer_sent = time.time() - process_start_time
+    t_bid_offer_sent = int((time.time() - process_start_time) * 1000)
     data.append(['bid_offer_sent', t_bid_offer_sent])
     blockchain.place_bid(service_id, price_wei_per_hour, endpoint)
     logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {price_wei_per_hour} Wei/hour")
@@ -531,7 +531,7 @@ def run_experiments_provider(price_wei_per_hour, endpoint, meo_endpoint, vxlan_i
             event_service_id = Web3.toText(event['args']['serviceId']).rstrip('\x00')
             if event_service_id == service_id:    
                 # Winner choosen received
-                t_winner_received = time.time() - process_start_time
+                t_winner_received = int((time.time() - process_start_time) * 1000)
                 data.append(['winner_received', t_winner_received])
                 winnerChosen = True
                 break
@@ -539,11 +539,11 @@ def run_experiments_provider(price_wei_per_hour, endpoint, meo_endpoint, vxlan_i
     # Check if this provider is the winner
     if blockchain.is_winner(service_id):
         logger.info(f"🏆 Selected as the winner for service ID: {service_id}.")
-        t_deployment_start = time.time() - process_start_time
+        t_deployment_start = int((time.time() - process_start_time) * 1000)
         data.append(['deployment_start', t_deployment_start])
     else:
         logger.info(f"❌ Not selected as the winner for service ID: {service_id}.")
-        t_other_provider_choosen = time.time() - process_start_time
+        t_other_provider_choosen = int((time.time() - process_start_time) * 1000)
         data.append(['other_provider_choosen', t_other_provider_choosen])
 
         if export_to_csv:
@@ -569,18 +569,18 @@ def run_experiments_provider(price_wei_per_hour, endpoint, meo_endpoint, vxlan_i
     deployed_service = utils.deploy_service(f"{meo_endpoint}/deploy_docker_service", "mec-app:latest", "mecapp", "fed-net", 1)
     deployed_mec_app_ip = next(iter(deployed_service["container_ips"].values()))
 
-    t_deployment_finished = time.time() - process_start_time
+    t_deployment_finished = int((time.time() - process_start_time) * 1000)
     data.append(['deployment_finished', t_deployment_finished])
         
     logger.info(f"✅ MEC app deployed - IP: {deployed_mec_app_ip}")
 
     # Confirm service deployed
-    t_confirm_deployment_sent = time.time() - process_start_time
+    t_confirm_deployment_sent = int((time.time() - process_start_time) * 1000)
     data.append(['confirm_deployment_sent', t_confirm_deployment_sent])
     
     blockchain.service_deployed(service_id, deployed_mec_app_ip)
     
-    total_duration = time.time() - process_start_time
+    total_duration = int((time.time() - process_start_time) * 1000)
 
 
     if export_to_csv:
