@@ -56,6 +56,16 @@ TESTS=5
 python3 run_experiments_one_offer.py -n $PARTICIPANTS -t $TESTS --export-csv --csv-base /experiments/test
 ```
 ---
+### Run experiments multiple consumers
+```bash
+TESTS=5
+python3 run_experiments_multiple_offers.py -n 4 -c 3 -t $TESTS
+```
+```bash
+TESTS=5
+python3 run_experiments_one_offer.py -n $PARTICIPANTS -t $TESTS --export-csv --csv-base /experiments/test
+```
+---
 ### Push results to git
 ```bash
 python3 ssh_git_sync_experiments.py -n $PARTICIPANTS
