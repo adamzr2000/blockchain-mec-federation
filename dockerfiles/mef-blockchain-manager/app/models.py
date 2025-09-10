@@ -65,3 +65,14 @@ class DemoProviderRequest(BaseModel):
     requirements_filter: Optional[str] = None 
     export_to_csv: Optional[bool] = False
     csv_path: Optional[str] = "/experiments/test/provider_1_run_1.csv"
+
+class DemoProviderMultipleRequest(BaseModel):
+    price_wei_per_hour: Optional[int] = 10000
+    requests_to_wait: Optional[int] = 1
+    meo_endpoint: Optional[str] = "http://127.0.0.1:6666"
+    vxlan_interface: Optional[str] = "ens3"
+    node_id: Optional[int] = 1
+    ip_address: Optional[str] = "127.0.0.1"
+    requirements_filter: Optional[str] = None 
+    export_to_csv: Optional[bool] = False
+    csv_path: Optional[str] = "/experiments/test/provider_1_run_1.csv"
