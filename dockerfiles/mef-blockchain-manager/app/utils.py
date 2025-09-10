@@ -110,8 +110,12 @@ def validate_endpoint(endpoint: str) -> bool:
     return re.match(pattern, endpoint) is not None
 
 # MEO request utilities
-def deploy_service(meo_endpoint, image, name, net, replicas, timeout=60, interval=2.0):
+def deploy_service(meo_endpoint, image, name, net, replicas, start_host_port=None, timeout=60, interval=2.0):
     params = {"image": image, "name": name, "network": net, "replicas": replicas}
+    
+    if start_host_port is not None:
+        params["start_host_port"] = start_host_port
+        
     end = time.time() + timeout
     last = None
     while time.time() < end:

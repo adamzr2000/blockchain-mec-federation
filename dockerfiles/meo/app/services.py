@@ -305,3 +305,64 @@ def delete_docker_network_and_vxlan(
             logger.info(f"Removed docker network '{docker_net_name}'")
         except Exception as e:
             logger.warning(f"Could not remove docker network '{docker_net_name}': {e}")
+
+def cleanup_service_resources(
+    client: Optional[docker.DockerClient] = None,
+    container_prefix: str = "mecapp-",
+    network_prefix: str = "fed-net-",
+    vxlan_prefix: str = "vxlan",
+) -> None:
+    """
+    Remove all containers, docker networks, and VXLAN interfaces
+    that match the given prefixes.
+    """
+    if client is None:
+        client = docker.from_env()
+
+    # 1) Remove containers
+    try:
+        containers = client.containers.list(all=True)
+        for c in containers:
+            if c.name.startswith(container_prefix):
+                logger.info(f"Removing container {c.name}...")
+                try:
+                    c.remove(force=True)
+                except Exception as e:
+                    logger.warning(f"Could not remove container {c.name}: {e}")
+    except Exception as e:
+        logger.error(f"Error cleaning containers: {e}")
+
+    # 2) Remove docker networks
+    try:
+        networks = client.networks.list()
+        for net in networks:
+            if net.name.startswith(network_prefix):
+                logger.info(f"Removing network {net.name}...")
+                try:
+                    net.remove()
+                except Exception as e:
+                    logger.warning(f"Could not remove network {net.name}: {e}")
+    except Exception as e:
+        logger.error(f"Error cleaning networks: {e}")
+
+    # 3) Remove VXLAN interfaces
+    try:
+        res = subprocess.run(
+            ["ip", "-o", "link", "show"],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        for line in res.stdout.splitlines():
+            if vxlan_prefix in line:
+                vxlan_iface = line.split(":")[1].strip()
+                logger.info(f"Removing VXLAN interface {vxlan_iface}...")
+                subprocess.run(
+                    ["ip", "link", "del", vxlan_iface],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                )
+    except Exception as e:
+        logger.error(f"Error cleaning VXLAN interfaces: {e}")

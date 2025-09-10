@@ -1,5 +1,5 @@
 ```shell
-curl -X POST "http://localhost:6666/deploy_docker_service?image=nginx:alpine&name=testsvc&network=bridge&replicas=1" | jq
+curl -X POST "http://localhost:6666/deploy_docker_service?image=nginx:alpine&name=testsvc&network=bridge&replicas=1&start_host_port=5000" | jq
 ```
 
 ```shell
@@ -44,6 +44,13 @@ curl -X POST "http://localhost:6666/exec?container_name=testsvc_1&cmd=ping%20-c%
 curl -X DELETE "http://localhost:6666/delete_docker_service?name=testsvc" | jq
 
 curl -X DELETE "http://localhost:6666/delete_vxlan?vxlan_id=200&docker_net_name=fed-net" | jq
+```
+
+# Clean all
+
+```shell
+curl -X DELETE http://localhost:6666/cleanup
+curl -X DELETE "http://localhost:6666/cleanup?container_prefix=mecapp-&network_prefix=fed-net-&vxlan_prefix=vxlan"
 ```
 
 # Monitoring

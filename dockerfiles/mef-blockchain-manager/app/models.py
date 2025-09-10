@@ -26,12 +26,12 @@ class TransactionReceiptResponse(BaseModel):
 
 class ServiceAnnouncementRequest(BaseModel):
     requirements: Optional[str] = "zero_packet_loss"
-    endpoint: Optional[str] = "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=6000;federation_net=10.0.0.0/16"
+    endpoint: Optional[str] = "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=6000;federation_net=192.0.0.0/16"
     
 class PlaceBidRequest(BaseModel):
     service_id: str
     price_wei_hour: int
-    endpoint: Optional[str] = "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=6000;federation_net=10.0.0.0/16"
+    endpoint: Optional[str] = "ip_address=10.5.99.1;vxlan_id=200;vxlan_port=6000;federation_net=192.0.0.0/16"
 
 class ChooseProviderRequest(BaseModel):
     service_id: str
@@ -65,6 +65,17 @@ class DemoProviderRequest(BaseModel):
     requirements_filter: Optional[str] = None 
     export_to_csv: Optional[bool] = False
     csv_path: Optional[str] = "/experiments/test/provider_1_run_1.csv"
+
+class DemoConsumerMultipleRequest(BaseModel):
+    requirements: Optional[str] = "zero_packet_loss"
+    price_threshold_wei_per_hour: Optional[int] = 1000000
+    meo_endpoint: Optional[str] = "http://127.0.0.1:6666"
+    vxlan_interface: Optional[str] = "ens3"
+    node_id: Optional[int] = 1
+    ip_address: Optional[str] = "127.0.0.1"
+    offers_to_wait: Optional[int] = 1
+    export_to_csv: Optional[bool] = False
+    csv_path: Optional[str] = "/experiments/test/consumer_1_run_1.csv"
 
 class DemoProviderMultipleRequest(BaseModel):
     price_wei_per_hour: Optional[int] = 10000

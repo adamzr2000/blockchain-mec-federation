@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 """
-Minimal runner with static host inventory.
-- Pre-run: deploy consumer app via MEO (mec-app:latest -> mecapp on bridge)
-- Run: start providers (parallel) then consumer
-- Post-run: delete consumer app; delete provider1 app; delete VXLAN on consumer+provider1
-- Monitor: start validator resource monitoring before run, stop after run (only if --export-csv)
-- Writes files ONLY if something fails (HTTP >= 400 or {"success": false})
+Multiple-offers runner with static host inventory.
 
-Usage:
-  python run_experiments.py -n 3 -t 3
-  python run_experiments.py -n 3 -t 3 --export-csv --csv-base /experiments/test
+- You choose total participants (-n) and number of consumers (-c).
+- First -c hosts are consumers; remaining are providers.
+- Providers call /start_experiments_provider_multiple_requests and wait for a batch
+  of consumer requests (requests_to_wait = number of consumers).
+- Consumers announce services and wait for offers_to_wait providers:
+    * offers_to_wait = 2  if total participants >= 10
+    * offers_to_wait = 1  otherwise
+- Provider prices are RANDOM for all providers (fairness).
+- Pre-run: deploy consumer app on each consumer host.
+- Post-run cleanup:
+    * Consumers: delete ("mecapp"), delete VXLAN id (200 + node_id), net "fed-net".
+    * Providers: DELETE /cleanup?container_prefix=mecapp-&network_prefix=fed-net-&vxlan_prefix=vxlan
+- Monitoring: start/stop validator resource monitoring on all involved nodes
+  (CSV only if --export-csv).
 """
 
 import argparse
 import json
 import random
 import time
-import socket
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional
@@ -29,45 +33,44 @@ import requests
 # Static host inventory (edit iface/ip per host if needed)
 # =========================
 HOSTS: List[Dict[str, Any]] = [
-    {"role": "consumer", "node_id": 1,  "ip": "10.5.99.1",  "iface": "ens3"},
-    {"role": "provider", "node_id": 2,  "ip": "10.5.99.2",  "iface": "ens3"},
-    {"role": "provider", "node_id": 3,  "ip": "10.5.99.3",  "iface": "ens3"},
-    {"role": "provider", "node_id": 4,  "ip": "10.5.99.4",  "iface": "ens3"},
-    {"role": "provider", "node_id": 5,  "ip": "10.5.99.5",  "iface": "ens3"},
-    {"role": "provider", "node_id": 6,  "ip": "10.5.99.6",  "iface": "ens3"},
-    {"role": "provider", "node_id": 7,  "ip": "10.5.99.7",  "iface": "ens3"},
-    {"role": "provider", "node_id": 8,  "ip": "10.5.99.8",  "iface": "ens3"},
-    {"role": "provider", "node_id": 9,  "ip": "10.5.99.9",  "iface": "ens3"},
-    {"role": "provider", "node_id": 10, "ip": "10.5.99.10", "iface": "ens3"},
-    {"role": "provider", "node_id": 11, "ip": "10.5.99.11", "iface": "eno1"},
-    {"role": "provider", "node_id": 12, "ip": "10.5.99.12", "iface": "eno1"},
-    {"role": "provider", "node_id": 13, "ip": "10.5.99.13", "iface": "enp0s3"},
-    {"role": "provider", "node_id": 14, "ip": "10.5.99.14", "iface": "enp0s3"},
-    {"role": "provider", "node_id": 15, "ip": "10.5.99.15", "iface": "enp0s3"},
-    {"role": "provider", "node_id": 16, "ip": "10.5.99.16", "iface": "ens3"},
-    {"role": "provider", "node_id": 17, "ip": "10.5.99.17", "iface": "ens3"},
-    {"role": "provider", "node_id": 18, "ip": "10.5.99.18", "iface": "ens3"},
-    {"role": "provider", "node_id": 19, "ip": "10.5.99.19", "iface": "ens3"},
-    {"role": "provider", "node_id": 20, "ip": "10.5.99.20", "iface": "ens3"},
-    {"role": "provider", "node_id": 21, "ip": "10.5.99.21", "iface": "ens3"},
-    {"role": "provider", "node_id": 22, "ip": "10.5.99.22", "iface": "ens3"},
-    {"role": "provider", "node_id": 23, "ip": "10.5.99.23", "iface": "ens3"},
-    {"role": "provider", "node_id": 24, "ip": "10.5.99.24", "iface": "ens3"},
-    {"role": "provider", "node_id": 25, "ip": "10.5.99.25", "iface": "ens3"},
-    {"role": "provider", "node_id": 26, "ip": "10.5.99.26", "iface": "ens3"},
-    {"role": "provider", "node_id": 27, "ip": "10.5.99.27", "iface": "ens3"},
-    {"role": "provider", "node_id": 28, "ip": "10.5.99.28", "iface": "ens3"},
-    {"role": "provider", "node_id": 29, "ip": "10.5.99.29", "iface": "ens3"},
-    {"role": "provider", "node_id": 30, "ip": "10.5.99.30", "iface": "ens3"},
+    {"node_id": 1,  "ip": "10.5.99.1",  "iface": "ens3"},
+    {"node_id": 2,  "ip": "10.5.99.2",  "iface": "ens3"},
+    {"node_id": 3,  "ip": "10.5.99.3",  "iface": "ens3"},
+    {"node_id": 4,  "ip": "10.5.99.4",  "iface": "ens3"},
+    {"node_id": 5,  "ip": "10.5.99.5",  "iface": "ens3"},
+    {"node_id": 6,  "ip": "10.5.99.6",  "iface": "ens3"},
+    {"node_id": 7,  "ip": "10.5.99.7",  "iface": "ens3"},
+    {"node_id": 8,  "ip": "10.5.99.8",  "iface": "ens3"},
+    {"node_id": 9,  "ip": "10.5.99.9",  "iface": "ens3"},
+    {"node_id": 10, "ip": "10.5.99.10", "iface": "ens3"},
+    {"node_id": 11, "ip": "10.5.99.11", "iface": "eno1"},
+    {"node_id": 12, "ip": "10.5.99.12", "iface": "eno1"},
+    {"node_id": 13, "ip": "10.5.99.13", "iface": "enp0s3"},
+    {"node_id": 14, "ip": "10.5.99.14", "iface": "enp0s3"},
+    {"node_id": 15, "ip": "10.5.99.15", "iface": "enp0s3"},
+    {"node_id": 16, "ip": "10.5.99.16", "iface": "ens3"},
+    {"node_id": 17, "ip": "10.5.99.17", "iface": "ens3"},
+    {"node_id": 18, "ip": "10.5.99.18", "iface": "ens3"},
+    {"node_id": 19, "ip": "10.5.99.19", "iface": "ens3"},
+    {"node_id": 20, "ip": "10.5.99.20", "iface": "ens3"},
+    {"node_id": 21, "ip": "10.5.99.21", "iface": "ens3"},
+    {"node_id": 22, "ip": "10.5.99.22", "iface": "ens3"},
+    {"node_id": 23, "ip": "10.5.99.23", "iface": "ens3"},
+    {"node_id": 24, "ip": "10.5.99.24", "iface": "ens3"},
+    {"node_id": 25, "ip": "10.5.99.25", "iface": "ens3"},
+    {"node_id": 26, "ip": "10.5.99.26", "iface": "ens3"},
+    {"node_id": 27, "ip": "10.5.99.27", "iface": "ens3"},
+    {"node_id": 28, "ip": "10.5.99.28", "iface": "ens3"},
+    {"node_id": 29, "ip": "10.5.99.29", "iface": "ens3"},
+    {"node_id": 30, "ip": "10.5.99.30", "iface": "ens3"},
 ]
 
-# --- Defaults ---
+# --- Defaults / constants ---
 BM_PORT = 8000
 MEO_PORT = 6666
 REQ_TIMEOUT = 90
 EXPORT_TO_CSV = False
 CSV_BASE = "/experiments/test"
-LOWEST_PRICE = 10
 PRICE_MIN, PRICE_MAX = 11, 100
 BETWEEN_RUNS = 3.0
 
@@ -76,14 +79,13 @@ APP_NAME = "mecapp"
 CONSUMER_APP_NETWORK = "bridge"
 CONSUMER_APP_REPLICAS = 1
 
-VXLAN_ID_CLEANUP = 201
 VXLAN_NETNAME = "fed-net"
 
 # ---------- Error sink ----------
 class ErrorSink:
     def __init__(self, base: Path):
         self.base = base
-        self.session_dir: Optional[Path] = None 
+        self.session_dir: Optional[Path] = None
 
     def _ensure_session(self):
         if self.session_dir is None:
@@ -138,14 +140,9 @@ def delete_params(url: str, params: Dict[str, Any]) -> Tuple[int, Any]:
 # ---------- Monitoring helpers ----------
 def start_monitor(host_ip: str, validator_name: str, run_idx: int):
     url = f"http://{host_ip}:{MEO_PORT}/monitor/start"
-    params = {
-        "container": validator_name,
-        "interval": 1.0,
-        "stdout": "true",
-    }
+    params = {"container": validator_name, "interval": 1.0, "stdout": "true"}
     if EXPORT_TO_CSV:
         params["csv_path"] = f"{CSV_BASE}/docker-logs/{validator_name}_run_{run_idx}.csv"
-
     print(f"[monitor] start {validator_name} on {host_ip} → POST {url} params={params}")
     sc, resp = post_params(url, params)
     if is_error(sc, resp) and ERRS:
@@ -161,38 +158,34 @@ def stop_monitor(host_ip: str, validator_name: str, run_idx: int):
                    {"host": host_ip, "status": sc, "response": resp})
 
 # ---------- Payload builders ----------
-def provider_payload(host: Dict[str, Any], provider_index: int, run_idx: int) -> Dict[str, Any]:
+def provider_multi_payload(host: Dict[str, Any], provider_index: int, run_idx: int,
+                           requests_to_wait: int) -> Dict[str, Any]:
     ip = host["ip"]
     return {
-        "price_wei_per_hour": 0,
+        "price_wei_per_hour": random.randint(PRICE_MIN, PRICE_MAX),   # random for fairness
         "meo_endpoint": f"http://{ip}:{MEO_PORT}",
         "ip_address": ip,
         "vxlan_interface": host["iface"],
         "node_id": host["node_id"],
+        "requirements_filter": None,
+        "requests_to_wait": int(requests_to_wait),
         "export_to_csv": EXPORT_TO_CSV,
-        "csv_path": f"{CSV_BASE}/provider_{provider_index}_run_{run_idx}.csv",
+        "csv_path": f"{CSV_BASE}/provider_{provider_index}_run_{run_idx}.csv",  # consistent
     }
 
-def consumer_payload(consumer: Dict[str, Any], num_providers: int, run_idx: int) -> Dict[str, Any]:
-    offers_to_wait = num_providers
+def consumer_payload(consumer: Dict[str, Any], consumer_index: int,
+                     offers_to_wait: int, run_idx: int) -> Dict[str, Any]:
     ip = consumer["ip"]
     return {
         "requirements": "zero_packet_loss",
-        "offers_to_wait": offers_to_wait,
+        "offers_to_wait": int(offers_to_wait),
         "meo_endpoint": f"http://{ip}:{MEO_PORT}",
         "ip_address": ip,
         "vxlan_interface": consumer["iface"],
         "node_id": consumer["node_id"],
         "export_to_csv": EXPORT_TO_CSV,
-        "csv_path": f"{CSV_BASE}/consumer_run_{run_idx}.csv",
+        "csv_path": f"{CSV_BASE}/consumer_{consumer_index}_run_{run_idx}.csv",  # consistent
     }
-
-# ---------- Pricing ----------
-def generate_prices(num_providers: int) -> List[int]:
-    prices: List[int] = []
-    for i in range(1, num_providers + 1):
-        prices.append(LOWEST_PRICE if i == 1 else random.randint(PRICE_MIN, PRICE_MAX))
-    return prices
 
 # ---------- MEO helpers ----------
 def meo_deploy_consumer_app(consumer_ip: str, run_idx: int) -> None:
@@ -223,81 +216,109 @@ def meo_delete_vxlan(host_ip: str, vxlan_id: int, netname: str, run_idx: int, ta
         ERRS.write(run_idx, f"{tag}_delete_vxlan_error_run{run_idx}.json",
                    {"host": host_ip, "status": sc, "response": resp})
 
-# ---------- Experiment calls ----------
-def start_provider(host: Dict[str, Any], provider_index: int, price: int, run_idx: int) -> Dict[str, Any]:
-    ip = host["ip"]
-    url = f"http://{ip}:{BM_PORT}/start_experiments_provider"
-    payload = provider_payload(host, provider_index, run_idx)
-    payload["price_wei_per_hour"] = int(price)
+def meo_cleanup_provider(host_ip: str, run_idx: int, tag: str) -> None:
+    url = f"http://{host_ip}:{MEO_PORT}/cleanup"
+    params = {"container_prefix": "mecapp-", "network_prefix": "fed-net-", "vxlan_prefix": "vxlan"}
+    print(f"[{tag}] provider cleanup → DELETE {url} params={params}")
+    sc, resp = delete_params(url, params)
+    if is_error(sc, resp) and ERRS:
+        ERRS.write(run_idx, f"{tag}_cleanup_error_run{run_idx}.json",
+                   {"host": host_ip, "status": sc, "response": resp})
 
-    print(f"[provider{provider_index} (node{host['node_id']})] → POST {url} price={price}")
+# ---------- Experiment calls ----------
+def start_provider_multi(host: Dict[str, Any], provider_index: int, run_idx: int,
+                         requests_to_wait: int) -> Dict[str, Any]:
+    ip = host["ip"]
+    url = f"http://{ip}:{BM_PORT}/start_experiments_provider_multiple_requests"
+    payload = provider_multi_payload(host, provider_index, run_idx, requests_to_wait)
+    print(f"[provider{provider_index} node{host['node_id']}] → POST {url} requests_to_wait={requests_to_wait} price={payload['price_wei_per_hour']}")
     sc, resp = post_json(url, payload)
     if is_error(sc, resp) and ERRS:
         ERRS.write(run_idx, f"provider{provider_index}_node{host['node_id']}_error_run{run_idx}.json",
                    {"host": ip, "status": sc, "response": resp})
     return {"status": sc}
 
-def start_consumer(consumer: Dict[str, Any], num_providers: int, run_idx: int) -> Dict[str, Any]:
+def start_consumer(consumer: Dict[str, Any], consumer_index: int,
+                   offers_to_wait: int, run_idx: int) -> Dict[str, Any]:
     ip = consumer["ip"]
     url = f"http://{ip}:{BM_PORT}/start_experiments_consumer"
-    payload = consumer_payload(consumer, num_providers, run_idx)
-
-    print(f"[consumer node{consumer['node_id']}] → POST {url} offers_to_wait={payload['offers_to_wait']}")
+    payload = consumer_payload(consumer, consumer_index, offers_to_wait, run_idx)
+    print(f"[consumer{consumer_index} node{consumer['node_id']}] → POST {url} offers_to_wait={offers_to_wait}")
     sc, resp = post_json(url, payload)
     if is_error(sc, resp) and ERRS:
-        ERRS.write(run_idx, f"consumer_error_run{run_idx}.json",
+        ERRS.write(run_idx, f"consumer{consumer_index}_node{consumer['node_id']}_error_run{run_idx}.json",
                    {"host": ip, "status": sc, "response": resp})
     return {"status": sc}
 
 # ---------- Orchestration ----------
-def run_one(total_nodes: int, run_idx: int) -> None:
+def run_one(total_nodes: int, num_consumers: int, run_idx: int) -> None:
     assert 2 <= total_nodes <= len(HOSTS)
+    assert 1 <= num_consumers < total_nodes, "-c must be >=1 and < total nodes"
 
-    consumer = HOSTS[0]
-    providers = HOSTS[1:total_nodes]
-    all_nodes = [consumer] + providers
+    hosts = HOSTS[:total_nodes]
+    consumers = hosts[:num_consumers]
+    providers = hosts[num_consumers:]
+    participants = total_nodes
 
-    # 0) Start monitoring (validators)
-    for node in all_nodes:
+    print(f"[plan] consumers={len(consumers)} providers={len(providers)} participants={participants}")
+    print("[plan] consumer nodes:", [h["node_id"] for h in consumers])
+    print("[plan] provider nodes:", [h["node_id"] for h in providers])
+
+    offers_to_wait = 2 if participants >= 10 else 1
+    requests_to_wait = len(consumers)  # each provider waits for all consumer requests
+
+    # 0) Start monitoring (validators) — all nodes
+    for node in hosts:
         validator_name = f"validator{node['node_id']}"
         start_monitor(node["ip"], validator_name, run_idx)
 
-    # 1) Pre-run: deploy consumer app
-    meo_deploy_consumer_app(consumer["ip"], run_idx)
+    # 1) Pre-run: deploy consumer app on each consumer host
+    for cons in consumers:
+        meo_deploy_consumer_app(cons["ip"], run_idx)
 
-    # 2) Kick off providers
-    prices = generate_prices(len(providers))
-    with ThreadPoolExecutor(max_workers=min(16, len(providers))) as pool:
-        prov_futs = [pool.submit(start_provider, host, idx, price, run_idx)
-                     for idx, (host, price) in enumerate(zip(providers, prices), start=1)]
+    # 2) Kick off providers (parallel), then consumers (parallel)
+    with ThreadPoolExecutor(max_workers=min(32, max(1, len(providers) + len(consumers)))) as pool:
+        prov_futs = [
+            pool.submit(start_provider_multi, host, idx, run_idx, requests_to_wait)
+            for idx, host in enumerate(providers, start=1)
+        ]
 
         time.sleep(0.5)
-        cons_result = start_consumer(consumer, len(providers), run_idx)
+
+        cons_futs = [
+            pool.submit(start_consumer, cons, cidx, offers_to_wait, run_idx)
+            for cidx, cons in enumerate(consumers, start=1)
+        ]
 
         prov_results = [f.result() for f in as_completed(prov_futs)]
+        cons_results = [f.result() for f in as_completed(cons_futs)]
 
     ok_prov = sum(1 for r in prov_results if r["status"] < 400)
-    ok_cons = cons_result["status"] < 400
-    print(f"[run {run_idx}] providers ok: {ok_prov}/{len(providers)} | consumer ok: {ok_cons}")
+    ok_cons = sum(1 for r in cons_results if r["status"] < 400)
+    print(f"[run {run_idx}] providers ok: {ok_prov}/{len(providers)} | consumers ok: {ok_cons}/{len(consumers)}")
 
-    # 3) Stop monitoring (validators)
-    for node in all_nodes:
+    # 3) Stop monitoring
+    for node in hosts:
         validator_name = f"validator{node['node_id']}"
         stop_monitor(node["ip"], validator_name, run_idx)
 
     # 4) Cleanup
-    meo_delete_service(consumer["ip"], APP_NAME, run_idx, tag="consumer")
-    if providers:
-        provider1 = providers[0]
-        meo_delete_service(provider1["ip"], APP_NAME, run_idx, tag="provider1")
-        meo_delete_vxlan(provider1["ip"], VXLAN_ID_CLEANUP, VXLAN_NETNAME, run_idx, tag="provider1")
-    meo_delete_vxlan(consumer["ip"], VXLAN_ID_CLEANUP, VXLAN_NETNAME, run_idx, tag="consumer")
+    # Consumers: delete app + VXLAN (id = 200 + node_id), net = "fed-net"
+    for cidx, cons in enumerate(consumers, start=1):
+        meo_delete_service(cons["ip"], APP_NAME, run_idx, tag=f"consumer{cidx}_node{cons['node_id']}")
+        vxlan_id = 200 + int(cons["node_id"])
+        meo_delete_vxlan(cons["ip"], vxlan_id, VXLAN_NETNAME, run_idx, tag=f"consumer{cidx}_node{cons['node_id']}")
+
+    # Providers: MEO cleanup endpoint (containers/networks/vxlan by prefix)
+    for pidx, prov in enumerate(providers, start=1):
+        meo_cleanup_provider(prov["ip"], run_idx, tag=f"provider{pidx}_node{prov['node_id']}")
 
 # ---------- CLI ----------
 def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Minimal experiments runner (errors only logging)")
-    ap.add_argument("-n", "--nodes", type=int, required=True)
-    ap.add_argument("-t", "--tests", type=int, required=True)
+    ap = argparse.ArgumentParser(description="Multiple-offers experiments runner (errors only logging)")
+    ap.add_argument("-n", "--nodes", type=int, required=True, help="Total participants (consumers + providers)")
+    ap.add_argument("-c", "--consumers", type=int, required=True, help="Number of consumers (first -c hosts)")
+    ap.add_argument("-t", "--tests", type=int, required=True, help="Number of runs")
     ap.add_argument("--export-csv", action="store_true", default=False)
     ap.add_argument("--csv-base", default="/experiments/test")
     return ap.parse_args()
@@ -313,6 +334,9 @@ def main() -> int:
     if args.nodes < 2:
         print("Error: -n/--nodes must be >= 2")
         return 2
+    if args.consumers < 1 or args.consumers >= args.nodes:
+        print("Error: -c/--consumers must be >= 1 and < nodes")
+        return 2
     if args.tests < 1:
         print("Error: -t/--tests must be >= 1")
         return 2
@@ -326,8 +350,8 @@ def main() -> int:
     print("export_to_csv:", EXPORT_TO_CSV)
 
     for i in range(1, args.tests + 1):
-        print(f"\n=== Run {i}/{args.tests} | nodes={args.nodes} ===")
-        run_one(args.nodes, i)
+        print(f"\n=== Run {i}/{args.tests} | nodes={args.nodes} | consumers={args.consumers} ===")
+        run_one(args.nodes, args.consumers, i)
         if i < args.tests and BETWEEN_RUNS > 0:
             print(f"Waiting {BETWEEN_RUNS}s before next run...")
             time.sleep(BETWEEN_RUNS)

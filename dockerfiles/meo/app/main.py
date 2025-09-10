@@ -17,6 +17,7 @@ from services import (
     attach_container_to_network,
     configure_docker_network_and_vxlan,
     delete_docker_network_and_vxlan,
+    cleanup_service_resources,
 )
 from monitoring import DockerContainerMonitor
 
@@ -89,9 +90,16 @@ class ServiceIPsResponse(BaseModel):
     summary="Deploy docker service",
     response_model=DeployResponse,
 )
-def deploy_docker_containers_endpoint(image: str, name: str, network: str, replicas: int):
+def deploy_docker_containers_endpoint(image: str, name: str, network: str, replicas: int, start_host_port: int = 5000):
     try:
-        deploy_docker_containers(app.state.docker, image, name, network, replicas)
+        deploy_docker_containers(
+            client=app.state.docker,
+            image=image,
+            name=name,
+            network=network,
+            replicas=replicas,
+            start_host_port=start_host_port
+        )
         container_ips = get_container_ips(app.state.docker, name)
         return {
             "success": True,
@@ -213,6 +221,36 @@ def delete_docker_network_and_vxlan_endpoint(
         logger.error(f"delete_vxlan failed: {e}")
         raise HTTPException(status_code=500, detail={"success": False, "message": str(e)})
 
+@app.delete("/cleanup")
+def cleanup_resources(
+    container_prefix: str = "mecapp-",
+    network_prefix: str = "fed-net-",
+    vxlan_prefix: str = "vxlan"
+):
+    """
+    Delete all containers, networks, and vxlan interfaces that match given prefixes.
+    Defaults:
+      - container_prefix="mecapp-"
+      - network_prefix="fed-net-"
+      - vxlan_prefix="vxlan"
+    """
+    try:
+        client = docker.from_env()
+        cleanup_service_resources(
+            client=client,
+            container_prefix=container_prefix,
+            network_prefix=network_prefix,
+            vxlan_prefix=vxlan_prefix,
+        )
+        return {
+            "status": "success",
+            "message": f"Cleanup completed for containers='{container_prefix}', "
+                       f"networks='{network_prefix}', vxlan='{vxlan_prefix}'"
+        }
+    except Exception as e:
+        logger.error(f"Cleanup failed: {e}")
+        return {"status": "error", "message": str(e)}
+    
 @app.post(
     "/monitor/start",
     tags=["Monitoring"],
