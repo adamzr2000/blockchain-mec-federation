@@ -847,7 +847,7 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
 
             # Uncomment this during experiments
             print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net, federation_subnet, "fed-net"))
-            deployed_service = utils.deploy_service(f"{meo_endpoint}/deploy_docker_service", "mec-app:latest", svc_name, net_name, 1, svc_host_port)
+            deployed_service = utils.deploy_service(f"{meo_endpoint}/deploy_docker_service", "mec-app:latest", svc_name, net_name, 1, svc_host_port, 60, 2.0)
             deployed_mec_app_ip = next(iter(deployed_service["container_ips"].values()))
 
             t_deployment_finished = int((time.time() - process_start_time) * 1000)
