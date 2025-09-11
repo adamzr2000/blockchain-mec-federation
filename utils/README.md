@@ -58,12 +58,10 @@ python3 run_experiments_one_offer.py -n $PARTICIPANTS -t $TESTS --export-csv --c
 ---
 ### Run experiments multiple consumers
 ```bash
-TESTS=5
-python3 run_experiments_multiple_offers.py -n 4 -c 3 -t $TESTS
+python3 run_experiments_multiple_offers.py -n 4 -c 3 -t 1
 ```
 ```bash
-TESTS=5
-python3 run_experiments_one_offer.py -n $PARTICIPANTS -t $TESTS --export-csv --csv-base /experiments/test
+python3 run_experiments_multiple_offers.py -n 4 -c 3 -t 1 --export-csv --csv-base /experiments/multiple-offers/clique/4-mecs
 ```
 ---
 ### Push results to git
