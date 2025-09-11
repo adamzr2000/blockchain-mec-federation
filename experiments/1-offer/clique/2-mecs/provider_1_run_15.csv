@@ -1,0 +1,7 @@
+step,timestamp
+announce_received,2019
+bid_offer_sent,2067
+winner_received,12026
+deployment_start,12040
+deployment_finished,12784
+confirm_deployment_sent,12845

@@ -1,0 +1,7 @@
+step,timestamp
+announce_received,1962
+bid_offer_sent,2010
+winner_received,11948
+deployment_start,11960
+deployment_finished,12624
+confirm_deployment_sent,12688
