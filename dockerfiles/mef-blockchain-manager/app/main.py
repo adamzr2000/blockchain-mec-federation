@@ -760,7 +760,7 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
     open_services: list[str] = []
 
     # Wait for service announcements
-    new_service_event = blockchain.create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
+    new_service_event = blockchain.create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT, 3)
     logger.info(f"⏳ Waiting for federation events... (batch size = {requests_to_wait})")
 
     while len(open_services) < requests_to_wait:
@@ -822,7 +822,7 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
 
     # Wait for winnerChosen events for all services
     services_with_winners: set[str] = set()
-    winner_chosen_events = blockchain.create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
+    winner_chosen_events = blockchain.create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED, 3)
 
     while len(services_with_winners) < len(open_services):
         new_events = winner_chosen_events.get_all_entries()
