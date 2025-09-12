@@ -7,7 +7,7 @@ rpc_url=""
 chain_id=""
 
 # Default path if private_key not passed
-DEFAULT_KEY_PATH="blockchain-network/hyperledger-besu/quorum-test-network/config/nodes/validator1/accountPrivateKey"
+DEFAULT_KEY_PATH="blockchain-network/hyperledger-besu/quorum-test-network-4-validators/config/nodes/validator1/accountPrivateKey"
 
 usage() {
   echo "Usage: $0 [--private_key <hexkey>] --rpc_url <url> --chain_id <id>"
