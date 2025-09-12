@@ -3,7 +3,7 @@
 import json
 import time
 import logging
-import threading
+# import threading
 import warnings
 import random
 from enum import Enum
@@ -70,14 +70,11 @@ class BlockchainInterface:
         logger.info(f"Connected to Ethereum node {eth_node_url} | Version: {self.web3.clientVersion}")
 
         # Initialize local nonce and lock
-        self._nonce_lock = threading.Lock()
         self._local_nonce = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
 
-
     def send_signed_transaction(self, build_transaction):
-        with self._nonce_lock:
-            build_transaction['nonce'] = self._local_nonce
-            self._local_nonce += 1
+        build_transaction['nonce'] = self._local_nonce
+        self._local_nonce += 1
 
         # Bump the gas price slightly to avoid underpriced errors
         # If not using EIP-1559, inject legacy gasPrice
@@ -93,92 +90,6 @@ class BlockchainInterface:
         signed_txn = self.web3.eth.account.signTransaction(build_transaction, self.private_key)
         tx_hash = self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
         return tx_hash.hex()
-
-    def send_signed_transaction_v2(self, build_transaction):
-        MAX_INFLIGHT = 2          # allow at most N nonces ahead of latest on-chain
-        MAX_ATTEMPTS = 7
-        BASE_BACKOFF = 0.05       # seconds
-
-        def _bump_fees(tx, factor):
-            if 'maxFeePerGas' in tx:
-                tx['maxFeePerGas'] = int(tx['maxFeePerGas'] * factor)
-                if 'maxPriorityFeePerGas' in tx:
-                    tx['maxPriorityFeePerGas'] = int(tx['maxPriorityFeePerGas'] * factor)
-            elif 'gasPrice' in tx:
-                tx['gasPrice'] = int(tx['gasPrice'] * factor)
-            else:
-                base = self.web3.eth.gas_price
-                tx['gasPrice'] = int(base * 1.25)
-
-        for attempt in range(1, MAX_ATTEMPTS + 1):
-            # 1) Backpressure: don’t outrun the txpool
-            while True:
-                latest = self.web3.eth.get_transaction_count(self.eth_address, 'latest')
-                pending = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
-                inflight = int(pending - latest)
-                if inflight <= MAX_INFLIGHT:
-                    break
-                time.sleep(0.05)  # small wait until pool admits more
-
-            # 2) Choose nonce from 'pending' and sync local
-            with self._nonce_lock:
-                nonce = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
-                self._local_nonce = nonce
-                tx = dict(build_transaction)  # copy per attempt
-                tx['nonce'] = nonce
-                # bump progressively on attempts (1.0, 1.1, 1.2, …)
-                _bump_fees(tx, 1.0 + 0.1 * (attempt - 1))
-
-            try:
-                signed = self.web3.eth.account.sign_transaction(tx, self.private_key)
-                tx_hash = self.web3.eth.send_raw_transaction(signed.rawTransaction)
-
-                # advance local nonce on success
-                with self._nonce_lock:
-                    self._local_nonce = nonce + 1
-
-                logger.info("[tx] sent OK: nonce=%d hash=%s", nonce, tx_hash.hex())
-
-                # Optional: wait until node reflects nonce consumption before returning
-                # to give the next call a smoother start.
-                deadline = time.time() + 2.0
-                while time.time() < deadline:
-                    if self.web3.eth.get_transaction_count(self.eth_address, 'pending') >= nonce + 1:
-                        break
-                    time.sleep(0.02)
-
-                return tx_hash.hex()
-
-            except ValueError as e:
-                # Normalize message
-                msg = e.args[0].get("message") if (e.args and isinstance(e.args[0], dict)) else str(e)
-                low = (msg or "").lower()
-
-                transient = (
-                    "nonce too low" in low
-                    or "nonce too high" in low
-                    or "too distant" in low
-                    or "already known" in low
-                    or "replacement transaction underpriced" in low
-                )
-                if transient and attempt < MAX_ATTEMPTS:
-                    backoff = BASE_BACKOFF * attempt
-                    logger.warning("[tx] send failed (attempt %d/%d) nonce=%d: %s — retry in %.2fs",
-                                attempt, MAX_ATTEMPTS, nonce, msg, backoff)
-                    time.sleep(backoff)
-                    continue
-
-                logger.error("[tx] unretryable error nonce=%d: %s", nonce, msg)
-                raise
-
-            except Exception as e:
-                logger.error("[tx] unexpected error nonce=%d: %s", nonce, str(e))
-                if attempt < MAX_ATTEMPTS:
-                    time.sleep(BASE_BACKOFF * attempt)
-                    continue
-                raise
-
-        raise RuntimeError("Failed to send transaction after retries")
 
     def get_transaction_receipt(self, tx_hash: str) -> dict:
         """
