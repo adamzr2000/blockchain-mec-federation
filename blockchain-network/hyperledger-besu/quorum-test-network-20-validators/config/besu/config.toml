@@ -5,8 +5,8 @@ logging="INFO"
 data-path="/opt/besu/data"
 host-allowlist=["*"]
 min-gas-price=0
-#tx-pool-max-future-by-sender=1000
-tx-pool-limit-by-account-percentage=0.4
+#tx-pool-max-future-by-sender=1000 
+tx-pool-limit-by-account-percentage=0.6
 
 
 # rpc
