@@ -68,10 +68,10 @@ HOSTS: List[Dict[str, Any]] = [
 # --- Defaults / constants ---
 BM_PORT = 8000
 MEO_PORT = 6666
-REQ_TIMEOUT = 90
+REQ_TIMEOUT = 60
 EXPORT_TO_CSV = False
 CSV_BASE = "/experiments/test"
-PRICE_MIN, PRICE_MAX = 11, 50
+PRICE_MIN, PRICE_MAX = 11, 80
 BETWEEN_RUNS = 3.0
 
 CONSUMER_APP_IMAGE = "mec-app:latest"
@@ -282,8 +282,6 @@ def run_one(total_nodes: int, num_consumers: int, run_idx: int) -> None:
             pool.submit(start_provider_multi, host, idx, run_idx, requests_to_wait)
             for idx, host in enumerate(providers, start=1)
         ]
-
-        time.sleep(2.0)
 
         cons_futs = [
             pool.submit(start_consumer, cons, cidx, offers_to_wait, run_idx)

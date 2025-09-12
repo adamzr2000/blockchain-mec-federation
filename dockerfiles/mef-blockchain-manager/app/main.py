@@ -791,15 +791,10 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
     # Place a bid offer to the Federation SC
     for service_id in open_services:
 
-        pct = random.randint(-40, 40)  # integer percent
-        bid_price = (price_wei_per_hour * (100 + pct)) // 100
-        if bid_price < 1:
-            bid_price = 1  # clamp to at least 1 wei
-
-        blockchain.place_bid(service_id, bid_price, endpoint)
+        blockchain.place_bid(service_id, price_wei_per_hour, endpoint)
         t_bid_offer_sent = int((time.time() - process_start_time) * 1000)
         data.append([f'bid_offer_sent_{service_id}', t_bid_offer_sent])
-        logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {bid_price} Wei/hour")
+        logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {price_wei_per_hour} Wei/hour")
 
     t_all_bid_offers_sent = int((time.time() - process_start_time) * 1000)
     data.append(['all_bid_offers_sent', t_all_bid_offers_sent])
@@ -813,8 +808,15 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
         for event in new_events:
             event_service_id = Web3.toText(event['args']['serviceId']).rstrip('\x00')
 
-            if event_service_id in services_with_winners:
-                continue  # already processed
+            if event_service_id not in open_services or event_service_id in services_with_winners:
+                continue
+
+            # (Defensive) ensure the chain reflects 'Closed' before proceeding
+            try:
+                if blockchain.get_service_state(event_service_id) < 1:  # 0=Open, 1=Closed, 2=Deployed
+                    continue
+            except Exception:
+                continue
 
             # Record timestamp for winner chosen
             t_winner_received = int((time.time() - process_start_time) * 1000)
@@ -823,6 +825,10 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
             services_with_winners.add(event_service_id)
             # logger.info(f"🏆 Winner chosen for service ID: {event_service_id}")
 
+        # Small sleep to avoid busy spinning if nothing new arrived
+        if len(services_with_winners) < len(open_services):
+            time.sleep(0.1)
+            
     t_all_winners_received = int((time.time() - process_start_time) * 1000)
     data.append(['all_winners_received', t_all_winners_received])
 
