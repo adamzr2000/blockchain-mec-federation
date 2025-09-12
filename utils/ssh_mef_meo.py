@@ -25,17 +25,28 @@ def exec_on_host(host: str, cmd: str) -> bool:
         print(f"[{host}] ✗ exception: {e}")
         return False
 
+def get_base_dir(total_nodes: int) -> str:
+    valid_options = [4, 10, 20, 30]
+    if total_nodes not in valid_options:
+        raise ValueError(f"Unsupported validator count: {total_nodes}. "
+                         f"Choose one of {valid_options}")
+    return f"blockchain-network/hyperledger-besu/quorum-test-network-{total_nodes}-validators"
+
 # --- MEF part (adapted for Besu setup) ---
 def start_mef(nodes: int, consumers: int) -> None:
     if consumers < 0:
         consumers = 0
     if consumers > nodes:
         consumers = nodes
+
+    base_dir = get_base_dir(nodes)
+
     for i in range(1, nodes + 1):
         role = "consumer" if i <= consumers else "provider"
-        node_path = f"blockchain-network/hyperledger-besu/quorum-test-network/config/nodes/validator{i}"
+        node_path = f"{base_dir}/config/nodes/validator{i}"
         host = f"{SUBNET_PREFIX}{i}"
         rpc_url = f"http://{host}:8545"
+        
         cmd = (
             f"cd {REMOTE_DIR} && "
             f"./start_blockchain_manager.sh --node-path {node_path} --domain-function {role} --rpc_url {rpc_url}"

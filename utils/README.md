@@ -42,8 +42,14 @@ TESTS=5
 python3 run_experiments_registration.py -n $PARTICIPANTS -t $TESTS
 ```
 ```bash
-TESTS=5
-python3 run_experiments_registration.py -n $PARTICIPANTS -t $TESTS --export-csv --csv-base /experiments/test
+# 4
+python3 run_experiments_registration.py -n 4 -t 20 --export-csv --csv-base /experiments/registration/clique/4-mecs
+# 10
+python3 run_experiments_registration.py -n 10 -t 20 --export-csv --csv-base /experiments/registration/clique/10-mecs
+# 20
+python3 run_experiments_registration.py -n 20 -t 20 --export-csv --csv-base /experiments/registration/clique/20-mecs
+# 30
+python3 run_experiments_registration.py -n 30 -t 20 --export-csv --csv-base /experiments/registration/clique/30-mecs
 ```
 ---
 ### Run experiments 1 consumer
@@ -58,10 +64,24 @@ python3 run_experiments_one_offer.py -n $PARTICIPANTS -t $TESTS --export-csv --c
 ---
 ### Run experiments multiple consumers
 ```bash
+# 4 (3c, 1p)
 python3 run_experiments_multiple_offers.py -n 4 -c 3 -t 1
+# 10 (8c, 2p)
+python3 run_experiments_multiple_offers.py -n 10 -c 8 -t 1
+# 20 (16c, 4p)
+python3 run_experiments_multiple_offers.py -n 20 -c 16 -t 1
+# 30 (24c, 6p)
+python3 run_experiments_multiple_offers.py -n 30 -c 24 -t 1
 ```
 ```bash
-python3 run_experiments_multiple_offers.py -n 4 -c 3 -t 1 --export-csv --csv-base /experiments/multiple-offers/clique/4-mecs
+# 4 (3c, 1p)
+python3 run_experiments_multiple_offers.py -n 4 -c 3 -t 20 --export-csv --csv-base /experiments/multiple-offers/clique/4-mecs
+# 10 (8c, 2p)
+python3 run_experiments_multiple_offers.py -n 10 -c 8 -t 20 --export-csv --csv-base /experiments/multiple-offers/clique/10-mecs
+# 20 (16c, 4p)
+python3 run_experiments_multiple_offers.py -n 20 -c 16 -t 20 --export-csv --csv-base /experiments/multiple-offers/clique/20-mecs
+# 30 (24c, 6p) 
+python3 run_experiments_multiple_offers.py -n 30 -c 24 -t 20 --export-csv --csv-base /experiments/multiple-offers/clique/30-mecs
 ```
 ---
 ### Push results to git

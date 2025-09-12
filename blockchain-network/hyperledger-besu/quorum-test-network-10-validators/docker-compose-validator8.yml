@@ -1,0 +1,40 @@
+---
+
+x-besu-def:
+  &besu-def
+  restart: "on-failure"
+  image: hyperledger/besu:${BESU_VERSION:-latest}
+  env_file:
+    - ./config/besu/.env
+  entrypoint:
+    - /bin/bash
+    - -c
+    - |
+
+      cp "/config/${BESU_CONS_ALGO:-QBFT}genesis.json" /config/genesis.json
+
+      /opt/besu/bin/besu \
+      --config-file=/config/config.toml \
+      --p2p-host=$$(hostname -i) \
+      --rpc-http-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PERM,${BESU_CONS_ALGO:-QBFT} \
+      --rpc-ws-api=EEA,WEB3,ETH,NET,TRACE,DEBUG,ADMIN,TXPOOL,PERM,${BESU_CONS_ALGO:-QBFT} ;
+services:
+  validator8:
+    << : *besu-def
+    container_name: validator8
+    ports:
+      - 8545:8545/tcp
+      - 30303
+      - 9545
+    environment:
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=validator8,service.version=${BESU_VERSION:-latest}
+    labels:
+      - "consensus=besu"
+    volumes:
+      - ./config/besu/:/config
+      - ./config/nodes/validator8:/opt/besu/keys
+      #- ./logs/besu:/tmp/besu
+    network_mode: quorum-dev-quickstart
+
+volumes:
+  public-keys:
