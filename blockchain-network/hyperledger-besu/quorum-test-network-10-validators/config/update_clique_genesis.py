@@ -3,89 +3,116 @@ import os
 import sys
 import json
 from pathlib import Path
+from typing import Optional, List  # 3.6–3.9 compatible
 
 GENESIS_PATH = "besu/CLIQUEgenesis.json"
+PREFUND_BALANCE = "1000000000000000000000000000"  # 1e27 wei
 
-def build_extradata(validators):
+def build_extradata(validators_no0x: List[str]) -> str:
+    # 32-byte vanity + concatenated signer addresses (no 0x) + 65-byte padding
     vanity = "0x" + "00" * 32
-    signers = "".join(validators)  # already 40-char hex without 0x
+    signers = "".join(validators_no0x)
     padding = "00" * 65
     return vanity + signers + padding
 
+def read_validator_address(vdir: Path) -> Optional[str]:
+    """Address used in Clique extraData (from nodes/*/address). Returns hex without 0x."""
+    p = vdir / "address"
+    if not p.exists():
+        print(f"⚠️  Missing {p}")
+        return None
+    raw = p.read_text().strip()
+    h = raw[2:] if raw.startswith("0x") else raw
+    h = h.lower()
+    if len(h) != 40 or any(c not in "0123456789abcdef" for c in h):
+        print(f"⚠️  Invalid validator address in {p}: {raw}")
+        return None
+    return h  # no 0x
+
+def read_keystore_address(vdir: Path) -> Optional[str]:
+    """EOA to prefund in alloc (from nodes/*/accountKeystore). Returns 0x-prefixed."""
+    p = vdir / "accountKeystore"
+    if not p.exists():
+        print(f"⚠️  Missing {p}")
+        return None
+    try:
+        data = json.loads(p.read_text())
+        raw = str(data.get("address", "")).strip()
+        h = raw[2:] if raw.startswith("0x") else raw
+        h = h.lower()
+        if len(h) != 40 or any(c not in "0123456789abcdef" for c in h):
+            print(f"⚠️  Invalid keystore address in {p}: {raw}")
+            return None
+        return "0x" + h
+    except Exception as e:
+        print(f"⚠️  Failed to parse {p}: {e}")
+        return None
+
 def main():
-    # Load existing genesis
+    # Load current genesis
     if not os.path.exists(GENESIS_PATH):
         print(f"❌ Genesis file not found at {GENESIS_PATH}")
         sys.exit(1)
-
     with open(GENESIS_PATH, "r") as f:
         genesis = json.load(f)
 
-    # Optional argument: number of validators
-    num_validators = None
+    # Optional arg: limit number of validators (validator1..N)
+    limit = None
     if len(sys.argv) > 1:
         try:
-            num_validators = int(sys.argv[1])
+            limit = int(sys.argv[1])
         except ValueError:
             print("❌ Usage: python3 update_clique_genesis.py [NUM_VALIDATORS]")
             sys.exit(1)
 
     base_dir = Path("nodes")
-    validator_dirs = sorted(
+    vdirs = sorted(
         [d for d in base_dir.iterdir() if d.is_dir() and d.name.startswith("validator")],
         key=lambda d: int(d.name.replace("validator", ""))
     )
-
-    if num_validators:
-        validator_dirs = validator_dirs[:num_validators]
-
-    if not validator_dirs:
+    if limit:
+        vdirs = vdirs[:limit]
+    if not vdirs:
         print("❌ No validator directories found in ./nodes/")
         sys.exit(1)
 
-    validators_for_extradata = []
-    validators_for_alloc = []
+    # Ensure alloc exists
+    if "alloc" not in genesis or not isinstance(genesis["alloc"], dict):
+        genesis["alloc"] = {}
 
-    for vd in validator_dirs:
-        address_file = vd / "address"
-        if not address_file.exists():
-            continue
-        addr_raw = address_file.read_text().strip()
+    signer_addrs_no0x = []     # for extraData
+    prefund_addrs_with0x = []  # for alloc
 
-        # normalize
-        if addr_raw.startswith("0x"):
-            addr_noprefix = addr_raw[2:].lower()
-        else:
-            addr_noprefix = addr_raw.lower()
+    for vd in vdirs:
+        signer = read_validator_address(vd)    # no 0x
+        eoa = read_keystore_address(vd)        # with 0x
+        if signer:
+            signer_addrs_no0x.append(signer)
+        if eoa:
+            prefund_addrs_with0x.append(eoa)
+            if eoa not in genesis["alloc"]:
+                genesis["alloc"][eoa] = {"balance": PREFUND_BALANCE}
 
-        if len(addr_noprefix) != 40:
-            print(f"⚠️ Skipping invalid address in {vd}: {addr_raw}")
-            continue
+    if not signer_addrs_no0x:
+        print("❌ No valid signer addresses collected for extraData.")
+        sys.exit(1)
 
-        # for extradata (no 0x)
-        validators_for_extradata.append(addr_noprefix)
+    # Update extraData
+    genesis["extraData"] = build_extradata(signer_addrs_no0x)
 
-        # for alloc (with 0x)
-        addr_with_prefix = "0x" + addr_noprefix
-        validators_for_alloc.append(addr_with_prefix)
-
-        # ensure prefunded
-        if addr_with_prefix not in genesis["alloc"]:
-            genesis["alloc"][addr_with_prefix] = {
-                "balance": "1000000000000000000000000000"  # 1e27 wei
-            }
-
-    # Update extradata
-    genesis["extraData"] = build_extradata(validators_for_extradata)
-
-    # Save back
+    # Save
     with open(GENESIS_PATH, "w") as f:
         json.dump(genesis, f, indent=2)
 
+    # Report
     print(f"✅ Updated Clique genesis at {GENESIS_PATH}")
-    print("Included validators:")
-    for v in validators_for_alloc:
-        print(" ", v)
+    print("Signers in extraData:")
+    for s in signer_addrs_no0x:
+        print(" ", "0x" + s)
+    if prefund_addrs_with0x:
+        print("Prefunded EOAs from accountKeystore:")
+        for a in prefund_addrs_with0x:
+            print(" ", a)
 
 if __name__ == "__main__":
     main()
