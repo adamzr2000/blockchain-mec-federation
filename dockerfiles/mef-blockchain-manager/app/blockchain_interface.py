@@ -74,27 +74,27 @@ class BlockchainInterface:
         self._local_nonce = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
 
 
-    # def send_signed_transaction(self, build_transaction):
-    #     with self._nonce_lock:
-    #         build_transaction['nonce'] = self._local_nonce
-    #         self._local_nonce += 1
-
-    #     # Bump the gas price slightly to avoid underpriced errors
-    #     # If not using EIP-1559, inject legacy gasPrice
-    #     if 'maxFeePerGas' not in build_transaction and 'maxPriorityFeePerGas' not in build_transaction:
-    #         base_gas_price = self.web3.eth.gas_price
-    #         build_transaction['gasPrice'] = int(base_gas_price * 1.25)
-
-    #     # Else (EIP-1559): Optional tweak to bump the maxFeePerGas slightly
-    #     elif 'maxFeePerGas' in build_transaction:
-    #         build_transaction['maxFeePerGas'] = int(build_transaction['maxFeePerGas'] * 1.25)
-            
-    #     # print(f"nonce = {build_transaction['nonce']}, maxFeePerGas = {build_transaction['maxFeePerGas']}")
-    #     signed_txn = self.web3.eth.account.signTransaction(build_transaction, self.private_key)
-    #     tx_hash = self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
-    #     return tx_hash.hex()
-
     def send_signed_transaction(self, build_transaction):
+        with self._nonce_lock:
+            build_transaction['nonce'] = self._local_nonce
+            self._local_nonce += 1
+
+        # Bump the gas price slightly to avoid underpriced errors
+        # If not using EIP-1559, inject legacy gasPrice
+        if 'maxFeePerGas' not in build_transaction and 'maxPriorityFeePerGas' not in build_transaction:
+            base_gas_price = self.web3.eth.gas_price
+            build_transaction['gasPrice'] = int(base_gas_price * 1.25)
+
+        # Else (EIP-1559): Optional tweak to bump the maxFeePerGas slightly
+        elif 'maxFeePerGas' in build_transaction:
+            build_transaction['maxFeePerGas'] = int(build_transaction['maxFeePerGas'] * 1.25)
+            
+        # print(f"nonce = {build_transaction['nonce']}, maxFeePerGas = {build_transaction['maxFeePerGas']}")
+        signed_txn = self.web3.eth.account.signTransaction(build_transaction, self.private_key)
+        tx_hash = self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+        return tx_hash.hex()
+
+    def send_signed_transaction_v2(self, build_transaction):
         MAX_INFLIGHT = 2          # allow at most N nonces ahead of latest on-chain
         MAX_ATTEMPTS = 7
         BASE_BACKOFF = 0.05       # seconds
