@@ -15,6 +15,8 @@ import threading
 import signal
 import re
 import utils
+import random
+
 from blockchain_interface import BlockchainInterface, FederationEvents
 from models import (
     SubscriptionRequest, 
@@ -788,10 +790,16 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
 
     # Place a bid offer to the Federation SC
     for service_id in open_services:
-        blockchain.place_bid(service_id, price_wei_per_hour, endpoint)
+
+        pct = random.randint(-40, 40)  # integer percent
+        bid_price = (price_wei_per_hour * (100 + pct)) // 100
+        if bid_price < 1:
+            bid_price = 1  # clamp to at least 1 wei
+
+        blockchain.place_bid(service_id, bid_price, endpoint)
         t_bid_offer_sent = int((time.time() - process_start_time) * 1000)
         data.append([f'bid_offer_sent_{service_id}', t_bid_offer_sent])
-        logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {price_wei_per_hour} Wei/hour")
+        logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {bid_price} Wei/hour")
 
     t_all_bid_offers_sent = int((time.time() - process_start_time) * 1000)
     data.append(['all_bid_offers_sent', t_all_bid_offers_sent])
