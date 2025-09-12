@@ -71,28 +71,68 @@ class BlockchainInterface:
 
         # Initialize local nonce and lock
         self._nonce_lock = threading.Lock()
-        self._local_nonce = self.web3.eth.getTransactionCount(self.eth_address)
+        self._local_nonce = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
 
+
+    # def send_signed_transaction(self, build_transaction):
+    #     with self._nonce_lock:
+    #         build_transaction['nonce'] = self._local_nonce
+    #         self._local_nonce += 1
+
+    #     # Bump the gas price slightly to avoid underpriced errors
+    #     # If not using EIP-1559, inject legacy gasPrice
+    #     if 'maxFeePerGas' not in build_transaction and 'maxPriorityFeePerGas' not in build_transaction:
+    #         base_gas_price = self.web3.eth.gas_price
+    #         build_transaction['gasPrice'] = int(base_gas_price * 1.25)
+
+    #     # Else (EIP-1559): Optional tweak to bump the maxFeePerGas slightly
+    #     elif 'maxFeePerGas' in build_transaction:
+    #         build_transaction['maxFeePerGas'] = int(build_transaction['maxFeePerGas'] * 1.25)
+            
+    #     # print(f"nonce = {build_transaction['nonce']}, maxFeePerGas = {build_transaction['maxFeePerGas']}")
+    #     signed_txn = self.web3.eth.account.signTransaction(build_transaction, self.private_key)
+    #     tx_hash = self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
+    #     return tx_hash.hex()
 
     def send_signed_transaction(self, build_transaction):
-        with self._nonce_lock:
-            build_transaction['nonce'] = self._local_nonce
-            self._local_nonce += 1
+        for attempt in range(5):
+            with self._nonce_lock:
+                # On first attempt use our local view; on retries, resync from 'pending'
+                if attempt == 0:
+                    nonce = self._local_nonce
+                else:
+                    nonce = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
+                    self._local_nonce = nonce  # resync
 
-        # Bump the gas price slightly to avoid underpriced errors
-        # If not using EIP-1559, inject legacy gasPrice
-        if 'maxFeePerGas' not in build_transaction and 'maxPriorityFeePerGas' not in build_transaction:
-            base_gas_price = self.web3.eth.gas_price
-            build_transaction['gasPrice'] = int(base_gas_price * 1.25)
+                build_transaction['nonce'] = nonce
 
-        # Else (EIP-1559): Optional tweak to bump the maxFeePerGas slightly
-        elif 'maxFeePerGas' in build_transaction:
-            build_transaction['maxFeePerGas'] = int(build_transaction['maxFeePerGas'] * 1.25)
-            
-        # print(f"nonce = {build_transaction['nonce']}, maxFeePerGas = {build_transaction['maxFeePerGas']}")
-        signed_txn = self.web3.eth.account.signTransaction(build_transaction, self.private_key)
-        tx_hash = self.web3.eth.sendRawTransaction(signed_txn.rawTransaction)
-        return tx_hash.hex()
+                # Gas bumping (your logic)
+                if 'maxFeePerGas' not in build_transaction and 'maxPriorityFeePerGas' not in build_transaction:
+                    base = self.web3.eth.gas_price
+                    build_transaction['gasPrice'] = int(base * 1.25)
+                elif 'maxFeePerGas' in build_transaction:
+                    build_transaction['maxFeePerGas'] = int(build_transaction['maxFeePerGas'] * 1.25)
+
+            # Sign & send outside the lock to avoid blocking others
+            try:
+                signed = self.web3.eth.account.sign_transaction(build_transaction, self.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed.rawTransaction)
+                # Success → advance local nonce now
+                with self._nonce_lock:
+                    self._local_nonce = nonce + 1
+                return tx_hash.hex()
+
+            except ValueError as e:
+                # Geth/Nethermind use -32000 with various nonce messages
+                msg = str(e)
+                if '-32000' in msg and ('nonce too low' in msg.lower()
+                                        or 'nonce too high' in msg.lower()
+                                        or 'too distant' in msg.lower()):
+                    # resync and retry
+                    time.sleep(0.05 * (attempt + 1))
+                    continue
+                # other errors -> rethrow
+                raise
 
     def get_transaction_receipt(self, tx_hash: str) -> dict:
         """

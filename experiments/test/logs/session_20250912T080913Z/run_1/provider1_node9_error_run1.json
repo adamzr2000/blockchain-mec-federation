@@ -1,0 +1,7 @@
+{
+  "host": "10.5.99.9",
+  "status": 500,
+  "response": {
+    "detail": "Failed to place bid for service_id service1757664550798: {'code': -32000, 'message': 'Transaction nonce is too distant from current sender nonce'}"
+  }
+}
