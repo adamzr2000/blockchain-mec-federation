@@ -40,7 +40,7 @@ HOSTS: List[Dict[str, Any]] = [
     {"role": "provider", "node_id": 9,  "ip": "10.5.99.9",  "iface": "ens3"},
     {"role": "provider", "node_id": 10, "ip": "10.5.99.10", "iface": "ens3"},
     {"role": "provider", "node_id": 11, "ip": "10.5.99.11", "iface": "eno1"},
-    {"role": "provider", "node_id": 12, "ip": "10.5.99.12", "iface": "eno1"},
+    {"role": "provider", "node_id": 12, "ip": "10.5.99.12", "iface": "ens3"},
     {"role": "provider", "node_id": 13, "ip": "10.5.99.13", "iface": "enp0s3"},
     {"role": "provider", "node_id": 14, "ip": "10.5.99.14", "iface": "enp0s3"},
     {"role": "provider", "node_id": 15, "ip": "10.5.99.15", "iface": "enp0s3"},

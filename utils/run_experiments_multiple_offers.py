@@ -44,7 +44,7 @@ HOSTS: List[Dict[str, Any]] = [
     {"node_id": 9,  "ip": "10.5.99.9",  "iface": "ens3"},
     {"node_id": 10, "ip": "10.5.99.10", "iface": "ens3"},
     {"node_id": 11, "ip": "10.5.99.11", "iface": "eno1"},
-    {"node_id": 12, "ip": "10.5.99.12", "iface": "eno1"},
+    {"node_id": 12, "ip": "10.5.99.12", "iface": "ens3"},
     {"node_id": 13, "ip": "10.5.99.13", "iface": "enp0s3"},
     {"node_id": 14, "ip": "10.5.99.14", "iface": "enp0s3"},
     {"node_id": 15, "ip": "10.5.99.15", "iface": "enp0s3"},
@@ -68,7 +68,7 @@ HOSTS: List[Dict[str, Any]] = [
 # --- Defaults / constants ---
 BM_PORT = 8000
 MEO_PORT = 6666
-REQ_TIMEOUT = 60
+REQ_TIMEOUT = 90
 EXPORT_TO_CSV = False
 CSV_BASE = "/experiments/test"
 PRICE_MIN, PRICE_MAX = 11, 80
