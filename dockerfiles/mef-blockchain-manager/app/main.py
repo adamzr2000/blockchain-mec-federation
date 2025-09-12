@@ -788,13 +788,34 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
                     data.append(['required_announces_received', t_required_announces_received])
                     break
 
-    # Place a bid offer to the Federation SC
+    # --- 2) Re-validate state before bidding; skip closed, and shrink the batch accordingly ---
+    bid_targets = []
     for service_id in open_services:
+        try:
+            # defensive re-check to avoid 'Service: not open' revert
+            if blockchain.get_service_state(service_id) != 0:
+                logger.info(f"⏭️  Skipping bid: service {service_id} no longer open")
+                data.append([f'service_not_open_{service_id}', int((time.time() - process_start_time) * 1000)])
+                continue
 
-        blockchain.place_bid(service_id, price_wei_per_hour, endpoint)
-        t_bid_offer_sent = int((time.time() - process_start_time) * 1000)
-        data.append([f'bid_offer_sent_{service_id}', t_bid_offer_sent])
-        logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {price_wei_per_hour} Wei/hour")
+            blockchain.place_bid(service_id, price_wei_per_hour, endpoint)
+            t_bid_offer_sent = int((time.time() - process_start_time) * 1000)
+            data.append([f'bid_offer_sent_{service_id}', t_bid_offer_sent])
+            logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {price_wei_per_hour} Wei/hour")
+            bid_targets.append(service_id)
+
+        except Exception as e:
+            # Treat "Service: not open" as a benign skip instead of failing the whole run
+            msg = str(e)
+            if "Service: not open" in msg:
+                logger.info(f"⏭️  Skipping bid (now closed): {service_id}")
+                # data.append([f'service_now_closed_{service_id}', int((time.time() - process_start_time) * 1000)])
+                continue
+            # anything else is real
+            raise
+
+    # keep only the services we actually bid on, so the later winner-wait matches
+    open_services = bid_targets
 
     t_all_bid_offers_sent = int((time.time() - process_start_time) * 1000)
     data.append(['all_bid_offers_sent', t_all_bid_offers_sent])
@@ -828,7 +849,7 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
         # Small sleep to avoid busy spinning if nothing new arrived
         if len(services_with_winners) < len(open_services):
             time.sleep(0.1)
-            
+
     t_all_winners_received = int((time.time() - process_start_time) * 1000)
     data.append(['all_winners_received', t_all_winners_received])
 
