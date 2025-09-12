@@ -95,67 +95,90 @@ class BlockchainInterface:
     #     return tx_hash.hex()
 
     def send_signed_transaction(self, build_transaction):
-        for attempt in range(5):
+        MAX_INFLIGHT = 2          # allow at most N nonces ahead of latest on-chain
+        MAX_ATTEMPTS = 7
+        BASE_BACKOFF = 0.05       # seconds
+
+        def _bump_fees(tx, factor):
+            if 'maxFeePerGas' in tx:
+                tx['maxFeePerGas'] = int(tx['maxFeePerGas'] * factor)
+                if 'maxPriorityFeePerGas' in tx:
+                    tx['maxPriorityFeePerGas'] = int(tx['maxPriorityFeePerGas'] * factor)
+            elif 'gasPrice' in tx:
+                tx['gasPrice'] = int(tx['gasPrice'] * factor)
+            else:
+                base = self.web3.eth.gas_price
+                tx['gasPrice'] = int(base * 1.25)
+
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            # 1) Backpressure: don’t outrun the txpool
+            while True:
+                latest = self.web3.eth.get_transaction_count(self.eth_address, 'latest')
+                pending = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
+                inflight = int(pending - latest)
+                if inflight <= MAX_INFLIGHT:
+                    break
+                time.sleep(0.05)  # small wait until pool admits more
+
+            # 2) Choose nonce from 'pending' and sync local
             with self._nonce_lock:
-                # On first attempt use our local view; on retries, resync from 'pending'
-                if attempt == 0:
-                    nonce = self._local_nonce
-                else:
-                    pending_nonce = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
-                    logger.warning(
-                        "[tx] resyncing nonce (attempt %d/5): local=%d -> pending=%d",
-                        attempt + 1, self._local_nonce, pending_nonce
-                    )
-                    self._local_nonce = pending_nonce
-                    nonce = pending_nonce
+                nonce = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
+                self._local_nonce = nonce
+                tx = dict(build_transaction)  # copy per attempt
+                tx['nonce'] = nonce
+                # bump progressively on attempts (1.0, 1.1, 1.2, …)
+                _bump_fees(tx, 1.0 + 0.1 * (attempt - 1))
 
-                build_transaction['nonce'] = nonce
-
-                # Gas bumping (same as before)
-                if 'maxFeePerGas' not in build_transaction and 'maxPriorityFeePerGas' not in build_transaction:
-                    base = self.web3.eth.gas_price
-                    build_transaction['gasPrice'] = int(base * 1.25)
-                elif 'maxFeePerGas' in build_transaction:
-                    build_transaction['maxFeePerGas'] = int(build_transaction['maxFeePerGas'] * 1.25)
-
-            # Sign & send outside the lock
             try:
-                signed = self.web3.eth.account.sign_transaction(build_transaction, self.private_key)
+                signed = self.web3.eth.account.sign_transaction(tx, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed.rawTransaction)
 
-                # Success → advance local nonce now
+                # advance local nonce on success
                 with self._nonce_lock:
                     self._local_nonce = nonce + 1
 
                 logger.info("[tx] sent OK: nonce=%d hash=%s", nonce, tx_hash.hex())
+
+                # Optional: wait until node reflects nonce consumption before returning
+                # to give the next call a smoother start.
+                deadline = time.time() + 2.0
+                while time.time() < deadline:
+                    if self.web3.eth.get_transaction_count(self.eth_address, 'pending') >= nonce + 1:
+                        break
+                    time.sleep(0.02)
+
                 return tx_hash.hex()
 
             except ValueError as e:
-                # Normalize RPC error message (can be dict or str)
-                if e.args and isinstance(e.args[0], dict):
-                    msg = e.args[0].get("message", str(e))
-                else:
-                    msg = str(e)
+                # Normalize message
+                msg = e.args[0].get("message") if (e.args and isinstance(e.args[0], dict)) else str(e)
+                low = (msg or "").lower()
 
-                lower = msg.lower()
-                if ('-32000' in msg) or ('nonce' in lower) or ('replacement transaction underpriced' in lower) or ('already known' in lower):
-                    backoff = 0.05 * (attempt + 1)
-                    logger.warning(
-                        "[tx] send failed (attempt %d/5) nonce=%d: %s — retrying in %.2fs",
-                        attempt + 1, nonce, msg, backoff
-                    )
+                transient = (
+                    "nonce too low" in low
+                    or "nonce too high" in low
+                    or "too distant" in low
+                    or "already known" in low
+                    or "replacement transaction underpriced" in low
+                )
+                if transient and attempt < MAX_ATTEMPTS:
+                    backoff = BASE_BACKOFF * attempt
+                    logger.warning("[tx] send failed (attempt %d/%d) nonce=%d: %s — retry in %.2fs",
+                                attempt, MAX_ATTEMPTS, nonce, msg, backoff)
                     time.sleep(backoff)
                     continue
 
-                logger.error("[tx] unretryable send error nonce=%d: %s", nonce, msg)
+                logger.error("[tx] unretryable error nonce=%d: %s", nonce, msg)
                 raise
 
             except Exception as e:
-                logger.error("[tx] unexpected send error nonce=%d: %s", nonce, str(e))
+                logger.error("[tx] unexpected error nonce=%d: %s", nonce, str(e))
+                if attempt < MAX_ATTEMPTS:
+                    time.sleep(BASE_BACKOFF * attempt)
+                    continue
                 raise
 
-        # If we get here, all attempts failed
-        raise RuntimeError("Failed to send transaction after 5 attempts")
+        raise RuntimeError("Failed to send transaction after retries")
 
     def get_transaction_receipt(self, tx_hash: str) -> dict:
         """
