@@ -283,7 +283,7 @@ def run_one(total_nodes: int, num_consumers: int, run_idx: int) -> None:
             for idx, host in enumerate(providers, start=1)
         ]
 
-        time.sleep(0.5)
+        time.sleep(2.0)
 
         cons_futs = [
             pool.submit(start_consumer, cons, cidx, offers_to_wait, run_idx)

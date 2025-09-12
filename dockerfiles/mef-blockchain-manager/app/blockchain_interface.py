@@ -101,38 +101,61 @@ class BlockchainInterface:
                 if attempt == 0:
                     nonce = self._local_nonce
                 else:
-                    nonce = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
-                    self._local_nonce = nonce  # resync
+                    pending_nonce = self.web3.eth.get_transaction_count(self.eth_address, 'pending')
+                    logger.warning(
+                        "[tx] resyncing nonce (attempt %d/5): local=%d -> pending=%d",
+                        attempt + 1, self._local_nonce, pending_nonce
+                    )
+                    self._local_nonce = pending_nonce
+                    nonce = pending_nonce
 
                 build_transaction['nonce'] = nonce
 
-                # Gas bumping (your logic)
+                # Gas bumping (same as before)
                 if 'maxFeePerGas' not in build_transaction and 'maxPriorityFeePerGas' not in build_transaction:
                     base = self.web3.eth.gas_price
                     build_transaction['gasPrice'] = int(base * 1.25)
                 elif 'maxFeePerGas' in build_transaction:
                     build_transaction['maxFeePerGas'] = int(build_transaction['maxFeePerGas'] * 1.25)
 
-            # Sign & send outside the lock to avoid blocking others
+            # Sign & send outside the lock
             try:
                 signed = self.web3.eth.account.sign_transaction(build_transaction, self.private_key)
                 tx_hash = self.web3.eth.send_raw_transaction(signed.rawTransaction)
+
                 # Success → advance local nonce now
                 with self._nonce_lock:
                     self._local_nonce = nonce + 1
+
+                logger.info("[tx] sent OK: nonce=%d hash=%s", nonce, tx_hash.hex())
                 return tx_hash.hex()
 
             except ValueError as e:
-                # Geth/Nethermind use -32000 with various nonce messages
-                msg = str(e)
-                if '-32000' in msg and ('nonce too low' in msg.lower()
-                                        or 'nonce too high' in msg.lower()
-                                        or 'too distant' in msg.lower()):
-                    # resync and retry
-                    time.sleep(0.05 * (attempt + 1))
+                # Normalize RPC error message (can be dict or str)
+                if e.args and isinstance(e.args[0], dict):
+                    msg = e.args[0].get("message", str(e))
+                else:
+                    msg = str(e)
+
+                lower = msg.lower()
+                if ('-32000' in msg) or ('nonce' in lower) or ('replacement transaction underpriced' in lower) or ('already known' in lower):
+                    backoff = 0.05 * (attempt + 1)
+                    logger.warning(
+                        "[tx] send failed (attempt %d/5) nonce=%d: %s — retrying in %.2fs",
+                        attempt + 1, nonce, msg, backoff
+                    )
+                    time.sleep(backoff)
                     continue
-                # other errors -> rethrow
+
+                logger.error("[tx] unretryable send error nonce=%d: %s", nonce, msg)
                 raise
+
+            except Exception as e:
+                logger.error("[tx] unexpected send error nonce=%d: %s", nonce, str(e))
+                raise
+
+        # If we get here, all attempts failed
+        raise RuntimeError("Failed to send transaction after 5 attempts")
 
     def get_transaction_receipt(self, tx_hash: str) -> dict:
         """
