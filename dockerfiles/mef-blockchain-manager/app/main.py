@@ -639,7 +639,7 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
         open_services: list[str] = []
 
         # --- Wait for service announcements (with timeout) ---
-        new_service_event = blockchain.create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
+        new_service_event = blockchain.create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT, LOOKBACK_BLOCKS)
         logger.info(f"⏳ Waiting for federation events... (batch size = {requests_to_wait})")
         wait_start = time.time()
         while len(open_services) < requests_to_wait and (time.time() - wait_start < WAIT_TIMEOUT):
