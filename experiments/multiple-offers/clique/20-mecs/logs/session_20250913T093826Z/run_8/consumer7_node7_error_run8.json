@@ -1,0 +1,7 @@
+{
+  "host": "10.5.99.7",
+  "status": 500,
+  "response": {
+    "detail": "Timeout: not enough bids received"
+  }
+}
