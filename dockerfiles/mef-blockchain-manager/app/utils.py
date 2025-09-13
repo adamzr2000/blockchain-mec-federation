@@ -131,11 +131,15 @@ def deploy_service(meo_endpoint, image, name, net, replicas, start_host_port=Non
                         "message": d.get("message", "")
                     }
                 last = d.get("message")
+                logger.error(f"deploy_service failed: {last}")
             else:
                 last = f"HTTP {r.status_code}"
+                logger.error(f"deploy_service HTTP error: {last}")
         except Exception as e:
             last = str(e)
+            logger.error(f"deploy_service exception: {last}")
         time.sleep(interval)
+    logger.error(f"deploy_service timeout after {timeout}s: {last}")
     raise RuntimeError(f"timeout: {last}")
 
 def service_ips(meo_endpoint, name, timeout=60, interval=2.0):
@@ -168,9 +172,12 @@ def delete_service(meo_endpoint, name, timeout=60, interval=2.0):
                 if d.get("success") is True:
                     return {"message":d.get("message","deleted")}
                 last=d.get("message")
-            else: last=f"HTTP {r.status_code}"
-        except Exception as e: last=str(e)
+                logger.error(f"delete_service HTTP error: {last}")
+        except Exception as e:
+            last = str(e)
+            logger.error(f"delete_service exception: {last}")
         time.sleep(interval)
+    logger.error(f"delete_service timeout after {timeout}s: {last}")
     raise RuntimeError(f"timeout: {last}")
 
 def exec_cmd(meo_endpoint, container_name, cmd, timeout=60, interval=1.0):
@@ -190,10 +197,16 @@ def exec_cmd(meo_endpoint, container_name, cmd, timeout=60, interval=1.0):
                         "stderr": data.get("stderr",""),
                         "message": d.get("message",""),
                     }
-                last=d.get("message")
-            else: last=f"HTTP {r.status_code}"
-        except Exception as e: last=str(e)
+                last = d.get("message")
+                logger.error(f"exec_cmd failed: {last}")
+            else:
+                last = f"HTTP {r.status_code}"
+                logger.error(f"exec_cmd HTTP error: {last}")
+        except Exception as e:
+            last = str(e)
+            logger.error(f"exec_cmd exception: {last}")
         time.sleep(interval)
+    logger.error(f"exec_cmd timeout after {timeout}s: {last}")
     raise RuntimeError(f"timeout: {last}")
 
 def configure_vxlan(meo_endpoint, local_ip, remote_ip, interface_name, vxlan_id, dst_port, subnet, ip_range, docker_net_name, timeout=60, interval=2.0):
@@ -206,9 +219,15 @@ def configure_vxlan(meo_endpoint, local_ip, remote_ip, interface_name, vxlan_id,
                 d=r.json()
                 if d.get("success") is True: return {"message":d.get("message","ok")}
                 last=d.get("message")
-            else: last=f"HTTP {r.status_code}"
-        except Exception as e: last=str(e)
+                logger.error(f"configure_vxlan failed: {last}")
+            else:
+                last = f"HTTP {r.status_code}"
+                logger.error(f"configure_vxlan HTTP error: {last}")
+        except Exception as e:
+            last = str(e)
+            logger.error(f"configure_vxlan exception: {last}")
         time.sleep(interval)
+    logger.error(f"configure_vxlan timeout after {timeout}s: {last}")
     raise RuntimeError(f"timeout: {last}")
 
 def delete_vxlan(meo_endpoint, vxlan_id, docker_net_name, timeout=60, interval=2.0):
@@ -221,9 +240,15 @@ def delete_vxlan(meo_endpoint, vxlan_id, docker_net_name, timeout=60, interval=2
                 d=r.json()
                 if d.get("success") is True: return {"message":d.get("message","ok")}
                 last=d.get("message")
-            else: last=f"HTTP {r.status_code}"
-        except Exception as e: last=str(e)
+                logger.error(f"delete_vxlan failed: {last}")
+            else:
+                last = f"HTTP {r.status_code}"
+                logger.error(f"delete_vxlan HTTP error: {last}")
+        except Exception as e:
+            last = str(e)
+            logger.error(f"delete_vxlan exception: {last}")
         time.sleep(interval)
+    logger.error(f"delete_vxlan timeout after {timeout}s: {last}")
     raise RuntimeError(f"timeout: {last}")
 
 def attach_to_network(meo_endpoint, container_name, network_name, timeout=60, interval=2.0):
@@ -236,7 +261,13 @@ def attach_to_network(meo_endpoint, container_name, network_name, timeout=60, in
                 d=r.json()
                 if d.get("success") is True: return {"message":d.get("message","ok")}
                 last=d.get("message")
-            else: last=f"HTTP {r.status_code}"
-        except Exception as e: last=str(e)
+                logger.error(f"attach_to_network failed: {last}")
+            else:
+                last = f"HTTP {r.status_code}"
+                logger.error(f"attach_to_network HTTP error: {last}")
+        except Exception as e:
+            last = str(e)
+            logger.error(f"attach_to_network exception: {last}")
         time.sleep(interval)
+    logger.error(f"attach_to_network timeout after {timeout}s: {last}")
     raise RuntimeError(f"timeout: {last}")

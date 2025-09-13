@@ -383,114 +383,124 @@ def start_experiments_provider(request: DemoProviderRequest):
 def run_experiments_consumer(requirements, endpoint, offers_to_wait, meo_endpoint, vxlan_interface, node_id, export_to_csv, csv_path):
     header = ['step', 'timestamp']
     data = []
-    local_ip, vxlan_id, vxlan_port, federation_net  = utils.extract_service_endpoint(endpoint)
-    federation_subnet = utils.create_smaller_subnet(federation_net, node_id)
     process_start_time = time.time()
-                
-    # Send service announcement (federation request)
-    tx_hash, service_id = blockchain.announce_service(requirements, endpoint)
-    t_service_announced = int((time.time() - process_start_time) * 1000)
-    data.append(['service_announced', t_service_announced]) 
-    logger.info(f"📢 Service announcement sent - Service ID: {service_id}")
+    WAIT_TIMEOUT = 60  # seconds
 
-    # Wait for provider bids
-    bids_event = blockchain.create_event_filter(FederationEvents.NEW_BID)
-    bidderArrived = False
-    logger.info(f"⏳ Waiting for {offers_to_wait} bids...")
-    while not bidderArrived:
-        new_events = bids_event.get_all_entries()
-        for event in new_events:
-            event_service_id = Web3.toText(event['args']['serviceId']).rstrip('\x00')
-            received_bids = int(event['args']['biderIndex'])
-            
-            if event_service_id == service_id:
-                t_bid_received = int((time.time() - process_start_time) * 1000)
-                data.append([f'bid_received_{received_bids}', t_bid_received])
-                # If enough bids have arrived, mark threshold timestamp
-                if received_bids >= offers_to_wait:
-                    t_required_bids_received = int((time.time() - process_start_time) * 1000)
-                    data.append(['required_bids_received', t_required_bids_received])
-                    logger.info(f"📨 {received_bids} bid(s) received:")
-                    bidderArrived = True 
-                    break
-    
-    # Process bids
-    lowest_price = None
-    best_bid_index = None
+    try:
+        local_ip, vxlan_id, vxlan_port, federation_net  = utils.extract_service_endpoint(endpoint)
+        federation_subnet = utils.create_smaller_subnet(federation_net, node_id)
+                    
+        # --- Service announcement ---
+        tx_hash, service_id = blockchain.announce_service(requirements, endpoint)
+        t_service_announced = int((time.time() - process_start_time) * 1000)
+        data.append(['service_announced', t_service_announced]) 
+        logger.info(f"📢 Service announcement sent - Service ID: {service_id}")
 
-    # Loop through all bid indices and print their information
-    for i in range(received_bids):
-        bid_info = blockchain.get_bid_info(service_id, i)
-        provider_addr = bid_info[0]
-        bid_price = int(bid_info[1])
-        bid_index = int(bid_info[2])
-        logger.info(f"  └ Bid index: {bid_index}, Provider: {provider_addr}, Price: {bid_price} Wei/hour")
+        # --- Wait for provider bids (with max wait) ---
+        bids_event = blockchain.create_event_filter(FederationEvents.NEW_BID)
+        bidderArrived = False
+        logger.info(f"⏳ Waiting for {offers_to_wait} bids...")
+        wait_start = time.time()
+        while not bidderArrived and (time.time() - wait_start < WAIT_TIMEOUT):
+            new_events = bids_event.get_all_entries()
+            for event in new_events:
+                event_service_id = Web3.toText(event['args']['serviceId']).rstrip('\x00')
+                received_bids = int(event['args']['biderIndex'])
+                if event_service_id == service_id:
+                    t_bid_received = int((time.time() - process_start_time) * 1000)
+                    data.append([f'bid_received_{received_bids}', t_bid_received])
+                    # If enough bids have arrived, mark threshold timestamp
+                    if received_bids >= offers_to_wait:
+                        t_required_bids_received = int((time.time() - process_start_time) * 1000)
+                        data.append(['required_bids_received', t_required_bids_received])
+                        logger.info(f"📨 {received_bids} bid(s) received:")
+                        bidderArrived = True 
+                        break
+            time.sleep(0.2)
 
-        if lowest_price is None or bid_price < lowest_price:
-            lowest_price = bid_price
-            best_bid_index = bid_index
-            # logger.info(f"New lowest price: {lowest_price} with bid index: {best_bid_index}")
-    # Choose winner provider
-    tx_hash = blockchain.choose_provider(service_id, best_bid_index)
-    t_winner_choosen = int((time.time() - process_start_time) * 1000)
-    data.append(['winner_choosen', t_winner_choosen])
-    logger.info(f"🏆 Provider selected - Bid index: {best_bid_index}")
+        if not bidderArrived:
+            raise RuntimeError("Timeout: not enough bids received")
+        
+        # --- Process bids ---
+        lowest_price, best_bid_index = None, None
+        for i in range(received_bids):
+            bid_info = blockchain.get_bid_info(service_id, i)
+            provider_addr, bid_price, bid_index = bid_info[0], int(bid_info[1]), int(bid_info[2])
+            logger.info(f"  └ Bid index: {bid_index}, Provider: {provider_addr}, Price: {bid_price} Wei/hour")
+            if lowest_price is None or bid_price < lowest_price:
+                lowest_price = bid_price
+                best_bid_index = bid_index
+                # logger.info(f"New lowest price: {lowest_price} with bid index: {best_bid_index}")
+        if best_bid_index is None:
+            raise RuntimeError("No valid bids to choose from")
+        
+        # --- Choose provider ---
+        blockchain.choose_provider(service_id, best_bid_index)
+        t_winner_choosen = int((time.time() - process_start_time) * 1000)
+        data.append(['winner_choosen', t_winner_choosen])
+        logger.info(f"🏆 Provider selected - Bid index: {best_bid_index}")
 
-    # Wait for provider confirmation
-    logger.info(f"⏳ Waiting for provider to complete deployment...")
-    while blockchain.get_service_state(service_id) != 2:
-        time.sleep(0.1)
-                
-    t_confirm_deployment_received = int((time.time() - process_start_time) * 1000)
-    data.append(['confirm_deployment_received', t_confirm_deployment_received])
-    logger.info("✅ Deployment confirmation received.")
+        # --- Wait for provider confirmation (with timeout) ---
+        logger.info(f"⏳ Waiting for provider to complete deployment...")
+        wait_start = time.time()
 
-    # blockchain.display_service_state(service_id)
+        while blockchain.get_service_state(service_id) != 2:
+            if time.time() - wait_start > WAIT_TIMEOUT:
+                raise RuntimeError("Timeout: provider did not confirm deployment")
+            time.sleep(0.2)
+                    
+        t_confirm_deployment_received = int((time.time() - process_start_time) * 1000)
+        data.append(['confirm_deployment_received', t_confirm_deployment_received])
+        logger.info("✅ Deployment confirmation received.")
 
-    t_establish_vxlan_connection_with_provider_start = int((time.time() - process_start_time) * 1000)
-    data.append(['establish_vxlan_connection_with_provider_start', t_establish_vxlan_connection_with_provider_start])
-    
-    # Federated service info
-    provider_endpoint, deployed_mec_app_ip = blockchain.get_service_info(service_id, provider_flag)
-    remote_ip, provider_endpoint_vxlan_id, provider_endpoint_vxlan_port, provider_endpoint_federation_net  = utils.extract_service_endpoint(provider_endpoint)
-    logger.info(f"Provider VXLAN endpoint: {provider_endpoint}")
-    logger.info(f"Provider MEC app deployed - IP: {deployed_mec_app_ip}")
+        # --- Establish VXLAN ---
+        t_establish_vxlan_connection_with_provider_start = int((time.time() - process_start_time) * 1000)
+        data.append(['establish_vxlan_connection_with_provider_start', t_establish_vxlan_connection_with_provider_start])
+        
+        # Federated service info
+        provider_endpoint, deployed_mec_app_ip = blockchain.get_service_info(service_id, provider_flag)
+        remote_ip, provider_endpoint_vxlan_id, provider_endpoint_vxlan_port, provider_endpoint_federation_net  = utils.extract_service_endpoint(provider_endpoint)
+        logger.info(f"Provider VXLAN endpoint: {provider_endpoint}")
+        logger.info(f"Provider MEC app deployed - IP: {deployed_mec_app_ip}")
 
-    # Uncomment this during experiments
-    print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, vxlan_id, vxlan_port, federation_net, federation_subnet, "fed-net"))
-    print(utils.attach_to_network(f"{meo_endpoint}/attach_to_network","mecapp_1","fed-net"))
+        # Uncomment this during experiments
+        print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, vxlan_id, vxlan_port, federation_net, federation_subnet, "fed-net"))
+        print(utils.attach_to_network(f"{meo_endpoint}/attach_to_network","mecapp_1","fed-net"))
 
-    t_establish_vxlan_connection_with_provider_finished = int((time.time() - process_start_time) * 1000)
-    data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
+        t_establish_vxlan_connection_with_provider_finished = int((time.time() - process_start_time) * 1000)
+        data.append(['establish_vxlan_connection_with_provider_finished', t_establish_vxlan_connection_with_provider_finished])
 
-    # Uncomment this during experiments
-    logger.info(f"📡 Running connection test on mecapp_1 - Target IP: {deployed_mec_app_ip}")
-    connection_test = utils.exec_cmd(f"{meo_endpoint}/exec","mecapp_1", f"ping -c 6 -i 0.2 {deployed_mec_app_ip}")
-    stdout = connection_test["stdout"]
-    logger.debug(f"🔍 Ping output:\n{stdout}")
-    loss = float(re.search(r'(\d+(?:\.\d+)?)%\s*packet loss', stdout).group(1))
-    status = "success" if loss < 100.0 else "failure"
-    t_connection_test = int((time.time() - process_start_time) * 1000)
-    if status == "success":
-        logger.info(f"✅ Connection test SUCCESS ({100 - loss:.1f}% packets received)")
-        data.append(['connection_test_success', t_connection_test])
-    else:
-        logger.warning(f"❌ Connection test FAILURE ({loss:.1f}% packet loss)")
-        data.append(['connection_test_failure', t_connection_test])
+        # Uncomment this during experiments
+        logger.info(f"📡 Running connection test on mecapp_1 - Target IP: {deployed_mec_app_ip}")
+        connection_test = utils.exec_cmd(f"{meo_endpoint}/exec","mecapp_1", f"ping -c 6 -i 0.2 {deployed_mec_app_ip}")
+        stdout = connection_test["stdout"]
+        logger.debug(f"🔍 Ping output:\n{stdout}")
+        loss = float(re.search(r'(\d+(?:\.\d+)?)%\s*packet loss', stdout).group(1))
+        status = "success" if loss < 100.0 else "failure"
+        t_connection_test = int((time.time() - process_start_time) * 1000)
+        if status == "success":
+            logger.info(f"✅ Connection test SUCCESS ({100 - loss:.1f}% packets received)")
+            data.append(['connection_test_success', t_connection_test])
+        else:
+            logger.warning(f"❌ Connection test FAILURE ({loss:.1f}% packet loss)")
+            data.append(['connection_test_failure', t_connection_test])
 
-    total_duration = time.time() - process_start_time
+        # --- Wrap up ---
+        total_duration = time.time() - process_start_time
+        logger.info(f"✅ Federation process successfully completed in {total_duration:.2f} seconds.")
 
-    logger.info(f"✅ Federation process successfully completed in {total_duration:.2f} seconds.")
+        if export_to_csv:
+            data.append(['service_id', service_id]) 
+            utils.create_csv_file(csv_path, header, data)
+        
+        return {"status": "success", "duration_s": round(total_duration, 2)}
 
-    if export_to_csv:
-        data.append(['service_id', service_id]) 
-        utils.create_csv_file(csv_path, header, data)
-    
-    return {
-        "status": "success",
-        "duration_s": round(total_duration, 2)
-    }
-
+    except Exception as e:
+        logger.error(f"run_experiments_consumer failed: {e}")
+        # if export_to_csv:
+        #     data.append(['error', str(e)])
+        #     utils.create_csv_file(csv_path, header, data)
+        raise
 
 def run_experiments_provider(price_wei_per_hour, endpoint, meo_endpoint, vxlan_interface, node_id, requirements_filter, export_to_csv, csv_path):
     header = ['step', 'timestamp']
@@ -598,7 +608,239 @@ def run_experiments_provider(price_wei_per_hour, endpoint, meo_endpoint, vxlan_i
     }
 
 
+@app.post("/start_experiments_provider_multiple_requests", tags=["Provider functions"])
+def start_experiments_provider_multiple_requests(request: DemoProviderMultipleRequest):
+    try:
+        if domain != 'provider':
+            raise HTTPException(status_code=403, detail="This function is restricted to provider domains.")
+        endpoint = f"ip_address={request.ip_address};vxlan_id=None;vxlan_port=None;federation_net=None"        
+        if not utils.validate_endpoint(endpoint):
+            raise HTTPException(status_code=400, detail="Invalid endpoint format.")
+        response = run_experiments_provider_multiple_requests(price_wei_per_hour=request.price_wei_per_hour, endpoint=endpoint, requests_to_wait=request.requests_to_wait,
+                                            meo_endpoint=request.meo_endpoint, vxlan_interface=request.vxlan_interface, node_id=request.node_id, requirements_filter=request.requirements_filter,
+                                            export_to_csv=request.export_to_csv, csv_path=request.csv_path)
+        return response
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, requests_to_wait, meo_endpoint, vxlan_interface, node_id, requirements_filter, export_to_csv, csv_path):
+    header = ['step', 'timestamp']
+    data = []
+    WAIT_TIMEOUT = 60.0      # seconds (tweak if needed, or pass as a function arg)
+    POLL_INTERVAL = 0.2      # seconds
+    LOOKBACK_BLOCKS = 4     # small safety window to catch recent closes before filter creation
+
+    process_start_time = time.time()
+
+    try:
+        local_ip, vxlan_id, vxlan_port, federation_net  = utils.extract_service_endpoint(endpoint)
+        open_services: list[str] = []
+
+        # --- Wait for service announcements (with timeout) ---
+        new_service_event = blockchain.create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
+        logger.info(f"⏳ Waiting for federation events... (batch size = {requests_to_wait})")
+        wait_start = time.time()
+        while len(open_services) < requests_to_wait and (time.time() - wait_start < WAIT_TIMEOUT):
+            new_events = new_service_event.get_all_entries()
+            for event in new_events:
+                service_id = Web3.toText(event['args']['serviceId']).rstrip('\x00')
+                requirements = event['args']['requirements']
+
+                # Only open services; optional requirements filter; no duplicates
+                if (
+                    service_id not in open_services and
+                    blockchain.get_service_state(service_id) == 0 and
+                    (requirements_filter is None or requirements == requirements_filter)
+                ):
+                    open_services.append(service_id)
+                    t_announce_received = int((time.time() - process_start_time) * 1000)
+                    data.append([f'announce_received_{service_id}', t_announce_received])
+
+                    logger.info(f"📨 Matched open service: {service_id} | requirements: {requirements} | total {len(open_services)}/{requests_to_wait}")
+
+                    # Record only when the N-th (last) required request arrives
+                    if len(open_services) == requests_to_wait:
+                        # Announcement received
+                        t_required_announces_received = int((time.time() - process_start_time) * 1000)
+                        data.append(['required_announces_received', t_required_announces_received])
+                        break
+            time.sleep(POLL_INTERVAL)
+        if len(open_services) < requests_to_wait:
+            raise RuntimeError("Timeout: did not receive enough service announcements")
+        
+        # --- Place bids ---
+        bid_targets = []
+        for service_id in open_services:
+            try:
+                # defensive re-check to avoid 'Service: not open' revert
+                if blockchain.get_service_state(service_id) != 0:
+                    logger.info(f"⏭️  Skipping bid: service {service_id} no longer open")
+                    data.append([f'service_not_open_{service_id}', int((time.time() - process_start_time) * 1000)])
+                    continue
+
+                blockchain.place_bid(service_id, price_wei_per_hour, endpoint)
+                t_bid_offer_sent = int((time.time() - process_start_time) * 1000)
+                data.append([f'bid_offer_sent_{service_id}', t_bid_offer_sent])
+                logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {price_wei_per_hour} Wei/hour")
+                bid_targets.append(service_id)
+
+            except Exception as e:
+                msg = str(e)
+                if "Service: not open" in msg:
+                    logger.info(f"⏭️ Skipping bid (now closed): {service_id}")
+                    continue
+                logger.error(f"Error placing bid for {service_id}: {msg}")
+                raise
+
+        # keep only the services we actually bid on, so the later winner-wait matches
+        open_services = bid_targets
+
+        t_all_bid_offers_sent = int((time.time() - process_start_time) * 1000)
+        data.append(['all_bid_offers_sent', t_all_bid_offers_sent])
+
+        services_with_winners: set[str] = set()
+
+        # Look back a bit so we don't miss a just-emitted close
+        winner_chosen_events = blockchain.create_event_filter(
+            FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED,
+            last_n_blocks=LOOKBACK_BLOCKS
+        )
+
+        wait_start = time.time()
+        while len(services_with_winners) < len(open_services) and (time.time() - wait_start < WAIT_TIMEOUT):
+            # 1) Consume new close events (fast path)
+            try:
+                new_events = winner_chosen_events.get_new_entries()
+            except Exception as e:
+                logger.error(f"Winner-event filter error: {e}")
+                new_events = []
+
+            for event in new_events:
+                try:
+                    event_service_id = Web3.toText(event['args']['serviceId']).rstrip('\x00')
+                except Exception as e:
+                    logger.error(f"Malformed event log (skipping): {e}")
+                    continue
+
+                if event_service_id not in open_services or event_service_id in services_with_winners:
+                    continue
+
+                # Defensive: ensure chain reflects Closed/Deployed
+                try:
+                    if blockchain.get_service_state(event_service_id) >= 1:  # 0=Open, 1=Closed, 2=Deployed
+                        t_winner_received = int((time.time() - process_start_time) * 1000)
+                        data.append([f'winner_received_{event_service_id}', t_winner_received])
+                        services_with_winners.add(event_service_id)
+                except Exception as e:
+                    logger.error(f"get_service_state failed for {event_service_id}: {e}")
+                    # don't break the loop; try others
+
+            # 2) Poll states for any remaining services (slow but reliable path)
+            if len(services_with_winners) < len(open_services):
+                for sid in open_services:
+                    if sid in services_with_winners:
+                        continue
+                    try:
+                        state = blockchain.get_service_state(sid)
+                        if state >= 1:
+                            t_winner_received = int((time.time() - process_start_time) * 1000)
+                            data.append([f'winner_received_{sid}', t_winner_received])
+                            services_with_winners.add(sid)
+                    except Exception as e:
+                        logger.error(f"Polling get_service_state failed for {sid}: {e}")
+                        # keep polling others
+                if len(services_with_winners) < len(open_services):
+                    time.sleep(POLL_INTERVAL)
+
+        if len(services_with_winners) < len(open_services):
+            raise RuntimeError("Timeout: winners not received (or services not closed) for all targeted services")
+
+        t_all_winners_received = int((time.time() - process_start_time) * 1000)
+        data.append(['all_winners_received', t_all_winners_received])
+
+        # --- Deployment or loser path ---
+        no_winner_count = 0
+        deployed_federations = 0
+        for service_id in open_services:
+            
+            # Check if this provider is the winner
+            if blockchain.is_winner(service_id):
+                logger.info(f"🏆 Selected as the winner for service ID: {service_id}.")
+                t_deployment_start = int((time.time() - process_start_time) * 1000)
+                data.append([f'deployment_start_{service_id}', t_deployment_start])
+
+                consumer_endpoint, deployed_mec_app_ip = blockchain.get_service_info(service_id, provider_flag)
+                remote_ip, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net = utils.extract_service_endpoint(consumer_endpoint)
+
+                logger.info(f"Consumer VXLAN endpoint: {consumer_endpoint}")
+
+                federation_subnet = utils.create_smaller_subnet(consumer_endpoint_federation_net, node_id)
+
+                # Dummy
+                deployed_mec_app_ip = "8.8.8.8"
+
+
+                print(local_ip, remote_ip, vxlan_interface, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net, federation_subnet)
+
+                svc_name = f"mecapp-{deployed_federations}"
+                net_name = f"fed-net-{deployed_federations}"
+                svc_host_port = 5000 + deployed_federations
+
+                # Uncomment this during experiments
+                print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net, federation_subnet, net_name))
+                deployed_service = utils.deploy_service(f"{meo_endpoint}/deploy_docker_service", "mec-app:latest", svc_name, net_name, 1, svc_host_port, 60, 2.0)
+                deployed_mec_app_ip = next(iter(deployed_service["container_ips"].values()))
+
+                t_deployment_finished = int((time.time() - process_start_time) * 1000)
+                data.append([f'deployment_finished_{service_id}', t_deployment_finished])
+                    
+                logger.info(f"✅ MEC app deployed - IP: {deployed_mec_app_ip}")
+                deployed_federations += 1
+
+                # Confirm service deployed
+                blockchain.service_deployed(service_id, deployed_mec_app_ip)
+                t_confirm_deployment_sent = int((time.time() - process_start_time) * 1000)
+                data.append([f'confirm_deployment_sent_{service_id}', t_confirm_deployment_sent])
+
+
+            else:
+                no_winner_count += 1
+                logger.info(f"❌ Not selected as the winner for service ID: {service_id}.")
+                t_other_provider_choosen = int((time.time() - process_start_time) * 1000)
+                data.append([f'other_provider_choosen_{service_id}', t_other_provider_choosen])
+                
+                if no_winner_count == requests_to_wait:
+                    t_no_wins = int((time.time() - process_start_time) * 1000)
+                    data.append(['no_wins', t_no_wins])
+                    logger.info(f"❌ Not selected as the winner for any service")
+
+                    if export_to_csv:
+                        utils.create_csv_file(csv_path, header, data)
+
+                    return {"message": "This provider was not selected as the winner for any service."}
+                    
+        t_all_confirm_deployment_sent = int((time.time() - process_start_time) * 1000)
+        data.append(['all_confirm_deployment_sent', t_all_confirm_deployment_sent])
+
+        total_duration = time.time() - process_start_time
+        
+
+        if export_to_csv:
+            utils.create_csv_file(csv_path, header, data)
+
+        return {"status": "success", "duration_s": round(total_duration, 2)}
+
+    except Exception as e:
+        logger.error(f"run_experiments_provider_multiple_requests failed: {e}")
+        if export_to_csv:
+            data.append(['error', str(e)])
+            utils.create_csv_file(csv_path, header, data)
+        raise
+
+
+# ------------------------------------------------------------------------------------------------------------------------------#
 @app.post("/start_experiments_consumer_multiple_requests", tags=["Consumer functions"])
 def start_experiments_consumer_multiple_requests(request: DemoConsumerMultipleRequest):
     try:
@@ -617,22 +859,6 @@ def start_experiments_consumer_multiple_requests(request: DemoConsumerMultipleRe
 
     except Exception as e:
         logger.error(f"Federation process failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@app.post("/start_experiments_provider_multiple_requests", tags=["Provider functions"])
-def start_experiments_provider_multiple_requests(request: DemoProviderMultipleRequest):
-    try:
-        if domain != 'provider':
-            raise HTTPException(status_code=403, detail="This function is restricted to provider domains.")
-        endpoint = f"ip_address={request.ip_address};vxlan_id=None;vxlan_port=None;federation_net=None"        
-        if not utils.validate_endpoint(endpoint):
-            raise HTTPException(status_code=400, detail="Invalid endpoint format.")
-        response = run_experiments_provider_multiple_requests(price_wei_per_hour=request.price_wei_per_hour, endpoint=endpoint, requests_to_wait=request.requests_to_wait,
-                                            meo_endpoint=request.meo_endpoint, vxlan_interface=request.vxlan_interface, node_id=request.node_id, requirements_filter=request.requirements_filter,
-                                            export_to_csv=request.export_to_csv, csv_path=request.csv_path)
-        return response
-
-    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 def run_experiments_consumer_multiple_requests(requirements, endpoint, offers_to_wait, price_threshold_wei_per_hour, meo_endpoint, vxlan_interface, node_id, export_to_csv, csv_path):
@@ -745,183 +971,6 @@ def run_experiments_consumer_multiple_requests(requirements, endpoint, offers_to
         data.append(['service_id', service_id]) 
         utils.create_csv_file(csv_path, header, data)
     
-    return {
-        "status": "success",
-        "duration_s": round(total_duration, 2)
-    }
-
-
-def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, requests_to_wait, meo_endpoint, vxlan_interface, node_id, requirements_filter, export_to_csv, csv_path):
-    header = ['step', 'timestamp']
-    data = []
-    local_ip, vxlan_id, vxlan_port, federation_net  = utils.extract_service_endpoint(endpoint)
-
-    process_start_time = time.time()
-    open_services: list[str] = []
-
-    # Wait for service announcements
-    new_service_event = blockchain.create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT)
-    logger.info(f"⏳ Waiting for federation events... (batch size = {requests_to_wait})")
-
-    while len(open_services) < requests_to_wait:
-        new_events = new_service_event.get_all_entries()
-        for event in new_events:
-            service_id = Web3.toText(event['args']['serviceId']).rstrip('\x00')
-            requirements = event['args']['requirements']
-
-            # Only open services; optional requirements filter; no duplicates
-            if (
-                service_id not in open_services and
-                blockchain.get_service_state(service_id) == 0 and
-                (requirements_filter is None or requirements == requirements_filter)
-            ):
-                open_services.append(service_id)
-                t_announce_received = int((time.time() - process_start_time) * 1000)
-                data.append([f'announce_received_{service_id}', t_announce_received])
-
-                logger.info(f"📨 Matched open service: {service_id} | requirements: {requirements} | total {len(open_services)}/{requests_to_wait}")
-
-                # Record only when the N-th (last) required request arrives
-                if len(open_services) == requests_to_wait:
-                    # Announcement received
-                    t_required_announces_received = int((time.time() - process_start_time) * 1000)
-                    data.append(['required_announces_received', t_required_announces_received])
-                    break
-
-    # --- 2) Re-validate state before bidding; skip closed, and shrink the batch accordingly ---
-    bid_targets = []
-    for service_id in open_services:
-        try:
-            # defensive re-check to avoid 'Service: not open' revert
-            if blockchain.get_service_state(service_id) != 0:
-                logger.info(f"⏭️  Skipping bid: service {service_id} no longer open")
-                data.append([f'service_not_open_{service_id}', int((time.time() - process_start_time) * 1000)])
-                continue
-
-            blockchain.place_bid(service_id, price_wei_per_hour, endpoint)
-            t_bid_offer_sent = int((time.time() - process_start_time) * 1000)
-            data.append([f'bid_offer_sent_{service_id}', t_bid_offer_sent])
-            logger.info(f"💰 Bid offer sent - Service ID: {service_id}, Price: {price_wei_per_hour} Wei/hour")
-            bid_targets.append(service_id)
-
-        except Exception as e:
-            # Treat "Service: not open" as a benign skip instead of failing the whole run
-            msg = str(e)
-            if "Service: not open" in msg:
-                logger.info(f"⏭️  Skipping bid (now closed): {service_id}")
-                # data.append([f'service_now_closed_{service_id}', int((time.time() - process_start_time) * 1000)])
-                continue
-            # anything else is real
-            raise
-
-    # keep only the services we actually bid on, so the later winner-wait matches
-    open_services = bid_targets
-
-    t_all_bid_offers_sent = int((time.time() - process_start_time) * 1000)
-    data.append(['all_bid_offers_sent', t_all_bid_offers_sent])
-
-    # Wait for winnerChosen events for all services
-    services_with_winners: set[str] = set()
-    winner_chosen_events = blockchain.create_event_filter(FederationEvents.SERVICE_ANNOUNCEMENT_CLOSED)
-
-    while len(services_with_winners) < len(open_services):
-        new_events = winner_chosen_events.get_all_entries()
-        for event in new_events:
-            event_service_id = Web3.toText(event['args']['serviceId']).rstrip('\x00')
-
-            if event_service_id not in open_services or event_service_id in services_with_winners:
-                continue
-
-            # (Defensive) ensure the chain reflects 'Closed' before proceeding
-            try:
-                if blockchain.get_service_state(event_service_id) < 1:  # 0=Open, 1=Closed, 2=Deployed
-                    continue
-            except Exception:
-                continue
-
-            # Record timestamp for winner chosen
-            t_winner_received = int((time.time() - process_start_time) * 1000)
-            data.append([f'winner_received_{event_service_id}', t_winner_received])
-
-            services_with_winners.add(event_service_id)
-            # logger.info(f"🏆 Winner chosen for service ID: {event_service_id}")
-
-        # Small sleep to avoid busy spinning if nothing new arrived
-        if len(services_with_winners) < len(open_services):
-            time.sleep(0.1)
-
-    t_all_winners_received = int((time.time() - process_start_time) * 1000)
-    data.append(['all_winners_received', t_all_winners_received])
-
-    no_winner_count = 0
-    deployed_federations = 0
-    for service_id in open_services:
-        
-        # Check if this provider is the winner
-        if blockchain.is_winner(service_id):
-            logger.info(f"🏆 Selected as the winner for service ID: {service_id}.")
-            t_deployment_start = int((time.time() - process_start_time) * 1000)
-            data.append([f'deployment_start_{service_id}', t_deployment_start])
-
-            consumer_endpoint, deployed_mec_app_ip = blockchain.get_service_info(service_id, provider_flag)
-            remote_ip, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net = utils.extract_service_endpoint(consumer_endpoint)
-
-            logger.info(f"Consumer VXLAN endpoint: {consumer_endpoint}")
-
-            federation_subnet = utils.create_smaller_subnet(consumer_endpoint_federation_net, node_id)
-
-            # Dummy
-            deployed_mec_app_ip = "8.8.8.8"
-
-
-            print(local_ip, remote_ip, vxlan_interface, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net, federation_subnet)
-
-            svc_name = f"mecapp-{deployed_federations}"
-            net_name = f"fed-net-{deployed_federations}"
-            svc_host_port = 5000 + deployed_federations
-
-            # Uncomment this during experiments
-            print(utils.configure_vxlan(f"{meo_endpoint}/configure_vxlan", local_ip, remote_ip, vxlan_interface, consumer_endpoint_vxlan_id, consumer_endpoint_vxlan_port, consumer_endpoint_federation_net, federation_subnet, net_name))
-            deployed_service = utils.deploy_service(f"{meo_endpoint}/deploy_docker_service", "mec-app:latest", svc_name, net_name, 1, svc_host_port, 60, 2.0)
-            deployed_mec_app_ip = next(iter(deployed_service["container_ips"].values()))
-
-            t_deployment_finished = int((time.time() - process_start_time) * 1000)
-            data.append([f'deployment_finished_{service_id}', t_deployment_finished])
-                
-            logger.info(f"✅ MEC app deployed - IP: {deployed_mec_app_ip}")
-            deployed_federations += 1
-
-            # Confirm service deployed
-            blockchain.service_deployed(service_id, deployed_mec_app_ip)
-            t_confirm_deployment_sent = int((time.time() - process_start_time) * 1000)
-            data.append([f'confirm_deployment_sent_{service_id}', t_confirm_deployment_sent])
-
-
-        else:
-            no_winner_count += 1
-            logger.info(f"❌ Not selected as the winner for service ID: {service_id}.")
-            t_other_provider_choosen = int((time.time() - process_start_time) * 1000)
-            data.append([f'other_provider_choosen_{service_id}', t_other_provider_choosen])
-            
-            if no_winner_count == requests_to_wait:
-                t_no_wins = int((time.time() - process_start_time) * 1000)
-                data.append(['no_wins', t_no_wins])
-                logger.info(f"❌ Not selected as the winner for any service")
-
-                if export_to_csv:
-                    utils.create_csv_file(csv_path, header, data)
-
-                return {"message": "This provider was not selected as the winner for any service."}
-                
-    t_all_confirm_deployment_sent = int((time.time() - process_start_time) * 1000)
-    data.append(['all_confirm_deployment_sent', t_all_confirm_deployment_sent])
-
-    total_duration = time.time() - process_start_time
-    
-
-    if export_to_csv:
-        utils.create_csv_file(csv_path, header, data)
-
     return {
         "status": "success",
         "duration_s": round(total_duration, 2)
