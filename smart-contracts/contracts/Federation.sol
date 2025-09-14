@@ -177,7 +177,10 @@ contract Federation {
 
     function isWinner(bytes32 serviceId, address callAddress) public view serviceExists(serviceId) returns (bool) {
         Service storage currentService = service[serviceId];
-        require(currentService.state == ServiceState.Closed, "Service: not closed");
+        require(
+            currentService.state == ServiceState.Closed || currentService.state == ServiceState.Deployed,
+            "Service: must be closed or deployed"
+        );
         
         return currentService.provider == callAddress;
     }
