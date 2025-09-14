@@ -630,7 +630,7 @@ def run_experiments_provider_multiple_requests(price_wei_per_hour, endpoint, req
     data = []
     WAIT_TIMEOUT = 60.0      # seconds (tweak if needed, or pass as a function arg)
     POLL_INTERVAL = 0.2      # seconds
-    LOOKBACK_BLOCKS = 8     # small safety window to catch recent closes before filter creation
+    LOOKBACK_BLOCKS = 10     # small safety window to catch recent closes before filter creation
 
     process_start_time = time.time()
 

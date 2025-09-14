@@ -5,6 +5,7 @@ import time
 import logging
 # import threading
 import warnings
+import uuid
 import random
 from enum import Enum
 from web3 import Web3, WebsocketProvider, HTTPProvider
@@ -224,7 +225,8 @@ class BlockchainInterface:
                                     
     def announce_service(self, requirements: str, endpoint_consumer: int):
         try:
-            service_id = "service" + str(int(time.time())) + str(random.randint(100, 999))
+            # service_id = "service" + str(int(time.time())) + str(random.randint(100, 999))
+            service_id = "service" + uuid.uuid4().hex[:8]  # Unique service ID
             tx_data = self.contract.functions.announceService(
                 self.web3.toBytes(text=service_id),
                 requirements,
