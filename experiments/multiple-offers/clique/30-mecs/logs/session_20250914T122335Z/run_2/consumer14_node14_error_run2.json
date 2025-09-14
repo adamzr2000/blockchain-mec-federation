@@ -1,0 +1,7 @@
+{
+  "host": "10.5.99.14",
+  "status": 500,
+  "response": {
+    "detail": "Timeout: provider did not confirm deployment"
+  }
+}
