@@ -34,12 +34,10 @@ metrics-port=9545
 permissions-nodes-config-file-enabled=false
 permissions-nodes-config-file="/config/permissions_config.toml"
 
-
-
 # bootnodes
 Xdns-enabled=true
 Xdns-update-enabled=true
-bootnodes=["enode://8208a3f344695d44e9cf2c023683cbea7b9343e2f70a5e804bd2c93858e945f8f91439eef96a4ab6c47ff06637d6fbe6472f96de1655a1bee57ea896654f3a22@validator1:30303"]
+bootnodes=["enode://8208a3f344695d44e9cf2c023683cbea7b9343e2f70a5e804bd2c93858e945f8f91439eef96a4ab6c47ff06637d6fbe6472f96de1655a1bee57ea896654f3a22@validator1:30303", "enode://c5e253f52fd4a725f9b30d203c705c0e9bba9c162a5d40e066c028e6ae67fec3e3c0e325c8be472e40384e4714cd739ae76c3110c68976a8faac74a65c47f5c3@validator10:30303", "enode://63f4d7f8b37dcacacbd1bac2394313cf90fb0c8aa1ba29f3cc3a343ebc1223f083a18ea3034ac990cef0378abcf4fc021b0e959f6627dfa8a34fea111e21e224@validator20:30303"]
 
 # Discovery at boot is set to a list of static files, but will also discover new nodes should they be added
 # static nodes
