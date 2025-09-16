@@ -1,0 +1,11 @@
+step,timestamp
+service_announced,67
+bid_received_1,8520
+bid_received_2,8520
+required_bids_received,8520
+winner_choosen,8843
+confirm_deployment_received,23463
+establish_vxlan_connection_with_provider_start,23464
+establish_vxlan_connection_with_provider_finished,23829
+connection_test_success,24900
+service_id,servicea8a33f66
