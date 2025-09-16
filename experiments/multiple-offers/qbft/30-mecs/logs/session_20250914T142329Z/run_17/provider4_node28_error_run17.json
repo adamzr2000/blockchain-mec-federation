@@ -1,0 +1,7 @@
+{
+  "host": "10.5.99.28",
+  "status": 500,
+  "response": {
+    "detail": "Failed to confirm deployment for service_id service4434b293: Block with id: 'latest' not found."
+  }
+}

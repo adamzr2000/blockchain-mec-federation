@@ -5,6 +5,7 @@ logging="INFO"
 data-path="/opt/besu/data"
 host-allowlist=["*"]
 min-gas-price=0
+tx-pool-limit-by-account-percentage=0.5
 
 # rpc
 rpc-http-enabled=true
