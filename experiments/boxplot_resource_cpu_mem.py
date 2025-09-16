@@ -11,7 +11,7 @@ from pathlib import Path
 
 CSV_PATH = Path("multiple-offers/_summary/resource_usage_per_run.csv")
 
-KEEP_COUNTS     = [10, 20, 30]
+KEEP_COUNTS     = [4, 10, 20, 30]
 CONSENSUS_ORDER = ["clique", "qbft"]
 CONSENSUS_LABEL = {"clique": "Clique", "qbft": "QBFT"}
 PALETTE         = ["#1f77b4", "#ff7f0e"]
@@ -22,7 +22,7 @@ def stylize_axes(ax, ylabel):
         ax.spines[side].set_color("black")
         ax.spines[side].set_linewidth(1.1)
     ax.set_ylim(0, None)
-    ax.set_xlabel("Number of validator nodes (MECs)")
+    ax.set_xlabel("Number of MECs")
     ax.set_ylabel(ylabel)
 
 def main():

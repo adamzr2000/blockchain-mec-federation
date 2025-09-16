@@ -29,13 +29,13 @@ OUT_DIR = ROOT / "plots"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 OUT_PDF = OUT_DIR / "cdf_latency_multiple_offers_total.pdf"
 
-KEEP_COUNTS     = [10, 20, 30]
+KEEP_COUNTS     = [4, 10, 20, 30]
 CONSENSUS_ORDER = ["clique", "qbft"]
 CONSENSUS_LABEL = {"clique": "Clique", "qbft": "QBFT"}
 
 # Colors for 10/20/30 (consistent with your palette)
-PALETTE   = ["#1f77b4", "#2ca02c", "#ff7f0e"]
-MEC_LABEL = {10: "10 MECs", 20: "20 MECs", 30: "30 MECs"}
+PALETTE   = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+MEC_LABEL = {4: "4 MECs", 10: "10 MECs", 20: "20 MECs", 30: "30 MECs"}
 
 VALUE_COL = "c_total_ms"
 LOW_LATENCY_TH_S  = 18.0

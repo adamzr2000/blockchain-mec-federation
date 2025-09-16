@@ -11,7 +11,7 @@ from itertools import product
 
 CSV_PATH = Path("multiple-offers/_summary/consumer_summary.csv")
 
-KEEP_COUNTS     = [10, 20, 30]
+KEEP_COUNTS     = [4, 10, 20, 30]
 KEEP_STR        = [str(x) for x in KEEP_COUNTS]
 CONSENSUS_ORDER = ["clique", "qbft"]
 CONSENSUS_LABEL = {"clique": "Clique", "qbft": "QBFT"}
@@ -80,9 +80,9 @@ def main():
     )
     add_errbars(ax, dplot, "total_std_s")
 
-    ax.set_xlabel("Number of validator nodes (MECs)")
-    ax.set_ylabel("Total federation time (s)")
-    ax.grid(True, axis="y", linestyle="--", color="grey", alpha=0.5)
+    ax.set_xlabel("Number of MECs")
+    ax.set_ylabel("Time (s)")
+    ax.grid(True, which="both", axis="both", linestyle="--", color="grey", alpha=0.5)
     for side in ("top","right","bottom","left"):
         ax.spines[side].set_color("black")
         ax.spines[side].set_linewidth(1.1)

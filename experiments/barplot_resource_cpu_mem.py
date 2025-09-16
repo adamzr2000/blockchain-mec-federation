@@ -10,7 +10,7 @@ from itertools import product
 
 CSV_PATH = Path("multiple-offers/_summary/resource_usage_overall.csv")
 
-KEEP_COUNTS     = [10, 20, 30]
+KEEP_COUNTS     = [4, 10, 20, 30]
 KEEP_STR        = [str(x) for x in KEEP_COUNTS]
 CONSENSUS_ORDER = ["clique", "qbft"]
 CONSENSUS_LABEL = {"clique": "Clique", "qbft": "QBFT"}
@@ -46,7 +46,7 @@ def prep(df, mean_col, std_col):
     return out
 
 def stylize_axes(ax):
-    ax.grid(axis="y", linestyle="--", color="grey", alpha=0.5)
+    ax.grid(True, which="both", axis="both", linestyle="--", color="grey", alpha=0.5)
     for side in ("top", "right", "bottom", "left"):
         ax.spines[side].set_color("black")
         ax.spines[side].set_linewidth(1.1)
@@ -91,7 +91,7 @@ def main():
     df["mem_mean_mb"]   = df[mem_mean_col]
     df["mem_std_mb"]    = df[mem_std_col]
 
-    sns.set_theme(context="paper", style="whitegrid")
+    sns.set_theme(context="paper", style="ticks")
     sns.set_context("paper", font_scale=1.5)
 
     fig, axes = plt.subplots(1, 2, figsize=(12.5, 4.8), gridspec_kw={"wspace": 0.3})
@@ -105,7 +105,7 @@ def main():
         errorbar=None, ax=ax0
     )
     add_errbars(ax0, d_cpu, "cpu_mean_vcpu", "cpu_std_vcpu")
-    ax0.set_xlabel("Number of validator nodes (MECs)")
+    ax0.set_xlabel("Number of MECs")
     ax0.set_ylabel("CPU usage (vCPUs)")
     stylize_axes(ax0)
     h0, l0 = ax0.get_legend_handles_labels()
@@ -122,7 +122,7 @@ def main():
         errorbar=None, ax=ax1
     )
     add_errbars(ax1, d_mem, "mem_mean_mb", "mem_std_mb")
-    ax1.set_xlabel("Number of validator nodes (MECs)")
+    ax1.set_xlabel("Number of MECs")
     ax1.set_ylabel("Memory usage (MB)")
     stylize_axes(ax1)
     h1, l1 = ax1.get_legend_handles_labels()

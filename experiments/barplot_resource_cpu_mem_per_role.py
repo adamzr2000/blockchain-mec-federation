@@ -9,7 +9,7 @@ from pathlib import Path
 
 CSV_PATH = Path("multiple-offers/_summary/resource_usage_overall_per_role.csv")
 
-KEEP_COUNTS     = [10, 20, 30]
+KEEP_COUNTS     = [4, 10, 20, 30]
 CONSENSUS_ORDER = ["clique", "qbft"]
 ROLE_ORDER      = ["consumer", "provider"]
 ROLE_LABEL      = {"consumer": "Consumer", "provider": "Provider"}
@@ -33,7 +33,8 @@ def choose_aggregation(df):
     return df, None
 
 def stylize(ax):
-    ax.grid(axis="y", linestyle="--", color="grey", alpha=0.45)
+    # ax.grid(axis="y", linestyle="--", color="grey", alpha=0.45)
+    ax.grid(True, which="both", axis="both", linestyle="--", color="grey", alpha=0.5)
     for side in ("top", "right", "bottom", "left"):
         ax.spines[side].set_color("black")
         ax.spines[side].set_linewidth(1.1)
@@ -115,7 +116,7 @@ def main():
     df["mem_mean_mb"]   = df[mem_mean_col]
     df["mem_std_mb"]    = df[mem_std_col]
 
-    sns.set_theme(context="paper", style="whitegrid")
+    sns.set_theme(context="paper", style="ticks")
     sns.set_context("paper", font_scale=1.35)
 
     fig, axes = plt.subplots(
