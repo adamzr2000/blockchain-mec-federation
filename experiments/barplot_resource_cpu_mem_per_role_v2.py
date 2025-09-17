@@ -128,7 +128,7 @@ def plot_panel(ax, df_role, y_col, std_col, title=None, ylabel=None, xlabel=None
     if show_legend:
         handles, labels = ax.get_legend_handles_labels()
         labels = [CONSENSUS_LABEL.get(l, l) for l in labels]
-        leg = ax.legend(handles, labels, title=None, frameon=True, loc="upper left", fancybox=False)
+        leg = ax.legend(handles, labels, title=None, frameon=True, loc="upper left", fancybox=True)
         leg.get_frame().set_edgecolor("black")
         leg.get_frame().set_linewidth(1.1)
     else:

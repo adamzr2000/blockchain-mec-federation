@@ -110,7 +110,7 @@ def main():
     stylize_axes(ax0)
     h0, l0 = ax0.get_legend_handles_labels()
     l0 = [CONSENSUS_LABEL.get(x, x) for x in l0]
-    leg0 = ax0.legend(h0, l0, title=None, frameon=True, loc="upper left", fancybox=False)
+    leg0 = ax0.legend(h0, l0, title=None, frameon=True, loc="upper left", fancybox=True)
     leg0.get_frame().set_edgecolor("black"); leg0.get_frame().set_linewidth(1.1)
 
     # ---- Memory panel ----
@@ -127,7 +127,7 @@ def main():
     stylize_axes(ax1)
     h1, l1 = ax1.get_legend_handles_labels()
     l1 = [CONSENSUS_LABEL.get(x, x) for x in l1]
-    leg1 = ax1.legend(h1, l1, title=None, frameon=True, loc="upper left", fancybox=False)
+    leg1 = ax1.legend(h1, l1, title=None, frameon=True, loc="upper left", fancybox=True)
     leg1.get_frame().set_edgecolor("black"); leg1.get_frame().set_linewidth(1.1)
 
     plt.show()
