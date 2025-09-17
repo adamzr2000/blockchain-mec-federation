@@ -1,0 +1,5 @@
+fastapi[all]
+docker
+httpx
+authlib
+python-jose

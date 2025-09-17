@@ -4,6 +4,10 @@ services:
     build:
       context: ./dockerfiles/mef-blockchain-manager
     image:  mef-blockchain-manager:latest
+  mef-soa:
+    build:
+      context: ./dockerfiles/mef-soa
+    image:  mef-soa:latest  
   meo:
     build:
       context: ./dockerfiles/meo
