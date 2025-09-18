@@ -1,0 +1,17 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,78
+admission_resp_provider_2,104
+admission_resp_provider_3,151
+admission_resp_provider_4,179
+admission_resp_provider_5,227
+admission_resp_provider_6,266
+required_offers_received,266
+provider_chosen,266
+deploy_request_sent,267
+confirm_deployment_received,3908
+establish_vxlan_connection_with_provider_start,3909
+establish_vxlan_connection_with_provider_finished,4174
+connection_test_success,5799
+service_id,service19e09cf3
+provider_id,provider_4
