@@ -144,7 +144,16 @@ curl -X POST http://localhost:8545 \
 ## SoA
 ```shell
 python3 ssh_mef_meo_soa.py --start -n 4 -c 3 --mef --meo
+
 python3 register_federation_participants_soa.py -n 4 -c 3
+
+python3 run_experiments_registration_soa.py -n 4 -c 3 -t 5
+
+python3 run_experiments_registration_soa.py -n 4 -c 3 -t 20 --export-csv --csv-base /experiments/registration/soa/4-mecs
+
+python3 run_experiments_multiple_offers_soa.py -n 4 -c 3 -t 1 
+
+python3 run_experiments_multiple_offers_soa.py -n 4 -c 3 -t 20 --export-csv --csv-base /experiments/multiple-offers/soa/4-mecs
 ```
 
 ```shell

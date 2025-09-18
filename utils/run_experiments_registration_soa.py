@@ -22,7 +22,7 @@ DEFAULT_SUBNET = "10.5.99."
 DEFAULT_PORT = 8000
 DEFAULT_SCHEME = "http"
 DEFAULT_TIMEOUT = 8.0
-PAUSE_BETWEEN_RUNS = 5.0
+PAUSE_BETWEEN_RUNS = 2.0
 
 def _safe_json(resp: requests.Response):
     try:
@@ -109,6 +109,8 @@ def run_once(nodes: int, consumers: int, scheme: str, subnet: str, port: int,
 
         print(f"[run {run_idx}] autoRegister ok: {auto_ok}/{len(consumer_urls)}")
 
+    time.sleep(2)
+    
     # Phase 2: cleanup on all nodes
     clr_ok = 0
     with ThreadPoolExecutor(max_workers=max(1, len(urls))) as pool:

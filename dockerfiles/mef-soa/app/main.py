@@ -215,7 +215,8 @@ def admission_check(req: AdmissionCheckRequest, authorization: str = Header(None
         raise HTTPException(status_code=401, detail=str(e))
 
     # Dummy feasibility: 70% admit; vcpus in [1..8] if admitted, else 0
-    admit = random.random() < 0.7
+    # admit = random.random() < 0.7
+    admit = True
     vcpus = random.randint(1, 16) if admit else 0
 
     return AdmissionResponse(
