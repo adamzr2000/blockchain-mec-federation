@@ -1,0 +1,11 @@
+step,timestamp
+service_announced,81
+bid_received_1,7080
+bid_received_2,7080
+required_bids_received,7080
+winner_choosen,7402
+confirm_deployment_received,26587
+establish_vxlan_connection_with_provider_start,26587
+establish_vxlan_connection_with_provider_finished,27826
+connection_test_success,28879
+service_id,serviced1575fca
