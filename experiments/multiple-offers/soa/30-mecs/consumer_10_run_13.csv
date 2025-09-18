@@ -1,0 +1,17 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,57
+admission_resp_provider_2,100
+admission_resp_provider_3,131
+admission_resp_provider_4,166
+admission_resp_provider_5,177
+admission_resp_provider_6,223
+required_offers_received,223
+provider_chosen,223
+deploy_request_sent,223
+confirm_deployment_received,3416
+establish_vxlan_connection_with_provider_start,3416
+establish_vxlan_connection_with_provider_finished,3668
+connection_test_success,5231
+service_id,serviceee62c676
+provider_id,provider_5
