@@ -1,0 +1,17 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,78
+admission_resp_provider_2,106
+admission_resp_provider_3,119
+admission_resp_provider_4,132
+admission_resp_provider_5,173
+admission_resp_provider_6,250
+required_offers_received,250
+provider_chosen,250
+deploy_request_sent,251
+confirm_deployment_received,2090
+establish_vxlan_connection_with_provider_start,2090
+establish_vxlan_connection_with_provider_finished,2381
+connection_test_success,4024
+service_id,servicedd96c619
+provider_id,provider_1
