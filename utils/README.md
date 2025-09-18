@@ -142,20 +142,65 @@ curl -X POST http://localhost:8545 \
 ```
 
 ## SoA
+``` shell
+python3 register_federation_participants_soa.py -n 4 -c 3
+python3 run_experiments_registration_soa.py -n 4 -c 3 -t 5
+python3 run_experiments_multiple_offers_soa.py -n 4 -c 3 -t 1
+python3 unregister_federation_participants_soa.py -n 4
+```
+
 ```shell
+#1
 python3 ssh_mef_meo_soa.py --start -n 4 -c 3 --mef --meo
 
-python3 register_federation_participants_soa.py -n 4 -c 3
-
-python3 run_experiments_registration_soa.py -n 4 -c 3 -t 5
-
+#2
 python3 run_experiments_registration_soa.py -n 4 -c 3 -t 20 --export-csv --csv-base /experiments/registration/soa/4-mecs
 
-python3 run_experiments_multiple_offers_soa.py -n 4 -c 3 -t 1 
+#3
+python3 register_federation_participants_soa.py -n 4 -c 3
 
+#4
 python3 run_experiments_multiple_offers_soa.py -n 4 -c 3 -t 20 --export-csv --csv-base /experiments/multiple-offers/soa/4-mecs
 ```
 
 ```shell
-python3 unregister_federation_participants_soa.py -n 4
+#1
+python3 ssh_mef_meo_soa.py --start -n 10 -c 8 --mef --meo
+
+#2
+python3 run_experiments_registration_soa.py -n 10 -c 8 -t 20 --export-csv --csv-base /experiments/registration/soa/10-mecs
+
+#3
+python3 register_federation_participants_soa.py -n 10 -c 8
+
+#4
+python3 run_experiments_multiple_offers_soa.py -n 10 -c 8 -t 20 --export-csv --csv-base /experiments/multiple-offers/soa/10-mecs
+```
+
+```shell
+#1
+python3 ssh_mef_meo_soa.py --start -n 20 -c 16 --mef --meo
+
+#2
+python3 run_experiments_registration_soa.py 20 -c 16 -t 20 --export-csv --csv-base /experiments/registration/soa/20-mecs
+
+#3
+python3 register_federation_participants_soa.py 20 -c 16
+
+#4
+python3 run_experiments_multiple_offers_soa.py 20 -c 16 -t 20 --export-csv --csv-base /experiments/multiple-offers/soa/20-mecs
+```
+
+```shell
+#1
+python3 ssh_mef_meo_soa.py --start -n 30 -c 24 --mef --meo
+
+#2
+python3 run_experiments_registration_soa.py -n 30 -c 24 -t 20 --export-csv --csv-base /experiments/registration/soa/30-mecs
+
+#3
+python3 register_federation_participants_soa.py -n 30 -c 24
+
+#4
+python3 run_experiments_multiple_offers_soa.py -n 30 -c 24 -t 20 --export-csv --csv-base /experiments/multiple-offers/soa/30-mecs
 ```

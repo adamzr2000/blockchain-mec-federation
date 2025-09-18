@@ -152,7 +152,6 @@ def run_one(total_nodes: int, num_consumers: int, run_idx: int) -> None:
         meo_deploy_consumer_app(cons["ip"])
 
     time.sleep(3)
-    
     # 2) Trigger consumers in parallel
     with ThreadPoolExecutor(max_workers=min(32, len(consumers))) as pool:
         futs = [
