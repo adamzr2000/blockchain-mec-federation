@@ -217,7 +217,7 @@ def parse_args():
     ap.add_argument("-t", "--tests", type=int, required=True, help="Number of runs")
     ap.add_argument("--export-csv", action="store_true", default=False, help="Ask consumers to export CSVs")
     ap.add_argument("--csv-base", default="/experiments/test", help="Remote base path for CSVs")
-    ap.add_argument("--timeout", type=float, default=10.0, help="HTTP timeout in seconds")
+    ap.add_argument("--timeout", type=float, default=30.0, help="HTTP timeout in seconds")
     return ap.parse_args()
 
 def main() -> int:
