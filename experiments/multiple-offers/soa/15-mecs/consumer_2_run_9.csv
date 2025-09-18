@@ -1,0 +1,14 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,38
+admission_resp_provider_2,48
+admission_resp_provider_3,57
+required_offers_received,57
+provider_chosen,57
+deploy_request_sent,58
+confirm_deployment_received,2819
+establish_vxlan_connection_with_provider_start,2820
+establish_vxlan_connection_with_provider_finished,3097
+connection_test_success,4699
+service_id,servicebd40471e
+provider_id,provider_1
