@@ -256,7 +256,7 @@ def main():
 
     fig.tight_layout()
     outdir = Path("plots"); outdir.mkdir(parents=True, exist_ok=True)
-    fname = f"stacked_durations_consumer_provider_{args.agg}_{args.err}_nolabellegend_sharey.pdf"
+    fname = f"stacked_durations_consumer_provider_{args.agg}_{args.err}.pdf"
     fig.savefig(outdir / fname, dpi=300, bbox_inches="tight")
     print(f"Saved plots/{fname}")
     print(f"[centers] {args.agg} of per-node medians | [errors] {args.err} | shared y-axis | consensus labels above bars")

@@ -140,3 +140,13 @@ curl -X POST http://localhost:8545 \
     "id":1
   }'
 ```
+
+## SoA
+```shell
+python3 ssh_mef_meo_soa.py --start -n 4 -c 3 --mef --meo
+python3 register_federation_participants_soa.py -n 4 -c 3
+```
+
+```shell
+python3 unregister_federation_participants_soa.py -n 4
+```
