@@ -1,0 +1,17 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,72
+admission_resp_provider_2,105
+admission_resp_provider_3,116
+admission_resp_provider_4,189
+admission_resp_provider_5,200
+admission_resp_provider_6,239
+required_offers_received,239
+provider_chosen,240
+deploy_request_sent,240
+confirm_deployment_received,2485
+establish_vxlan_connection_with_provider_start,2485
+establish_vxlan_connection_with_provider_finished,2769
+connection_test_success,4409
+service_id,service345cd99e
+provider_id,provider_4

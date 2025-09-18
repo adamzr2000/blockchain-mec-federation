@@ -1,0 +1,17 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,72
+admission_resp_provider_2,98
+admission_resp_provider_3,114
+admission_resp_provider_4,140
+admission_resp_provider_5,217
+admission_resp_provider_6,293
+required_offers_received,293
+provider_chosen,293
+deploy_request_sent,293
+confirm_deployment_received,3682
+establish_vxlan_connection_with_provider_start,3682
+establish_vxlan_connection_with_provider_finished,3967
+connection_test_success,5606
+service_id,service984a2f2b
+provider_id,provider_6
