@@ -39,7 +39,7 @@ VXLAN_NETNAME = "fed-net"   # consumer-side fixed name in your MEF-SoA
 # Globals set from CLI
 EXPORT_TO_CSV = False
 CSV_BASE = "/experiments/test"
-TIMEOUT = 10.0  # seconds
+TIMEOUT = 30.0  # seconds
 
 # ------------- HTTP helpers -------------
 def _safe_json(resp: requests.Response):

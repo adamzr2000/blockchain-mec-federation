@@ -119,7 +119,7 @@ def deploy_service(meo_endpoint, image, name, net, replicas, start_host_port=Non
     last = None
     while time.time() < end:
         try:
-            r = requests.post(meo_endpoint, params=params, timeout=10)
+            r = requests.post(meo_endpoint, params=params, timeout=30)
             if r.ok:
                 d = r.json()
                 if d.get("success") is True:
@@ -146,7 +146,7 @@ def service_ips(meo_endpoint, name, timeout=60, interval=2.0):
     end=time.time()+timeout; last=None
     while time.time()<end:
         try:
-            r=requests.get(meo_endpoint,params=params,timeout=10)
+            r=requests.get(meo_endpoint,params=params,timeout=30)
             if r.ok:
                 d=r.json()
                 if d.get("success") is True:
@@ -165,7 +165,7 @@ def delete_service(meo_endpoint, name, timeout=60, interval=2.0):
     end=time.time()+timeout; last=None
     while time.time()<end:
         try:
-            r=requests.delete(meo_endpoint,params=params,timeout=10)
+            r=requests.delete(meo_endpoint,params=params,timeout=30)
             if r.ok:
                 d=r.json()
                 if d.get("success") is True:
@@ -213,7 +213,7 @@ def configure_vxlan(meo_endpoint, local_ip, remote_ip, interface_name, vxlan_id,
     end=time.time()+timeout; last=None
     while time.time()<end:
         try:
-            r=requests.post(meo_endpoint,params=p,timeout=10)
+            r=requests.post(meo_endpoint,params=p,timeout=30)
             if r.ok:
                 d=r.json()
                 if d.get("success") is True: return {"message":d.get("message","ok")}
@@ -234,7 +234,7 @@ def delete_vxlan(meo_endpoint, vxlan_id, docker_net_name, timeout=60, interval=2
     end=time.time()+timeout; last=None
     while time.time()<end:
         try:
-            r=requests.delete(meo_endpoint,params=p,timeout=10)
+            r=requests.delete(meo_endpoint,params=p,timeout=30)
             if r.ok:
                 d=r.json()
                 if d.get("success") is True: return {"message":d.get("message","ok")}
@@ -255,7 +255,7 @@ def attach_to_network(meo_endpoint, container_name, network_name, timeout=60, in
     end=time.time()+timeout; last=None
     while time.time()<end:
         try:
-            r=requests.post(meo_endpoint,params=p,timeout=10)
+            r=requests.post(meo_endpoint,params=p,timeout=30)
             if r.ok:
                 d=r.json()
                 if d.get("success") is True: return {"message":d.get("message","ok")}

@@ -317,7 +317,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait,
     header = ['step', 'timestamp']
     data = []
     t0 = time.time()
-    WAIT_HTTP = 10
+    WAIT_HTTP = 30
 
     # Parse local endpoint
     local_ip, vxlan_id, vxlan_port, federation_net = extract_service_endpoint(endpoint)
