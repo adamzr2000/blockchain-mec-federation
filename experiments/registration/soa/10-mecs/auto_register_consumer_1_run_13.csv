@@ -1,5 +1,0 @@
-step,timestamp
-auto_register_start,0
-register_http://10.5.99.9:8000_ok,13
-register_http://10.5.99.10:8000_ok,25
-auto_register_done,25
