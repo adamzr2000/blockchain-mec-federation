@@ -182,13 +182,13 @@ python3 run_experiments_multiple_offers_soa.py -n 10 -c 8 -t 20 --export-csv --c
 python3 ssh_mef_meo_soa.py --start -n 20 -c 16 --mef --meo
 
 #2
-python3 run_experiments_registration_soa.py 20 -c 16 -t 20 --export-csv --csv-base /experiments/registration/soa/20-mecs
+python3 run_experiments_registration_soa.py -n 20 -c 16 -t 20 --export-csv --csv-base /experiments/registration/soa/20-mecs
 
 #3
-python3 register_federation_participants_soa.py 20 -c 16
+python3 register_federation_participants_soa.py -n 20 -c 16
 
 #4
-python3 run_experiments_multiple_offers_soa.py 20 -c 16 -t 20 --export-csv --csv-base /experiments/multiple-offers/soa/20-mecs
+python3 run_experiments_multiple_offers_soa.py -n 20 -c 16 -t 20 --export-csv --csv-base /experiments/multiple-offers/soa/20-mecs
 ```
 
 ```shell

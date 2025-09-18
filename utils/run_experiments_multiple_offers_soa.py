@@ -55,6 +55,14 @@ def post_json(url: str, payload: Dict[str, Any]) -> Tuple[int, Any]:
     except Exception as e:
         return 599, {"error": str(e), "url": url, "payload": payload}
 
+
+def post_no_body(url: str) -> Tuple[int, Any]:
+    try:
+        r = requests.post(url, timeout=TIMEOUT)
+        return r.status_code, _safe_json(r)
+    except Exception as e:
+        return 599, {"error": str(e), "url": url}
+    
 def post_params(url: str, params: Dict[str, Any]) -> Tuple[int, Any]:
     try:
         r = requests.post(url, params=params, timeout=TIMEOUT)
@@ -75,6 +83,17 @@ def is_error(status: int, body: Any) -> bool:
     if isinstance(body, dict) and body.get("success") is False:
         return True
     return False
+
+# ------------- Provider MEF helper -------------
+def provider_reset_counter(host_ip: str, pidx: int, node_id: int) -> None:
+    url = f"http://{host_ip}:{MEF_PORT}/deploy/counter/reset"
+    print(f"[provider{pidx} node{node_id}] reset deploy counter → POST {url}")
+    sc, resp = post_no_body(url)
+    if is_error(sc, resp):
+        print(f"[provider{pidx} node{node_id}] reset counter ERROR: {sc} {resp}")
+    else:
+        # resp is like {"status":"ok","before":X,"after":0}
+        print(f"[provider{pidx} node{node_id}] reset counter OK: {resp}")
 
 # ------------- MEO helpers -------------
 def meo_deploy_consumer_app(consumer_ip: str) -> None:
@@ -106,6 +125,14 @@ def meo_delete_vxlan(host_ip: str, vxlan_id: int, netname: str, tag: str) -> Non
     sc, resp = delete_params(url, params)
     if is_error(sc, resp):
         print(f"[{tag}] delete VXLAN ERROR: {sc} {resp}")
+
+def meo_cleanup_consumer(host_ip: str, tag: str) -> None:
+    url = f"http://{host_ip}:{MEO_PORT}/cleanup"
+    params = {"container_prefix": "mecapp", "network_prefix": "fed-net", "vxlan_prefix": "vxlan"}
+    print(f"[{tag}] consumer cleanup → DELETE {url} params={params}")
+    sc, resp = delete_params(url, params)
+    if is_error(sc, resp):
+        print(f"[{tag}] consumer cleanup ERROR: {sc} {resp}")
 
 def meo_cleanup_provider(host_ip: str, tag: str) -> None:
     url = f"http://{host_ip}:{MEO_PORT}/cleanup"
@@ -152,6 +179,7 @@ def run_one(total_nodes: int, num_consumers: int, run_idx: int) -> None:
         meo_deploy_consumer_app(cons["ip"])
 
     time.sleep(3)
+
     # 2) Trigger consumers in parallel
     with ThreadPoolExecutor(max_workers=min(32, len(consumers))) as pool:
         futs = [
@@ -163,16 +191,23 @@ def run_one(total_nodes: int, num_consumers: int, run_idx: int) -> None:
     ok_cons = sum(1 for r in results if r["status"] < 400)
     print(f"[run {run_idx}] consumers ok: {ok_cons}/{len(consumers)}")
 
+    time.sleep(2)
+
     # 3) Cleanup
     # Consumers: delete app + VXLAN (id = 200 + node_id), net = "fed-net"
     for cidx, cons in enumerate(consumers, start=1):
-        meo_delete_service(cons["ip"], APP_NAME, tag=f"consumer{cidx}_node{cons['node_id']}")
-        vxlan_id = 200 + int(cons["node_id"])
-        meo_delete_vxlan(cons["ip"], vxlan_id, VXLAN_NETNAME, tag=f"consumer{cidx}_node{cons['node_id']}")
+        # meo_delete_service(cons["ip"], APP_NAME, tag=f"consumer{cidx}_node{cons['node_id']}")
+        # vxlan_id = 200 + int(cons["node_id"])
+        # meo_delete_vxlan(cons["ip"], vxlan_id, VXLAN_NETNAME, tag=f"consumer{cidx}_node{cons['node_id']}")
+        meo_cleanup_consumer(cons["ip"], tag=f"consumer{cidx}_node{cons['node_id']}")
 
     # Providers: cleanup via MEO
     for pidx, prov in enumerate(providers, start=1):
         meo_cleanup_provider(prov["ip"], tag=f"provider{pidx}_node{prov['node_id']}")
+
+    # 0) Reset providers' deploy counters (to avoid name/port collisions)
+    for pidx, prov in enumerate(providers, start=1):
+        provider_reset_counter(prov["ip"], pidx, prov["node_id"])
 
 # ------------- CLI -------------
 def parse_args():

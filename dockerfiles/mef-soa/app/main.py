@@ -241,9 +241,12 @@ def deploy_service(req: DeployRequest):
 
     # Unique names/ports (thread-safe)
     idx = next_deploy_index()
-    svc_name = f"mecapp-{idx}"
-    net_name = f"fed-net-{idx}"
+    # svc_name = f"mecapp-{idx}"
+    # net_name = f"fed-net-{idx}"
     svc_host_port = 5000 + idx
+
+    svc_name = f"mecapp-{req.service_id}-{idx}" 
+    net_name = f"fed-net-{req.service_id}-{idx}"
 
     # Configure VXLAN (provider side)
     meo_cfg_url = f"{MEO_URL}/configure_vxlan"
@@ -413,6 +416,7 @@ def run_experiments_consumer(requirements, endpoint, offers_to_wait,
     finally:
         data.append(['establish_vxlan_connection_with_provider_finished', _now_ms(t0)])
 
+    time.sleep(0.5)
     # 6) Connectivity test (ping the provider app)
     logger.info(f"📡 Ping test from mecapp_1 → {app_ip}")
     ping = exec_cmd(f"{MEO_URL}/exec", "mecapp_1", f"ping -c 6 -i 0.2 {app_ip}")
