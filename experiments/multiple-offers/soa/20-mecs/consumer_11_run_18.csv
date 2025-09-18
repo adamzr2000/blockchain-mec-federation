@@ -1,0 +1,15 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,17
+admission_resp_provider_2,30
+admission_resp_provider_3,73
+admission_resp_provider_4,89
+required_offers_received,89
+provider_chosen,89
+deploy_request_sent,90
+confirm_deployment_received,13139
+establish_vxlan_connection_with_provider_start,13139
+establish_vxlan_connection_with_provider_finished,13353
+connection_test_success,14963
+service_id,service2cbc2162
+provider_id,provider_1
