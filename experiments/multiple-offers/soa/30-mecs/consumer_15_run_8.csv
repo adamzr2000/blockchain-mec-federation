@@ -1,0 +1,17 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,78
+admission_resp_provider_2,97
+admission_resp_provider_3,111
+admission_resp_provider_4,137
+admission_resp_provider_5,179
+admission_resp_provider_6,211
+required_offers_received,211
+provider_chosen,211
+deploy_request_sent,211
+confirm_deployment_received,1890
+establish_vxlan_connection_with_provider_start,1891
+establish_vxlan_connection_with_provider_finished,2139
+connection_test_success,3783
+service_id,servicec8f6209e
+provider_id,provider_6
