@@ -1,0 +1,11 @@
+step,timestamp
+service_announced,81
+bid_received_1,5753
+bid_received_2,5753
+required_bids_received,5753
+winner_choosen,6064
+confirm_deployment_received,25635
+establish_vxlan_connection_with_provider_start,25635
+establish_vxlan_connection_with_provider_finished,25873
+connection_test_success,27005
+service_id,servicebaf22fcc
