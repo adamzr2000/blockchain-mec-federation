@@ -1,0 +1,16 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,39
+admission_resp_provider_2,56
+admission_resp_provider_3,80
+admission_resp_provider_4,111
+admission_resp_provider_5,120
+required_offers_received,120
+provider_chosen,120
+deploy_request_sent,120
+confirm_deployment_received,1111
+establish_vxlan_connection_with_provider_start,1111
+establish_vxlan_connection_with_provider_finished,1332
+connection_test_success,2907
+service_id,service16b4424e
+provider_id,provider_5

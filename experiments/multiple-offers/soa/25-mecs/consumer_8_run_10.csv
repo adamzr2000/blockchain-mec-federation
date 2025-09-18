@@ -1,0 +1,16 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,63
+admission_resp_provider_2,79
+admission_resp_provider_3,96
+admission_resp_provider_4,126
+admission_resp_provider_5,151
+required_offers_received,151
+provider_chosen,151
+deploy_request_sent,152
+confirm_deployment_received,2130
+establish_vxlan_connection_with_provider_start,2130
+establish_vxlan_connection_with_provider_finished,2374
+connection_test_success,3962
+service_id,serviceaa8340e5
+provider_id,provider_5
