@@ -1,0 +1,9 @@
+step,timestamp
+auto_register_start,0
+register_http://10.5.99.25:8000_ok,35
+register_http://10.5.99.26:8000_ok,54
+register_http://10.5.99.27:8000_ok,61
+register_http://10.5.99.28:8000_ok,75
+register_http://10.5.99.29:8000_ok,82
+register_http://10.5.99.30:8000_ok,94
+auto_register_done,94
