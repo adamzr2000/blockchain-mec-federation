@@ -1,0 +1,96 @@
+{
+  "algorithm": "clique",
+  "nodes": [
+    {
+      "name": "validator1",
+      "client": "besu",
+      "rpcUrl": "http://validator1:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator2",
+      "client": "besu",
+      "rpcUrl": "http://validator2:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator3",
+      "client": "besu",
+      "rpcUrl": "http://validator3:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator4",
+      "client": "besu",
+      "rpcUrl": "http://validator4:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator5",
+      "client": "besu",
+      "rpcUrl": "http://validator5:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator6",
+      "client": "besu",
+      "rpcUrl": "http://validator6:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator7",
+      "client": "besu",
+      "rpcUrl": "http://validator7:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator8",
+      "client": "besu",
+      "rpcUrl": "http://validator8:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator9",
+      "client": "besu",
+      "rpcUrl": "http://validator9:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator10",
+      "client": "besu",
+      "rpcUrl": "http://validator10:8545",
+      "privateTxUrl": ""
+    },  
+    {
+      "name": "validator11",
+      "client": "besu",
+      "rpcUrl": "http://validator11:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator12",
+      "client": "besu",
+      "rpcUrl": "http://validator12:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator13",
+      "client": "besu",
+      "rpcUrl": "http://validator13:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator14",
+      "client": "besu",
+      "rpcUrl": "http://validator14:8545",
+      "privateTxUrl": ""
+    },
+    {
+      "name": "validator15",
+      "client": "besu",
+      "rpcUrl": "http://validator15:8545",
+      "privateTxUrl": ""
+    }
+  ]
+}
+ 

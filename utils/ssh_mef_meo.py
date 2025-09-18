@@ -26,10 +26,12 @@ def exec_on_host(host: str, cmd: str) -> bool:
         return False
 
 def get_base_dir(total_nodes: int) -> str:
-    valid_options = [4, 10, 20, 30]
+    valid_options = [4, 10, 15, 20, 25, 30]
     if total_nodes not in valid_options:
-        raise ValueError(f"Unsupported validator count: {total_nodes}. "
-                         f"Choose one of {valid_options}")
+        raise ValueError(
+            f"Unsupported validator count: {total_nodes}. "
+            f"Choose one of {valid_options}"
+        )
     return f"blockchain-network/hyperledger-besu/quorum-test-network-{total_nodes}-validators"
 
 # --- MEF part (adapted for Besu setup) ---

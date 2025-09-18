@@ -24,12 +24,11 @@ BASE_PATH = "/home/netcom/blockchain-mec-federation/blockchain-network/hyperledg
 
 def get_base_dir(total_nodes: int) -> str:
     """Return the correct quorum-test-network directory based on validator count."""
-    valid_options = [4, 10, 20, 30]
+    valid_options = [4, 10, 15, 20, 25, 30]
     if total_nodes not in valid_options:
         raise ValueError(f"Unsupported validator count: {total_nodes}. "
                          f"Choose one of {valid_options}")
     return f"{BASE_PATH}/quorum-test-network-{total_nodes}-validators"
-
 
 def execute_ssh_command(host: str, command: str) -> bool:
     """Run a command on a remote host over SSH, printing debug info."""
@@ -56,7 +55,7 @@ def start_besu_network(total_nodes: int) -> None:
         node_ip = f"{SUBNET_PREFIX}{i}"
         compose_file = f"docker-compose-validator{i}.yml"
         execute_ssh_command(node_ip, f"{base_command} ./run.sh {compose_file}")
-        time.sleep(3)  # small delay to avoid race conditions
+        time.sleep(2)  # small delay to avoid race conditions
 
 
 def stop_besu_network(total_nodes: int) -> None:
@@ -66,7 +65,6 @@ def stop_besu_network(total_nodes: int) -> None:
         node_ip = f"{SUBNET_PREFIX}{i}"
         compose_file = f"docker-compose-validator{i}.yml"
         execute_ssh_command(node_ip, f"{base_command} ./remove.sh {compose_file}")
-        time.sleep(2)
 
 
 def parse_args():
