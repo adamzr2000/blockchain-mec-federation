@@ -1,0 +1,16 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,67
+admission_resp_provider_2,95
+admission_resp_provider_3,132
+admission_resp_provider_4,179
+admission_resp_provider_5,205
+required_offers_received,205
+provider_chosen,205
+deploy_request_sent,206
+confirm_deployment_received,1806
+establish_vxlan_connection_with_provider_start,1807
+establish_vxlan_connection_with_provider_finished,2103
+connection_test_success,3768
+service_id,servicecb7620c3
+provider_id,provider_4
