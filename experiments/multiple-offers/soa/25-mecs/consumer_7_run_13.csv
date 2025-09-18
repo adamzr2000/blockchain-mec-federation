@@ -1,0 +1,16 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,52
+admission_resp_provider_2,63
+admission_resp_provider_3,95
+admission_resp_provider_4,125
+admission_resp_provider_5,172
+required_offers_received,172
+provider_chosen,172
+deploy_request_sent,172
+confirm_deployment_received,2620
+establish_vxlan_connection_with_provider_start,2621
+establish_vxlan_connection_with_provider_finished,2868
+connection_test_success,4450
+service_id,service8dbd200e
+provider_id,provider_3

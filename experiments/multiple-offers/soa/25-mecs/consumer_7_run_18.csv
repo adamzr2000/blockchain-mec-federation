@@ -1,0 +1,16 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,68
+admission_resp_provider_2,75
+admission_resp_provider_3,99
+admission_resp_provider_4,136
+admission_resp_provider_5,150
+required_offers_received,150
+provider_chosen,150
+deploy_request_sent,150
+confirm_deployment_received,2547
+establish_vxlan_connection_with_provider_start,2548
+establish_vxlan_connection_with_provider_finished,2812
+connection_test_success,4407
+service_id,servicea8da140d
+provider_id,provider_5
