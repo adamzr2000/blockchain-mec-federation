@@ -1,0 +1,17 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,79
+admission_resp_provider_2,128
+admission_resp_provider_3,176
+admission_resp_provider_4,201
+admission_resp_provider_5,226
+admission_resp_provider_6,263
+required_offers_received,263
+provider_chosen,263
+deploy_request_sent,264
+confirm_deployment_received,3582
+establish_vxlan_connection_with_provider_start,3583
+establish_vxlan_connection_with_provider_finished,3856
+connection_test_success,5492
+service_id,service16f2c151
+provider_id,provider_6
