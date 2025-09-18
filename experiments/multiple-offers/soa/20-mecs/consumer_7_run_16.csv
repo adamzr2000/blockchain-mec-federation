@@ -1,0 +1,15 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,20
+admission_resp_provider_2,43
+admission_resp_provider_3,68
+admission_resp_provider_4,109
+required_offers_received,109
+provider_chosen,109
+deploy_request_sent,109
+confirm_deployment_received,10461
+establish_vxlan_connection_with_provider_start,10461
+establish_vxlan_connection_with_provider_finished,10701
+connection_test_success,12274
+service_id,serviceabd7210a
+provider_id,provider_4
