@@ -1,0 +1,16 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,39
+admission_resp_provider_2,69
+admission_resp_provider_3,83
+admission_resp_provider_4,120
+admission_resp_provider_5,151
+required_offers_received,151
+provider_chosen,151
+deploy_request_sent,151
+confirm_deployment_received,1430
+establish_vxlan_connection_with_provider_start,1430
+establish_vxlan_connection_with_provider_finished,1717
+connection_test_success,3284
+service_id,servicee0099dcc
+provider_id,provider_3
