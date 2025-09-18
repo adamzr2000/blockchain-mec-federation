@@ -1,5 +1,5 @@
 {
-  "algorithm": "clique",
+  "algorithm": "qbft",
   "nodes": [
     {
       "name": "validator1",
