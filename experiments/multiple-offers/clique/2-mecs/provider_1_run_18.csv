@@ -1,0 +1,11 @@
+step,timestamp
+announce_received_servicecaff9214,1399
+required_announces_received,1399
+bid_offer_sent_servicecaff9214,1666
+all_bid_offers_sent,1667
+winner_received_servicecaff9214,11265
+all_winners_received,11265
+deployment_start_servicecaff9214,11275
+deployment_finished_servicecaff9214,11908
+confirm_deployment_sent_servicecaff9214,11956
+all_confirm_deployment_sent,11956

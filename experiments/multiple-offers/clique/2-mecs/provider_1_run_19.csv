@@ -1,0 +1,11 @@
+step,timestamp
+announce_received_servicecee1645a,499
+required_announces_received,500
+bid_offer_sent_servicecee1645a,757
+all_bid_offers_sent,757
+winner_received_servicecee1645a,10357
+all_winners_received,10357
+deployment_start_servicecee1645a,10366
+deployment_finished_servicecee1645a,11027
+confirm_deployment_sent_servicecee1645a,11089
+all_confirm_deployment_sent,11089

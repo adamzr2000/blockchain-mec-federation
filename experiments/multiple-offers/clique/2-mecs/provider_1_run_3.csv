@@ -1,0 +1,11 @@
+step,timestamp
+announce_received_serviceaaef7480,1196
+required_announces_received,1196
+bid_offer_sent_serviceaaef7480,1463
+all_bid_offers_sent,1463
+winner_received_serviceaaef7480,11234
+all_winners_received,11234
+deployment_start_serviceaaef7480,11245
+deployment_finished_serviceaaef7480,11945
+confirm_deployment_sent_serviceaaef7480,12021
+all_confirm_deployment_sent,12021
