@@ -1,0 +1,10 @@
+step,timestamp
+service_announced,51
+bid_received_1,6193
+required_bids_received,6193
+winner_choosen,6458
+confirm_deployment_received,16347
+establish_vxlan_connection_with_provider_start,16347
+establish_vxlan_connection_with_provider_finished,16643
+connection_test_success,17729
+service_id,servicecaff9214
