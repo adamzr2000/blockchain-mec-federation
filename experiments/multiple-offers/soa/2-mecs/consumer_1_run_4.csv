@@ -1,0 +1,12 @@
+step,timestamp
+service_announced,0
+admission_resp_provider_1,12
+required_offers_received,12
+provider_chosen,12
+deploy_request_sent,12
+confirm_deployment_received,621
+establish_vxlan_connection_with_provider_start,621
+establish_vxlan_connection_with_provider_finished,912
+connection_test_success,2478
+service_id,servicea324bba7
+provider_id,provider_1
