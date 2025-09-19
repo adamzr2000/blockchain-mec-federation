@@ -1,0 +1,11 @@
+step,timestamp
+announce_received_servicea2525498,1206
+required_announces_received,1206
+bid_offer_sent_servicea2525498,1486
+all_bid_offers_sent,1486
+winner_received_servicea2525498,11222
+all_winners_received,11222
+deployment_start_servicea2525498,11233
+deployment_finished_servicea2525498,11892
+confirm_deployment_sent_servicea2525498,11966
+all_confirm_deployment_sent,11966

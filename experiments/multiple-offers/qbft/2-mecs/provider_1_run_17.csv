@@ -1,0 +1,11 @@
+step,timestamp
+announce_received_service4083cdab,2287
+required_announces_received,2288
+bid_offer_sent_service4083cdab,2544
+all_bid_offers_sent,2544
+winner_received_service4083cdab,12169
+all_winners_received,12169
+deployment_start_service4083cdab,12179
+deployment_finished_service4083cdab,12840
+confirm_deployment_sent_service4083cdab,12896
+all_confirm_deployment_sent,12896
