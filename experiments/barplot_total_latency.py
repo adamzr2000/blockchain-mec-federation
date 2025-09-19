@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# barplot_latency_total_meanstd.py
+# barplot_total_latency.py
 # Single-panel barplot of total federation time (s).
 # Center can be mean-of-medians or median-of-medians; errors can be std or IQR.
 
@@ -33,9 +33,7 @@ def parse_args():
 
 def prep_grid(df, cols_needed):
     idx = pd.MultiIndex.from_product([KEEP_COUNTS, CONSENSUS_ORDER], names=["mec_count","consensus"])
-    df = df.set_index(["mec_count","consensus"])
-    df = df.reindex(idx)
-    df = df.reset_index()
+    df = df.set_index(["mec_count","consensus"]).reindex(idx).reset_index()
     # ensure numeric
     for c in cols_needed:
         if c in df.columns:
@@ -44,7 +42,7 @@ def prep_grid(df, cols_needed):
     return df
 
 def compute_err_arrays(df_plot, center_col_s, err_mode, std_col_s=None, p25_col_s=None, p75_col_s=None):
-    """Return arrays aligned with seaborn's bar draw order (x grouped by mec, hue by consensus)."""
+    """Return arrays aligned with product(KEEP_STR, CONSENSUS_ORDER)."""
     centers, err_low, err_high = [], [], []
     for mc, cons in product(KEEP_STR, CONSENSUS_ORDER):
         sel = df_plot[(df_plot["mec_count_cat"] == mc) & (df_plot["consensus"] == cons)]
@@ -63,7 +61,6 @@ def compute_err_arrays(df_plot, center_col_s, err_mode, std_col_s=None, p25_col_
         elif err_mode == "iqr":
             p25 = float(sel[p25_col_s].iloc[0]) if p25_col_s in sel.columns else np.nan
             p75 = float(sel[p75_col_s].iloc[0]) if p75_col_s in sel.columns else np.nan
-            # asymmetric whiskers around the chosen center
             lo = 0.0 if np.isnan(p25) or np.isnan(c) else max(0.0, c - p25)
             hi = 0.0 if np.isnan(p75) or np.isnan(c) else max(0.0, p75 - c)
             err_low.append(lo); err_high.append(hi)
@@ -72,24 +69,59 @@ def compute_err_arrays(df_plot, center_col_s, err_mode, std_col_s=None, p25_col_
 
     return np.array(centers), np.array(err_low), np.array(err_high)
 
-def add_errbars(ax, err_low, err_high):
-    # seaborn draws bars in the same product order; ax.patches aligns with that
-    for patch, lo, hi in zip(ax.patches, err_low, err_high):
-        x = patch.get_x() + patch.get_width() / 2.0
-        y = patch.get_height()
-        # matplotlib supports asymmetric yerr via a 2xN array, but we draw one by one:
-        ax.errorbar(x, y, yerr=[[lo], [hi]], fmt="none", ecolor="black",
-                    elinewidth=1.2, capsize=3, zorder=3)
+# --- FIXED: position-aware error bars and annotations (no reliance on ax.patches) ---
+def add_errbars(ax, centers, err_low, err_high):
+    """
+    Draw error bars using computed bar positions (aligned to mec × hue).
+    Order of arrays must be product(KEEP_STR, CONSENSUS_ORDER).
+    """
+    H = len(CONSENSUS_ORDER)
+    group_width = 0.8
+    bar_width   = group_width / H
+
+    xticks = ax.get_xticks()
+    if len(xticks) != len(KEEP_STR):
+        xticks = np.arange(len(KEEP_STR))
+
+    i = 0
+    for gi, _mc in enumerate(KEEP_STR):
+        x_center = xticks[gi]
+        x0 = x_center - group_width/2 + bar_width/2
+        for hj, _cons in enumerate(CONSENSUS_ORDER):
+            c  = centers[i]
+            lo = err_low[i]
+            hi = err_high[i]
+            i += 1
+            if np.isnan(c) or (lo == 0 and hi == 0):
+                continue
+            x = x0 + hj * bar_width
+            ax.errorbar(x, c, yerr=[[lo], [hi]], fmt="none",
+                        ecolor="black", elinewidth=1.2, capsize=3, zorder=3)
 
 def annotate_bars(ax, centers, err_high, fmt="{:.1f}s", dy_frac=0.02):
     ymin, ymax = ax.get_ylim()
     dy = (ymax - ymin) * dy_frac
-    for patch, c, hi in zip(ax.patches, centers, err_high):
-        if np.isnan(c):  # nothing to annotate
-            continue
-        x = patch.get_x() + patch.get_width() / 2.0
-        y = (c if np.isfinite(c) else patch.get_height()) + (hi if np.isfinite(hi) else 0.0) + dy
-        ax.text(x, y, fmt.format(c), ha="center", va="bottom", fontsize=9)
+    H = len(CONSENSUS_ORDER)
+    group_width = 0.8
+    bar_width   = group_width / H
+    xticks = ax.get_xticks()
+    if len(xticks) != len(KEEP_STR):
+        xticks = np.arange(len(KEEP_STR))
+
+    i = 0
+    for gi, _mc in enumerate(KEEP_STR):
+        x_center = xticks[gi]
+        x0 = x_center - group_width/2 + bar_width/2
+        for hj, _cons in enumerate(CONSENSUS_ORDER):
+            c  = centers[i]
+            hi = err_high[i]
+            i += 1
+            if np.isnan(c):
+                continue
+            x = x0 + hj * bar_width
+            y = c + (hi if np.isfinite(hi) else 0.0) + dy
+            ax.text(x, y, fmt.format(c), ha="center", va="bottom", fontsize=9)
+# -------------------------------------------------------------------------------
 
 def main():
     args = parse_args()
@@ -111,25 +143,42 @@ def main():
     for src in cols_needed:
         df[src.replace("_ms","_s")] = df[src] / 1000.0
 
+    # (optional) quick log of mean ± std used
+    print("[log] Per-series mean ± std (seconds):")
+    for mc in KEEP_STR:
+        for cons in CONSENSUS_ORDER:
+            sel = df[(df["mec_count_cat"] == mc) & (df["consensus"] == cons)]
+            if sel.empty or sel["dur_total_mean_s"].isna().all():
+                continue
+            mean_s = float(sel["dur_total_mean_s"].iloc[0])
+            std_s  = float(sel["dur_total_std_s"].iloc[0]) if "dur_total_std_s" in sel.columns else float("nan")
+            print(f"[log] MEC={mc:>2} | {cons.upper():<5}  mean={mean_s:8.3f}s  std={std_s:8.3f}s")
+    print()
+
     # choose center & error mode
     if args.err == "auto":
         err_mode = "std" if args.center == "mean" else "iqr"
     else:
         err_mode = args.err
 
-    if args.center == "mean":
-        center_col_s = "dur_total_mean_s"
-    else:
-        center_col_s = "dur_total_median_s"
-
+    center_col_s = "dur_total_mean_s" if args.center == "mean" else "dur_total_median_s"
     std_col_s = "dur_total_std_s"
     p25_col_s = "dur_total_p25_s"
     p75_col_s = "dur_total_p75_s"
 
-    centers, err_low, err_high = compute_err_arrays(df, center_col_s, err_mode,
-                                                    std_col_s=std_col_s,
-                                                    p25_col_s=p25_col_s,
-                                                    p75_col_s=p75_col_s)
+    centers, err_low, err_high = compute_err_arrays(
+        df, center_col_s, err_mode,
+        std_col_s=std_col_s, p25_col_s=p25_col_s, p75_col_s=p75_col_s
+    )
+
+    # sanity log for the actual errorbars used
+    print("[log] Errorbars used (seconds):")
+    k = 0
+    for mc in KEEP_STR:
+        for cons in CONSENSUS_ORDER:
+            print(f"[log] MEC={mc:>2} | {cons.upper():<5}  center={centers[k]:.3f}s  -{err_low[k]:.3f}/+{err_high[k]:.3f}")
+            k += 1
+    print()
 
     # Plot
     sns.set_theme(context="paper", style="ticks")
@@ -141,9 +190,9 @@ def main():
         hue_order=CONSENSUS_ORDER, palette=PALETTE, errorbar=None, ax=ax
     )
 
-    # Add error bars after bars are drawn
+    # position-aware error bars and annotations
     if err_mode != "none":
-        add_errbars(ax, err_low, err_high)
+        add_errbars(ax, centers, err_low, err_high)
 
     # Cosmetics
     ax.set_xlabel("Number of MECs")
@@ -161,7 +210,7 @@ def main():
     leg = ax.legend(handles, labels, title=None, frameon=True, loc="upper left")
     leg.get_frame().set_edgecolor("black"); leg.get_frame().set_linewidth(1.1)
 
-    # Optional numeric labels on top of bars (after setting ylim)
+    # Optional numeric labels on top of bars
     if args.annot:
         annotate_bars(ax, centers, err_high, fmt="{:.1f}s", dy_frac=0.02)
 

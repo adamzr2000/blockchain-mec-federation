@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 # barplot_resource_cpu_mem.py
-# Two-panel seaborn figure: CPU (vCPU) and Memory (MB), mean ± std, for mec_count 10/20/30.
+# Two-panel seaborn figure: CPU (vCPU) and Memory (MB), mean ± std, for mec_count 4/10/20/30.
 
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 from itertools import product
+import numpy as np
 
 CSV_PATH = Path("multiple-offers/_summary/resource_usage_overall.csv")
 
@@ -32,16 +33,17 @@ def choose_aggregation(df):
     for a in AGG_PREFERENCE:
         if (df["aggregation"] == a).any():
             return df[df["aggregation"] == a].copy(), a
-    # If neither is present, just return as-is (unlikely)
     return df, None
 
 def prep(df, mean_col, std_col):
     """Reindex to full (mec_count, consensus) grid so bars and error bars align."""
     idx = pd.MultiIndex.from_product([KEEP_COUNTS, CONSENSUS_ORDER], names=["mec_count", "consensus"])
-    out = (df.set_index(["mec_count", "consensus"])
-             [[mean_col, std_col]]
-             .reindex(idx)
-             .reset_index())
+    out = (
+        df.set_index(["mec_count", "consensus"])
+          [[mean_col, std_col]]
+          .reindex(idx)
+          .reset_index()
+    )
     out["mec_count_cat"] = pd.Categorical(out["mec_count"].astype(str), categories=KEEP_STR, ordered=True)
     return out
 
@@ -53,29 +55,72 @@ def stylize_axes(ax):
     ax.set_ylim(0, None)
 
 def add_errbars(ax, df_plot, mean_col, std_col):
-    yerrs = []
-    for mc, cons in product(KEEP_STR, CONSENSUS_ORDER):
-        sel = df_plot[(df_plot["mec_count_cat"] == mc) & (df_plot["consensus"] == cons)]
-        yerrs.append(float(sel[std_col].iloc[0]) if not sel.empty else 0.0)
-    for patch, yerr in zip(ax.patches, yerrs):
-        x_center = patch.get_x() + patch.get_width() / 2.0
-        ax.errorbar(x_center, patch.get_height(), yerr=yerr,
-                    fmt="none", ecolor="black", elinewidth=1.2, capsize=3)
+    """
+    Draw symmetric ±std error bars using explicit bar positions
+    (aligned to mec_count × consensus). Works even if seaborn drops NaN bars.
+    """
+    H = len(CONSENSUS_ORDER)   # number of hues
+    group_width = 0.8
+    bar_width   = group_width / H
+
+    # Category tick positions (one per mec group)
+    xticks = ax.get_xticks()
+    if len(xticks) != len(KEEP_STR):
+        xticks = np.arange(len(KEEP_STR))
+
+    for gi, mc in enumerate(KEEP_STR):
+        x_center = xticks[gi]
+        x0 = x_center - group_width/2 + bar_width/2
+        for hj, cons in enumerate(CONSENSUS_ORDER):
+            sel = df_plot[(df_plot["mec_count_cat"] == mc) & (df_plot["consensus"] == cons)]
+            if sel.empty:
+                continue
+
+            mean_y = float(sel[mean_col].iloc[0])
+            std_y  = float(sel[std_col].iloc[0])
+
+            if not np.isfinite(mean_y) or not np.isfinite(std_y) or std_y == 0.0:
+                continue
+
+            x = x0 + hj * bar_width
+            ax.errorbar(
+                x, mean_y,
+                yerr=std_y,
+                fmt="none",
+                ecolor="black",
+                elinewidth=1.2,
+                capsize=3,
+                zorder=3,
+            )
+
+def log_stats_block(title, df_plot, mean_col, std_col, units):
+    """Print a tidy block of mean ± std by mec_count × consensus."""
+    print(f"[log] {title}")
+    for mc in KEEP_STR:
+        for cons in CONSENSUS_ORDER:
+            row = df_plot[(df_plot["mec_count_cat"] == mc) & (df_plot["consensus"] == cons)]
+            if row.empty:
+                continue
+            mean_v = float(row[mean_col].iloc[0])
+            std_v  = float(row[std_col].iloc[0])
+            print(f"  MEC={mc:>2} | {cons.upper():<5}  mean={mean_v:8.3f} {units}  std={std_v:8.3f} {units}")
+    print()
 
 def main():
     df = pd.read_csv(CSV_PATH)
 
-    # Normalize any legacy grouper names that may have trailing underscores
+    # Normalize any legacy column names
     df = df.rename(columns={
         "consensus_": "consensus",
         "mec_count_": "mec_count",
         "role_": "role",
     })
 
-    # Choose which aggregation to plot (prefer low-noise)
+    # Choose aggregation to plot (prefer low-noise)
     df, agg_used = choose_aggregation(df)
+    print(f"[log] Using aggregation: {agg_used or 'N/A (not present)'}")
 
-    # Keep 10/20/30 only and set ordering
+    # Keep desired mec_counts and set ordering
     df = df[df["mec_count"].isin(KEEP_COUNTS)].copy()
     df["consensus"] = pd.Categorical(df["consensus"], categories=CONSENSUS_ORDER, ordered=True)
 
@@ -99,6 +144,10 @@ def main():
     # ---- CPU panel ----
     ax0 = axes[0]
     d_cpu = prep(df, "cpu_mean_vcpu", "cpu_std_vcpu")
+
+    # Logs for CPU
+    log_stats_block("CPU mean ± std (vCPU)", d_cpu, "cpu_mean_vcpu", "cpu_std_vcpu", "vCPU")
+
     sns.barplot(
         data=d_cpu, x="mec_count_cat", y="cpu_mean_vcpu", hue="consensus",
         hue_order=CONSENSUS_ORDER, palette=PALETTE,
@@ -116,6 +165,10 @@ def main():
     # ---- Memory panel ----
     ax1 = axes[1]
     d_mem = prep(df, "mem_mean_mb", "mem_std_mb")
+
+    # Logs for Memory
+    log_stats_block("MEM mean ± std (MB)", d_mem, "mem_mean_mb", "mem_std_mb", "MB")
+
     sns.barplot(
         data=d_mem, x="mec_count_cat", y="mem_mean_mb", hue="consensus",
         hue_order=CONSENSUS_ORDER, palette=PALETTE,
@@ -130,9 +183,11 @@ def main():
     leg1 = ax1.legend(h1, l1, title=None, frameon=True, loc="upper left", fancybox=True)
     leg1.get_frame().set_edgecolor("black"); leg1.get_frame().set_linewidth(1.1)
 
-    plt.show()
+    # Save & show
     out = Path("plots"); out.mkdir(exist_ok=True, parents=True)
     fig.savefig(out / "resource_usage_cpu_mem_barplot.pdf", dpi=300, bbox_inches="tight")
+    print(f"[log] Saved: {out / 'resource_usage_cpu_mem_barplot.pdf'}")
+    plt.show()
 
 if __name__ == "__main__":
     main()

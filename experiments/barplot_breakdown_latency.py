@@ -43,6 +43,37 @@ def parse_args():
                     help="Error bars per phase: std (±), iqr (p25–p75 as asymmetric), or none. Default: std.")
     return ap.parse_args()
 
+def log_phase_block(title: str, grid: pd.DataFrame, ci_mode: str):
+    """Pretty print per-phase centers and errors for every MEC × consensus."""
+    print(f"[log] {title}")
+    for cons in CONSENSUS_ORDER:
+        sub = grid[grid["consensus"] == cons]
+        if sub.empty:
+            continue
+        print(f"  {cons.upper()}:")
+        for mc in KEEP_COUNTS:
+            row = sub[sub["mec_count"] == mc]
+            if row.empty:
+                continue
+            print(f"    MEC={mc:>2}")
+            stack_top = 0.0
+            max_up = 0.0
+            for phase_key, label in PHASES:
+                c = float(row[f"{phase_key}_center"].iloc[0])
+                lo = float(row[f"{phase_key}_err_lo"].iloc[0])
+                up = float(row[f"{phase_key}_err_up"].iloc[0])
+                stack_top += c
+                max_up = max(max_up, up)
+                if ci_mode == "std":
+                    # symmetric (±std): lo==up
+                    print(f"      - {label:<30} center={c:7.3f}s  ±std={up:7.3f}s")
+                elif ci_mode == "iqr":
+                    print(f"      - {label:<30} center={c:7.3f}s  IQR:-{lo:7.3f}/+{up:7.3f}s")
+                else:
+                    print(f"      - {label:<30} center={c:7.3f}s")
+            print(f"      > stack_top={stack_top:7.3f}s  max_up_err={max_up:7.3f}s")
+    print()
+
 def main():
     args = parse_args()
 
@@ -54,6 +85,7 @@ def main():
         raise SystemExit(f"Missing CSV: {CSV_PATH}")
 
     df = pd.read_csv(CSV_PATH)
+    before_rows = len(df)
 
     # Keep only low-noise layer
     if "aggregation" in df.columns:
@@ -110,10 +142,10 @@ def main():
         err_lo[key]  = err_lo[key]  * factor
         err_up[key]  = err_up[key]  * factor
 
-        # IMPORTANT: actually add to df so selection works
-        df[f"{key}_center"] = centers[key]
-        df[f"{key}_err_lo"] = err_lo[key]
-        df[f"{key}_err_up"] = err_up[key]
+        # store for plotting/logging
+        df[f"{key}_center"] = pd.to_numeric(centers[key], errors="coerce").fillna(0.0)
+        df[f"{key}_err_lo"] = pd.to_numeric(err_lo[key],  errors="coerce").fillna(0.0)
+        df[f"{key}_err_up"] = pd.to_numeric(err_up[key],  errors="coerce").fillna(0.0)
 
     # Build tidy grid indexed by (mec_count, consensus)
     idx = pd.MultiIndex.from_product([KEEP_COUNTS, CONSENSUS_ORDER], names=["mec_count","consensus"])
@@ -129,6 +161,13 @@ def main():
 
     # Replace remaining NaNs with zeros for plotting safety
     grid[use_cols] = grid[use_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+
+    # ---------------- Logs ----------------
+    print("[log] Federation phase stacked barplot")
+    print(f"[log] Rows read: {before_rows} | used after filtering: {len(df)} | grid size: {len(grid)}")
+    unit = "s" if TO_SECONDS else "ms"
+    print(f"[log] Mode: centers={args.agg} | CI={args.ci} | units={unit}")
+    log_phase_block("Per MEC × consensus × phase", grid, args.ci)
 
     # X positions (grouped by mec_count; two bars per group)
     x_vals  = np.arange(len(KEEP_COUNTS), dtype=float)
@@ -165,11 +204,12 @@ def main():
             )
 
             # Error bars at top of segment (supports asymmetric IQR)
-            y_top = bottoms + heights
-            ax.errorbar(
-                x_vals + offsets[cons], y_top, yerr=[lo, up],
-                fmt="none", ecolor="black", elinewidth=1.0, capsize=3, zorder=3
-            )
+            if args.ci != "none" and (np.any(lo > 0) or np.any(up > 0)):
+                y_top = bottoms + heights
+                ax.errorbar(
+                    x_vals + offsets[cons], y_top, yerr=[lo, up],
+                    fmt="none", ecolor="black", elinewidth=1.0, capsize=3, zorder=3
+                )
 
             perbar_max_up = np.maximum(perbar_max_up, up)
             bottoms += heights
@@ -213,9 +253,7 @@ def main():
     outdir = Path("plots"); outdir.mkdir(parents=True, exist_ok=True)
     fname = f"latency_breakdown_stacked_{args.agg}_{args.ci}.pdf"
     fig.savefig(outdir / fname, dpi=300, bbox_inches="tight")
-
-    print(f"[bars] {args.agg}-of-medians per phase; [errors] {args.ci}")
-    print(f"Saved plots/{fname}")
+    print(f"[log] Saved plots/{fname}")
     plt.show()
 
 if __name__ == "__main__":

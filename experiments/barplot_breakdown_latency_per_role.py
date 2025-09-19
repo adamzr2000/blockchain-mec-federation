@@ -69,6 +69,28 @@ def _place_consensus_labels(ax, x_vals, offsets, label_tops, global_max):
             )
     return max(global_max, y_max_for_ylim)
 
+def _log_panel(header, grid, phases, suf_center, suf_std, has_std):
+    print(f"[log] {header}")
+    for cons in CONSENSUS_ORDER:
+        sub = grid[grid["consensus"] == cons]
+        if sub.empty:
+            continue
+        for i, mc in enumerate(KEEP_COUNTS):
+            row = sub[sub["mec_count"] == mc]
+            if row.empty:
+                continue
+            bottoms = 0.0
+            perbar_max_std = 0.0
+            print(f"  MEC={mc:>2} | {cons.upper()}")
+            for (key, label) in phases:
+                c = float(row[f"{key}_{suf_center}"].iloc[0]) if f"{key}_{suf_center}" in row.columns else float("nan")
+                s = float(row[f"{key}_{suf_std}"].iloc[0])    if (has_std and f"{key}_{suf_std}" in row.columns) else 0.0
+                print(f"    - {label:<40} center={c:7.3f}s  std={s:7.3f}s")
+                bottoms += c
+                perbar_max_std = max(perbar_max_std, s)
+            print(f"    > top={bottoms:7.3f}s   max_segment_std={perbar_max_std:7.3f}s")
+    print()
+
 def main():
     args = parse_args()
     if not C_PATH.exists() or not P_PATH.exists():
@@ -87,15 +109,15 @@ def main():
     prov = prov[prov["mec_count"].isin(KEEP_COUNTS) & prov["consensus"].isin(CONSENSUS_ORDER)].copy()
 
     # center suffix
-    suf = "mean_ms" if args.agg == "mean" else "median_ms"
+    suf_ms_center = "mean_ms" if args.agg == "mean" else "median_ms"
 
     # Ensure required cols (consumer centers + stds)
-    need_c_centers = [f"{k}_{suf}" for k,_ in C_PHASES] + ["dur_vxlan_setup_"+suf, "dur_federation_completed_"+suf]
+    need_c_centers = [f"{k}_{suf_ms_center}" for k,_ in C_PHASES] + ["dur_vxlan_setup_"+suf_ms_center, "dur_federation_completed_"+suf_ms_center]
     need_c_stds    = [f"{k}_std_ms" for k,_ in C_PHASES] + ["dur_vxlan_setup_std_ms", "dur_federation_completed_std_ms"]
     cons = _to_num(cons, need_c_centers + need_c_stds)
 
     # Ensure required cols (provider centers + stds)
-    need_p_centers = [f"{k}_{suf}" for k,_ in P_PHASES]
+    need_p_centers = [f"{k}_{suf_ms_center}" for k,_ in P_PHASES]
     need_p_stds    = [f"{k}_std_ms" for k,_ in P_PHASES]
     prov = _to_num(prov, need_p_centers + need_p_stds)
 
@@ -118,27 +140,41 @@ def main():
             .reset_index()
     )
 
-    # ----- ms → s and clamp negatives for plotting safety -----
-    for col in need_c_centers:
-        cons_grid[col] = pd.to_numeric(cons_grid[col], errors="coerce").fillna(0).clip(lower=0) / 1000.0
-    for col in need_p_centers:
-        prov_grid[col] = pd.to_numeric(prov_grid[col], errors="coerce").fillna(0).clip(lower=0) / 1000.0
-    for col in need_c_stds:
-        cons_grid[col] = pd.to_numeric(cons_grid[col], errors="coerce").fillna(0).clip(lower=0) / 1000.0
-    for col in need_p_stds:
-        prov_grid[col] = pd.to_numeric(prov_grid[col], errors="coerce").fillna(0).clip(lower=0) / 1000.0
+    # ----- Convert ms → s; write to *_center_s / *_std_s for clarity -----
+    # consumer
+    for (key, _) in C_PHASES + [("dur_vxlan_setup",""), ("dur_federation_completed","")]:
+        c_ms = f"{key}_{suf_ms_center}"
+        s_ms = f"{key}_std_ms"
+        if c_ms in cons_grid.columns:
+            cons_grid[f"{key}_center_s"] = pd.to_numeric(cons_grid[c_ms], errors="coerce").fillna(0).clip(lower=0) / 1000.0
+        if s_ms in cons_grid.columns:
+            cons_grid[f"{key}_std_s"]    = pd.to_numeric(cons_grid[s_ms], errors="coerce").fillna(0).clip(lower=0) / 1000.0
+
+    # provider
+    for (key, _) in P_PHASES:
+        c_ms = f"{key}_{suf_ms_center}"
+        s_ms = f"{key}_std_ms"
+        if c_ms in prov_grid.columns:
+            prov_grid[f"{key}_center_s"] = pd.to_numeric(prov_grid[c_ms], errors="coerce").fillna(0).clip(lower=0) / 1000.0
+        if s_ms in prov_grid.columns:
+            prov_grid[f"{key}_std_s"]    = pd.to_numeric(prov_grid[s_ms], errors="coerce").fillna(0).clip(lower=0) / 1000.0
 
     # Consumer combined last phase (vxlan + post-check): centers & stds (quadrature)
-    cons_grid["cons_last_center_s"] = cons_grid["dur_vxlan_setup_"+suf] + cons_grid["dur_federation_completed_"+suf]
-    cons_grid["cons_last_std_s"] = np.sqrt(
-        cons_grid["dur_vxlan_setup_std_ms"]**2 + cons_grid["dur_federation_completed_std_ms"]**2
+    cons_grid["cons_last_center_s"] = cons_grid["dur_vxlan_setup_center_s"].fillna(0) + cons_grid["dur_federation_completed_center_s"].fillna(0)
+    cons_grid["cons_last_std_s"]    = np.sqrt(
+        cons_grid["dur_vxlan_setup_std_s"].fillna(0)**2 + cons_grid["dur_federation_completed_std_s"].fillna(0)**2
     )
+
+    # ---------------------- Logs ----------------------
+    has_std = (args.err == "std")
+    print(f"[log] Mode: centers={args.agg}  |  errors={'±STD per segment' if has_std else 'none'}  |  units=seconds")
+    _log_panel("CONSUMER segments (center/std per phase)", cons_grid, C_PHASES + [("cons_last","(VXLAN + Completed)")], "center_s", "std_s", has_std)
+    _log_panel("PROVIDER segments (center/std per phase)", prov_grid, P_PHASES, "center_s", "std_s", has_std)
 
     # ---------------------- Plot ----------------------
     sns.set_theme(context="paper", style="ticks")
     sns.set_context("paper", font_scale=1.4)
 
-    # sharey=True -> aligned y scale
     fig, (axc, axp) = plt.subplots(1, 2, figsize=(12.8, 5.8), sharey=True)
 
     # Common x positions: grouped by mec_count, two bars per group (clique left, qbft right)
@@ -157,20 +193,20 @@ def main():
 
         # first three stacks
         for (key, label), color in zip(C_PHASES, C_COLORS[:3]):
-            heights = sub[f"{key}_{suf}"].to_numpy()
-            stds    = sub[f"{key}_std_ms"].to_numpy()
+            heights = sub[f"{key}_center_s"].to_numpy()
+            stds    = sub.get(f"{key}_std_s", pd.Series([0.0]*len(sub))).to_numpy()
             axc.bar(
                 x_vals + offsets[cons_name], heights, width=bar_w,
                 bottom=bottoms, color=color, edgecolor="black", linewidth=0.7,
                 hatch=HATCH[cons_name], label=label if cons_name == CONSENSUS_ORDER[0] else None
             )
-            if args.err == "std":
+            if has_std:
                 y_top = bottoms + heights
                 axc.errorbar(
                     x_vals + offsets[cons_name], y_top, yerr=stds,
                     fmt="none", ecolor="black", elinewidth=1.0, capsize=3, zorder=3
                 )
-                perbar_max_std = np.maximum(perbar_max_std, stds)
+                perbar_max_std = np.maximum(perbar_max_std, np.nan_to_num(stds, nan=0.0))
             bottoms += heights
 
         # last combined stack
@@ -181,13 +217,13 @@ def main():
             bottom=bottoms, color=C_COLORS[3], edgecolor="black", linewidth=0.7,
             hatch=HATCH[cons_name], label=C_LAST_LABEL if cons_name == CONSENSUS_ORDER[0] else None
         )
-        if args.err == "std":
+        if has_std:
             y_top = bottoms + heights
             axc.errorbar(
                 x_vals + offsets[cons_name], y_top, yerr=stds,
                 fmt="none", ecolor="black", elinewidth=1.0, capsize=3, zorder=3
             )
-            perbar_max_std = np.maximum(perbar_max_std, stds)
+            perbar_max_std = np.maximum(perbar_max_std, np.nan_to_num(stds, nan=0.0))
 
         tops = bottoms + heights
         global_max_c = max(global_max_c, np.max(tops + perbar_max_std))
@@ -217,20 +253,20 @@ def main():
         perbar_max_std = np.zeros(len(sub), dtype=float)
 
         for (key, label), color in zip(P_PHASES, P_COLORS):
-            heights = sub[f"{key}_{suf}"].to_numpy()
-            stds    = sub[f"{key}_std_ms"].to_numpy()
+            heights = sub[f"{key}_center_s"].to_numpy()
+            stds    = sub.get(f"{key}_std_s", pd.Series([0.0]*len(sub))).to_numpy()
             axp.bar(
                 x_vals + offsets[cons_name], heights, width=bar_w,
                 bottom=bottoms, color=color, edgecolor="black", linewidth=0.7,
                 hatch=HATCH[cons_name], label=label if cons_name == CONSENSUS_ORDER[0] else None
             )
-            if args.err == "std":
+            if has_std:
                 y_top = bottoms + heights
                 axp.errorbar(
                     x_vals + offsets[cons_name], y_top, yerr=stds,
                     fmt="none", ecolor="black", elinewidth=1.0, capsize=3, zorder=3
                 )
-                perbar_max_std = np.maximum(perbar_max_std, stds)
+                perbar_max_std = np.maximum(perbar_max_std, np.nan_to_num(stds, nan=0.0))
             bottoms += heights
 
         tops = bottoms
@@ -240,7 +276,6 @@ def main():
     # X labels + title (NO y label on the right panel)
     axp.set_xticks(x_vals, [str(mc) for mc in KEEP_COUNTS])
     axp.set_xlabel("Number of MECs")
-    # axp.set_ylabel("")   # not needed; shared y shows ticks on the left axis
     axp.set_title("Provider — Federation Procedures", pad=10)
     leg_p = axp.legend(title=None, frameon=True, loc="upper left")  # phase legend only
     leg_p.get_frame().set_edgecolor("black"); leg_p.get_frame().set_linewidth(1.0)
@@ -258,7 +293,7 @@ def main():
     outdir = Path("plots"); outdir.mkdir(parents=True, exist_ok=True)
     fname = f"stacked_durations_consumer_provider_{args.agg}_{args.err}.pdf"
     fig.savefig(outdir / fname, dpi=300, bbox_inches="tight")
-    print(f"Saved plots/{fname}")
+    print(f"[log] Saved plots/{fname}")
     print(f"[centers] {args.agg} of per-node medians | [errors] {args.err} | shared y-axis | consensus labels above bars")
 
     plt.show()
